@@ -1,2 +1,15 @@
 /** Static markup for channels. Replace with data-driven components when wiring the API. */
-export const content = "    <div class=\"page-hd\"><h2>Channels</h2><p>Configure and monitor data ingestion channels.</p></div>\n    <div class=\"ch\"><span></span><button class=\"btn p\" data-open=\"m-channel\"><i class=\"ti ti-plus\"></i>Create channel</button></div>\n    <div class=\"card\">\n      <table>\n        <colgroup><col style=\"width:28%\"><col style=\"width:18%\"><col style=\"width:20%\"><col style=\"width:12%\"><col style=\"width:12%\"><col style=\"width:10%\"></colgroup>\n        <thead><tr><th>Channel</th><th>Type</th><th>Schedule</th><th>Status</th><th>Last msg</th><th></th></tr></thead>\n        <tbody>\n          <tr><td><span style=\"font-weight:500\">@addis_poi_reports</span><br><span class=\"mono\">POI · am</span></td><td><span class=\"tag\">TELEGRAM_BOT</span></td><td>INTERVAL 30s</td><td><span class=\"bx s\">Active</span></td><td style=\"color:var(--text-muted)\">2m ago</td><td><button class=\"btn sm\" data-toast=\"Showing cursors\"><i class=\"ti ti-cursor-text\"></i></button></td></tr>\n          <tr><td><span style=\"font-weight:500\">@addis_real_estate</span><br><span class=\"mono\">RE · am</span></td><td><span class=\"tag\">TELEGRAM_BOT</span></td><td>INTERVAL 60s</td><td><span class=\"bx s\">Active</span></td><td style=\"color:var(--text-muted)\">14m ago</td><td><button class=\"btn sm\"><i class=\"ti ti-cursor-text\"></i></button></td></tr>\n          <tr><td><span style=\"font-weight:500\">REST ingest</span><br><span class=\"mono\">POI · en</span></td><td><span class=\"tag\">REST_API</span></td><td>WEBHOOK</td><td><span class=\"bx s\">Active</span></td><td style=\"color:var(--text-muted)\">1m ago</td><td><button class=\"btn sm\"><i class=\"ti ti-cursor-text\"></i></button></td></tr>\n          <tr><td><span style=\"font-weight:500\">Nightly batch</span><br><span class=\"mono\">NATURAL · en</span></td><td><span class=\"tag\">BATCH_IMPORT</span></td><td>CRON 0 2 * * *</td><td><span class=\"bx w\">Inactive</span></td><td style=\"color:var(--text-muted)\">8h ago</td><td><button class=\"btn sm\"><i class=\"ti ti-cursor-text\"></i></button></td></tr>\n        </tbody>\n      </table>\n    </div>\n  </div>\n\n  <!-- ===== RAW INGESTS ===== -->";
+export const content = `    <div class="page-hd"><h2>Channels</h2><p>Configure and monitor data ingestion channels.</p></div>
+    <div class="ch"><span></span><button class="btn p" data-open="m-channel"><i class="ti ti-plus"></i>Create channel</button></div>
+    <div class="card">
+      <table>
+        <colgroup><col style="width:28%"><col style="width:18%"><col style="width:20%"><col style="width:12%"><col style="width:12%"><col style="width:10%"></colgroup>
+        <thead><tr><th>Channel</th><th>Type</th><th>Schedule</th><th>Status</th><th>Last msg</th><th></th></tr></thead>
+        <tbody>
+          <tr><td><span style="font-weight:500">telegram_news_feed</span><br><span class="mono">TEXT · en</span></td><td><span class="tag">TELEGRAM</span></td><td>WEBHOOK</td><td><span class="bx s">Active</span></td><td style="color:var(--text-muted)">2m ago</td><td><button class="btn sm"><i class="ti ti-cursor-text"></i></button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== CHANNELS ===== -->`;
