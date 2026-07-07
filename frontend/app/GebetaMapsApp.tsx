@@ -6,7 +6,10 @@ import Sidebar from "@/features/shared/Sidebar";
 import Topbar from "@/features/shared/Topbar";
 import ViewContent from "@/features/shared/ViewContent";
 
-function findActionTarget(start: HTMLElement, root: HTMLElement): HTMLElement | null {
+function findActionTarget(
+  start: HTMLElement,
+  root: HTMLElement,
+): HTMLElement | null {
   let el: HTMLElement | null = start;
   while (el && el !== root) {
     if (
@@ -26,17 +29,13 @@ export default function GebetaMapsApp() {
   const [activeView, setActiveView] = useState("overview");
   const [toastMsg, setToastMsg] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => typeof window === "undefined" || window.innerWidth > 768,
+  );
   const mainRef = useRef<HTMLDivElement>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
-
-  useEffect(() => {
-    if (window.innerWidth <= 768) {
-      setSidebarOpen(false);
-    }
-  }, []);
 
   const showToast = useCallback((msg: string) => {
     setToastMsg(msg);

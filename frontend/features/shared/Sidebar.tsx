@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { navGroups } from "./nav";
+import type { FeatureNavGroup } from "./types";
 
 type SidebarProps = {
   activeView: string;
@@ -11,12 +12,11 @@ type SidebarProps = {
   onClose: () => void;
 };
 
-function buildInitialOpenState(): Record<string, boolean> {
-  const initial: Record<string, boolean> = {};
-  navGroups.forEach((group) => {
-    initial[group.title] = group.defaultOpen ?? false;
-  });
-  return initial;
+function getDefaultOpen(group: FeatureNavGroup, activeView: string): boolean {
+  return (
+    Boolean(group.defaultOpen) ||
+    group.items.some((item) => item.id === activeView)
+  );
 }
 
 export default function Sidebar({
@@ -25,20 +25,25 @@ export default function Sidebar({
   isOpen,
   onClose,
 }: SidebarProps) {
-  const [openGroups, setOpenGroups] = useState(buildInitialOpenState);
+  // Only records groups the user has explicitly toggled. Anything not in
+  // here falls back to the derived default (open if it's marked
+  // `defaultOpen` or contains the active view). This keeps the open/closed
+  // state a pure function of props + explicit user action, so a manual
+  // collapse always sticks instead of being forced back open.
+  const [groupOverrides, setGroupOverrides] = useState<Record<string, boolean>>(
+    {},
+  );
 
-  useEffect(() => {
-    const group = navGroups.find((g) =>
-      g.items.some((item) => item.id === activeView),
-    );
-    if (group) {
-      setOpenGroups((prev) => ({ ...prev, [group.title]: true }));
-    }
-  }, [activeView]);
-
-  const toggleGroup = useCallback((title: string) => {
-    setOpenGroups((prev) => ({ ...prev, [title]: !prev[title] }));
-  }, []);
+  const toggleGroup = useCallback(
+    (group: FeatureNavGroup) => {
+      setGroupOverrides((prev) => {
+        const currentlyOpen =
+          prev[group.title] ?? getDefaultOpen(group, activeView);
+        return { ...prev, [group.title]: !currentlyOpen };
+      });
+    },
+    [activeView],
+  );
 
   const handleNav = useCallback(
     (id: string) => {
@@ -76,20 +81,24 @@ export default function Sidebar({
         </div>
 
         {navGroups.map((group) => {
-          const isOpen = openGroups[group.title];
+          const isGroupOpen =
+            groupOverrides[group.title] ?? getDefaultOpen(group, activeView);
 
           return (
-            <div key={group.title} className={`nav-group${isOpen ? " open" : ""}`}>
+            <div
+              key={group.title}
+              className={`nav-group${isGroupOpen ? " open" : ""}`}
+            >
               <button
                 type="button"
                 className="nav-section"
-                aria-expanded={isOpen}
-                onClick={() => toggleGroup(group.title)}
+                aria-expanded={isGroupOpen}
+                onClick={() => toggleGroup(group)}
               >
                 {group.title}
                 <i className="ti ti-chevron-down nav-chevron" />
               </button>
-              {isOpen &&
+              {isGroupOpen &&
                 group.items.map((item) => (
                   <div
                     key={item.id}

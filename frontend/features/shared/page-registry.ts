@@ -6,6 +6,7 @@ import { pages as dataPages } from "@/features/data/registry";
 import { pages as workersPages } from "@/features/workers/registry";
 import { pages as qualityPages } from "@/features/quality/registry";
 import { pages as systemPages } from "@/features/system/registry";
+import { pages as categoryPages } from "@/features/category/registry";
 
 export const pageRegistry = {
   ...overviewPages,
@@ -15,6 +16,7 @@ export const pageRegistry = {
   ...workersPages,
   ...qualityPages,
   ...systemPages,
+  ...categoryPages,
 } satisfies Record<string, ComponentType>;
 
 export type PageId = keyof typeof pageRegistry;
