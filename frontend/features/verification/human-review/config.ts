@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Human Review",
   "icon": "ti-users",
   "slug": "human-review",
+  "path": "/verification/human-review",
   "apiEndpoint": "/api/verification/review"
 } satisfies PageConfig;

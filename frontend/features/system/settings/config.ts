@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Platform Settings",
   "icon": "ti-settings",
   "slug": "settings",
+  "path": "/system/settings",
   "apiEndpoint": "/api/system/settings"
 } satisfies PageConfig;

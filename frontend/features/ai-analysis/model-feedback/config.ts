@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Model Feedback",
   "icon": "ti-adjustments-alt",
   "slug": "model-feedback",
+  "path": "/ai-analysis/model-feedback",
   "apiEndpoint": "/api/ai/feedback"
 } satisfies PageConfig;

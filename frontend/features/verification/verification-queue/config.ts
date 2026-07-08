@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Verification Queue",
   "icon": "ti-list-check",
   "slug": "verification-queue",
+  "path": "/verification/queue",
   "apiEndpoint": "/api/verification/queue"
 } satisfies PageConfig;

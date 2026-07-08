@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Worker Schemas",
   "icon": "ti-file-code",
   "slug": "schemas",
+  "path": "/data/schemas",
   "apiEndpoint": "/api/data/schemas"
 } satisfies PageConfig;

@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "System Overview",
   "icon": "ti-layout-dashboard",
   "slug": "overview-dashboard",
+  "path": "/overview",
   "apiEndpoint": "/api/overview/dashboard"
 } satisfies PageConfig;

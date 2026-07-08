@@ -6,6 +6,7 @@ export type PageConfig = {
   title: string;
   icon: string;
   slug: string;
+  path: string;
   apiEndpoint: string;
 };
 

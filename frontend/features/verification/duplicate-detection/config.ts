@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Duplicate Detection",
   "icon": "ti-copy",
   "slug": "duplicate-detection",
+  "path": "/verification/duplicate-detection",
   "apiEndpoint": "/api/verification/duplicates"
 } satisfies PageConfig;

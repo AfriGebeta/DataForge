@@ -34,8 +34,7 @@ export default function Topbar({
 
   // Convert pathname to page title
   // e.g. "/data/channels" -> look up in pageTitles
-  const slug = pathname.replace(/^\//, "");
-  const pageTitle = pageTitles[slug] ?? slug;
+const pageTitle = pageTitles[pathname] ?? pathname;
 
   return (
     <div className="topbar">

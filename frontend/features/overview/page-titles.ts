@@ -1,5 +1,4 @@
 import { pageConfig as OverviewDashboardConfig } from './overview-dashboard/config';
-
 export const pageTitles = {
-  'overview': OverviewDashboardConfig.title,
+  [OverviewDashboardConfig.path]: OverviewDashboardConfig.title,
 } as const;

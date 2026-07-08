@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Validation Flags",
   "icon": "ti-flag",
   "slug": "validation-flags",
+  "path": "/quality/flags",
   "apiEndpoint": "/api/quality/flags"
 } satisfies PageConfig;

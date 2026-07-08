@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Place Deltas",
   "icon": "ti-map-pin-plus",
   "slug": "place-deltas",
+  "path": "/quality/deltas",
   "apiEndpoint": "/api/quality/deltas"
 } satisfies PageConfig;

@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Ingestion Monitor",
   "icon": "ti-database",
   "slug": "data-sources",
+  "path": "/data/sources",
   "apiEndpoint": "/api/data/sources"
 } satisfies PageConfig;

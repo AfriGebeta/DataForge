@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Channels",
   "icon": "ti-broadcast",
   "slug": "channels",
+  "path": "/data/channels",
   "apiEndpoint": "/api/data/channels"
 } satisfies PageConfig;

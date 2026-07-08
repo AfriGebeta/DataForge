@@ -24,7 +24,7 @@ export default function Sidebar({ pathname, isOpen, onClose }: SidebarProps) {
 
   useEffect(() => {
     const group = navGroups.find((g) =>
-      g.items.some((item) => pathname === `/${item.id}`)
+      g.items.some((item) => pathname === item.path)
     );
     if (group) {
       setOpenGroups((prev) => ({ ...prev, [group.title]: true }));
@@ -81,8 +81,8 @@ export default function Sidebar({ pathname, isOpen, onClose }: SidebarProps) {
               </button>
               {isGroupOpen &&
                 group.items.map((item) => {
-  const href = `/${item.id}`;
-  const isActive = pathname === href;
+ const href = item.path;
+const isActive = pathname === href;
                   return (
                     <Link
                       key={item.id}

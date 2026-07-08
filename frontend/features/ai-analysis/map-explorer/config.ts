@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Global Map Explorer",
   "icon": "ti-map",
   "slug": "map-explorer",
+  "path": "/ai-analysis/map-explorer",
   "apiEndpoint": "/api/ai/map"
 } satisfies PageConfig;
