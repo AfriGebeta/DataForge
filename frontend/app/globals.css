@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
     --brown-900: #3d1a00;
     --brown-800: #5c2800;
@@ -1292,3 +1296,4 @@ textarea {
         font-size: 18px;
     }
 }
+

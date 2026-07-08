@@ -1,5 +1,5 @@
-import GebetaMapsApp from "./GebetaMapsApp";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <GebetaMapsApp />;
+  redirect("/overview");
 }
