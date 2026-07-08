@@ -60,6 +60,11 @@ export default function EditCategoryModal({
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    if (!values.nameEn.trim() && !values.nameAm.trim()) {
+      setValidationError("Provide at least one name (English or Amharic).");
+      return;
+    }
+
     if (values.slug.trim().length < 2) {
       setValidationError("Slug must be at least 2 characters.");
       return;

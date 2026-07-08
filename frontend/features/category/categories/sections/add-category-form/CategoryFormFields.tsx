@@ -1,6 +1,11 @@
 "use client";
 
-import type { Category, CategoryFormValues } from "../../types";
+import { useState } from "react";
+import type {
+  Category,
+  CategoryFormValues,
+  CategoryLanguage,
+} from "../../types";
 
 type CategoryFormFieldsProps = {
   values: CategoryFormValues;
@@ -12,44 +17,70 @@ type CategoryFormFieldsProps = {
   excludeCategoryId?: string;
 };
 
+const NAME_FIELD_BY_LANGUAGE = {
+  en: "nameEn",
+  am: "nameAm",
+} as const satisfies Record<CategoryLanguage, keyof CategoryFormValues>;
+
+const NAME_PLACEHOLDER_BY_LANGUAGE: Record<CategoryLanguage, string> = {
+  en: "Restaurants",
+  am: "ምግብ ቤቶች",
+};
+
+const NAME_LANGUAGE_LABEL: Record<CategoryLanguage, string> = {
+  en: "English",
+  am: "Amharic",
+};
+
 export default function CategoryFormFields({
   values,
   onChange,
   rootCategories,
   excludeCategoryId,
 }: CategoryFormFieldsProps) {
+  const [nameLanguage, setNameLanguage] = useState<CategoryLanguage>(() =>
+    !values.nameEn && values.nameAm ? "am" : "en",
+  );
+
   const availableParents = rootCategories.filter(
     (category) => category.id !== excludeCategoryId,
   );
 
+  const nameField = NAME_FIELD_BY_LANGUAGE[nameLanguage];
+
   return (
     <>
       <div className="fg">
-        <label className="fl" htmlFor="category-name-en">
-          Name (English) <span>*</span>
+        <label className="fl" htmlFor="category-name-language">
+          Name Language
         </label>
-        <input
-          id="category-name-en"
-          type="text"
-          value={values.nameEn}
-          onChange={(event) => onChange("nameEn", event.target.value)}
-          placeholder="Restaurants"
-          required
-        />
+        <select
+          id="category-name-language"
+          value={nameLanguage}
+          onChange={(event) =>
+            setNameLanguage(event.target.value as CategoryLanguage)
+          }
+        >
+          <option value="en">English</option>
+          <option value="am">Amharic</option>
+        </select>
+        <div className="fh">
+          Choose which language you&rsquo;re entering the name in.
+        </div>
       </div>
 
       <div className="fg">
-        <label className="fl" htmlFor="category-name-am">
-          Name (Amharic) <span>*</span>
+        <label className="fl" htmlFor="category-name">
+          Name ({NAME_LANGUAGE_LABEL[nameLanguage]}) <span>*</span>
         </label>
         <input
-          id="category-name-am"
+          id="category-name"
           type="text"
-          value={values.nameAm}
-          onChange={(event) => onChange("nameAm", event.target.value)}
-          placeholder="ምግብ ቤቶች"
-          required
+          value={values[nameField]}
+          onChange={(event) => onChange(nameField, event.target.value)}
+          placeholder={NAME_PLACEHOLDER_BY_LANGUAGE[nameLanguage]}
         />
+        <div className="fh">At least one language name is required.</div>
       </div>
 
       <div className="fg">
