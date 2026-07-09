@@ -364,22 +364,29 @@ export async function fetchCategories(
   }
 }
 
-/** Fetches root categories (parentId === null) to populate parent dropdowns. */
-export async function fetchRootCategories(): Promise<Category[]> {
+/**
+ * Fetches all active categories in hierarchy order for parent dropdowns.
+ * This supports deep nesting (parent -> child -> grandchild ...).
+ */
+export async function fetchParentCategories(): Promise<Category[]> {
   try {
     const response = await requestJson<CategoryListResponse>(
       "?limit=250&offset=0",
     );
-    return response.data.filter(
-      (category) => !category.parentId && !category.deletedAt,
-    );
+    const active = response.data.filter((category) => !category.deletedAt);
+    return buildHierarchyOrder(active);
   } catch (cause) {
     console.warn(
-      "Falling back to local mock data for fetchRootCategories:",
+      "Falling back to local mock data for fetchParentCategories:",
       cause,
     );
-    return activeCategories().filter((category) => !category.parentId);
+    return buildHierarchyOrder(activeCategories());
   }
+}
+
+/** @deprecated Use fetchParentCategories for deep-tree parent selection. */
+export async function fetchRootCategories(): Promise<Category[]> {
+  return fetchParentCategories();
 }
 
 function createCategoryInMock(body: CreateCategoryRequestBody): Category {

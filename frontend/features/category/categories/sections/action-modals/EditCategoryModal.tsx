@@ -7,7 +7,7 @@ import type { Category, CategoryFormValues } from "../../types";
 
 type EditCategoryModalProps = {
   category: Category;
-  rootCategories: Category[];
+  parentCategories: Category[];
   submitting: boolean;
   onClose: () => void;
   onSave: (id: string, values: CategoryFormValues) => Promise<void>;
@@ -15,7 +15,7 @@ type EditCategoryModalProps = {
 
 export default function EditCategoryModal({
   category,
-  rootCategories,
+  parentCategories,
   submitting,
   onClose,
   onSave,
@@ -105,7 +105,7 @@ export default function EditCategoryModal({
           <CategoryFormFields
             values={values}
             onChange={updateField}
-            rootCategories={rootCategories}
+            parentCategories={parentCategories}
             excludeCategoryId={category.id}
           />
 

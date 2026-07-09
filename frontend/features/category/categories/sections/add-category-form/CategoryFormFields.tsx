@@ -13,8 +13,13 @@ type CategoryFormFieldsProps = {
     field: K,
     value: CategoryFormValues[K],
   ) => void;
-  rootCategories: Category[];
+  parentCategories: Category[];
   excludeCategoryId?: string;
+};
+
+type ParentOption = {
+  category: Category;
+  depth: number;
 };
 
 const NAME_FIELD_BY_LANGUAGE = {
@@ -35,15 +40,74 @@ const NAME_LANGUAGE_LABEL: Record<CategoryLanguage, string> = {
 export default function CategoryFormFields({
   values,
   onChange,
-  rootCategories,
+  parentCategories,
   excludeCategoryId,
 }: CategoryFormFieldsProps) {
   const [nameLanguage, setNameLanguage] = useState<CategoryLanguage>(() =>
     !values.nameEn && values.nameAm ? "am" : "en",
   );
 
-  const availableParents = rootCategories.filter(
-    (category) => category.id !== excludeCategoryId,
+  const byParent = new Map<string | null, Category[]>();
+  parentCategories.forEach((category) => {
+    const key = category.parentId ?? null;
+    const siblings = byParent.get(key) ?? [];
+    siblings.push(category);
+    byParent.set(key, siblings);
+  });
+
+  byParent.forEach((siblings) => {
+    siblings.sort((a, b) => {
+      const aName = a.name.en ?? a.name.am ?? a.slug;
+      const bName = b.name.en ?? b.name.am ?? b.slug;
+      return aName.localeCompare(bName);
+    });
+  });
+
+  const flattenedParents: ParentOption[] = [];
+  const visited = new Set<string>();
+  const walk = (parentId: string | null, depth: number) => {
+    const children = byParent.get(parentId) ?? [];
+
+    children.forEach((category) => {
+      if (visited.has(category.id)) {
+        return;
+      }
+
+      visited.add(category.id);
+      flattenedParents.push({ category, depth });
+      walk(category.id, depth + 1);
+    });
+  };
+
+  walk(null, 0);
+
+  parentCategories.forEach((category) => {
+    if (!visited.has(category.id)) {
+      flattenedParents.push({ category, depth: 0 });
+    }
+  });
+
+  const blockedParentIds = new Set<string>();
+  const collectDescendants = (parentId: string) => {
+    parentCategories
+      .filter((candidate) => candidate.parentId === parentId)
+      .forEach((child) => {
+        if (blockedParentIds.has(child.id)) {
+          return;
+        }
+
+        blockedParentIds.add(child.id);
+        collectDescendants(child.id);
+      });
+  };
+
+  if (excludeCategoryId) {
+    blockedParentIds.add(excludeCategoryId);
+    collectDescendants(excludeCategoryId);
+  }
+
+  const availableParents = flattenedParents.filter(
+    ({ category }) => !blockedParentIds.has(category.id),
   );
 
   const nameField = NAME_FIELD_BY_LANGUAGE[nameLanguage];
@@ -111,14 +175,16 @@ export default function CategoryFormFields({
           onChange={(event) => onChange("parentId", event.target.value)}
         >
           <option value="">None — create a top-level category</option>
-          {availableParents.map((category) => (
+          {availableParents.map(({ category, depth }) => (
             <option key={category.id} value={category.id}>
-              {category.name.en ?? category.name.am ?? category.slug}
+              {`${depth > 0 ? `${"-- ".repeat(depth)}` : ""}${
+                category.name.en ?? category.name.am ?? category.slug
+              }`}
             </option>
           ))}
         </select>
         <div className="fh">
-          Only root categories can be selected as parents.
+          Any depth is supported. Example: Parent -&gt; Child -&gt; Grandchild.
         </div>
       </div>
 

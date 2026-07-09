@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   deleteCategory,
   fetchCategories,
-  fetchRootCategories,
+  fetchParentCategories,
   updateCategory,
 } from "../../api";
 import type {
@@ -17,7 +17,7 @@ import ActionModals from "../action-modals/ActionModals";
 
 export default function CategoryStructurePage() {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [rootCategories, setRootCategories] = useState<Category[]>([]);
+  const [parentCategories, setParentCategories] = useState<Category[]>([]);
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(10);
   const [offset, setOffset] = useState(0);
@@ -37,14 +37,14 @@ export default function CategoryStructurePage() {
     setError(null);
 
     try {
-      const [paged, roots] = await Promise.all([
+      const [paged, parents] = await Promise.all([
         fetchCategories(limit, offset),
-        fetchRootCategories(),
+        fetchParentCategories(),
       ]);
 
       setCategories(paged.data.filter((category) => !category.deletedAt));
       setTotal(paged.total);
-      setRootCategories(roots);
+      setParentCategories(parents);
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -166,7 +166,7 @@ export default function CategoryStructurePage() {
       <ActionModals
         editingCategory={editingCategory}
         deletingCategory={deletingCategory}
-        rootCategories={rootCategories}
+        parentCategories={parentCategories}
         editing={editing}
         deleting={deleting}
         onCloseEdit={() => setEditingCategory(null)}

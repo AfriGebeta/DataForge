@@ -7,7 +7,7 @@ import type { Category, CategoryFormValues } from "../../types";
 type ActionModalsProps = {
   editingCategory: Category | null;
   deletingCategory: Category | null;
-  rootCategories: Category[];
+  parentCategories: Category[];
   editing: boolean;
   deleting: boolean;
   onCloseEdit: () => void;
@@ -19,7 +19,7 @@ type ActionModalsProps = {
 export default function ActionModals({
   editingCategory,
   deletingCategory,
-  rootCategories,
+  parentCategories,
   editing,
   deleting,
   onCloseEdit,
@@ -33,7 +33,7 @@ export default function ActionModals({
         <EditCategoryModal
           key={editingCategory.id}
           category={editingCategory}
-          rootCategories={rootCategories}
+          parentCategories={parentCategories}
           submitting={editing}
           onClose={onCloseEdit}
           onSave={onSave}

@@ -6,13 +6,13 @@ import { createSlug, makeInitialFormValues } from "../../api";
 import type { Category, CategoryFormValues } from "../../types";
 
 type AddCategorySectionProps = {
-  rootCategories: Category[];
+  parentCategories: Category[];
   submitting: boolean;
   onCreate: (values: CategoryFormValues) => Promise<void>;
 };
 
 export default function AddCategorySection({
-  rootCategories,
+  parentCategories,
   submitting,
   onCreate,
 }: AddCategorySectionProps) {
@@ -67,8 +67,8 @@ export default function AddCategorySection({
         <div>
           <div className="ct">Section B · New Category</div>
           <div className="csub">
-            Create top-level categories or nest them under an existing root
-            category.
+            Create top-level categories or nest them under an existing category
+            at any depth.
           </div>
         </div>
       </div>
@@ -77,7 +77,7 @@ export default function AddCategorySection({
         <CategoryFormFields
           values={values}
           onChange={updateField}
-          rootCategories={rootCategories}
+          parentCategories={parentCategories}
         />
 
         {validationError ? (

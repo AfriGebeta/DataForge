@@ -10,6 +10,10 @@ export type CategoryNameMap = {
  * Domain shape used throughout the frontend. Mirrors the flat object the
  * API returns for single-object responses (POST / PUT / GET by id):
  * system-managed `id`, `createdAt`, `updatedAt` plus the category fields.
+ *
+ * Hierarchy JSON model:
+ * - The API uses an adjacency-list format (flat array + parentId links).
+ * - Any category can be a parent, allowing unlimited tree depth.
  */
 export type Category = {
   id: string;
@@ -48,6 +52,7 @@ export type CreateCategoryRequestBody = {
   name: CategoryNameMap;
   slug: string;
   icon?: string;
+  /** Parent can point to any category id (not only roots). */
   parentId?: string;
 };
 
@@ -60,5 +65,6 @@ export type UpdateCategoryRequestBody = {
   name?: CategoryNameMap;
   slug?: string;
   icon?: string;
+  /** Parent can point to any category id (not only roots). */
   parentId?: string | null;
 };

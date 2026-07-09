@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { createCategory, fetchRootCategories } from "../../api";
+import { createCategory, fetchParentCategories } from "../../api";
 import type { Category, CategoryFormValues } from "../../types";
 import AddCategorySection from "./AddCategorySection";
 
 export default function NewCategoryPage() {
-  const [rootCategories, setRootCategories] = useState<Category[]>([]);
+  const [parentCategories, setParentCategories] = useState<Category[]>([]);
   const [loadingRoots, setLoadingRoots] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -18,8 +18,8 @@ export default function NewCategoryPage() {
     setError(null);
 
     try {
-      const roots = await fetchRootCategories();
-      setRootCategories(roots);
+      const parents = await fetchParentCategories();
+      setParentCategories(parents);
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -65,8 +65,8 @@ export default function NewCategoryPage() {
       <div className="page-hd">
         <h2>New Category</h2>
         <p>
-          Create top-level categories or nest them under an existing root
-          category via <span className="mono">POST /api/v1/categories</span>.
+          Create top-level categories or nest them under any existing category
+          depth via <span className="mono">POST /api/v1/categories</span>.
         </p>
       </div>
 
@@ -81,7 +81,7 @@ export default function NewCategoryPage() {
         ) : (
           <AddCategorySection
             key={formResetKey}
-            rootCategories={rootCategories}
+            parentCategories={parentCategories}
             submitting={submitting}
             onCreate={handleCreate}
           />
