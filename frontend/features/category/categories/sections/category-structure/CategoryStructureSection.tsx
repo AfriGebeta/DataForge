@@ -178,17 +178,29 @@ export default function CategoryStructureSection({
             </thead>
             <tbody>
               {flattened.map(({ category, depth }) => (
-                <tr key={category.id}>
+                <tr
+                  key={category.id}
+                  className={depth > 0 ? "category-row-child" : undefined}
+                >
                   <td>
-                    <div className="category-icon-cell">
+                    <div
+                      className={`category-icon-cell ${
+                        depth > 0 ? "category-icon-cell-child" : ""
+                      }`}
+                    >
                       <i className={resolveIconClass(category.icon)} />
                       <span className="mono">{category.icon || "—"}</span>
+                      {depth > 0 ? (
+                        <span className="category-subtree-badge">Sub-tree</span>
+                      ) : null}
                     </div>
                   </td>
                   <td>
                     <div
-                      className="category-name-stack"
-                      style={{ paddingLeft: `${depth * 18}px` }}
+                      className={`category-name-stack ${
+                        depth > 0 ? "category-name-stack-child" : ""
+                      }`}
+                      style={{ paddingLeft: `${depth * 26}px` }}
                     >
                       <span className="category-name-line">
                         {depth > 0 ? (

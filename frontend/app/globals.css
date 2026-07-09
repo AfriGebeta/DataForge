@@ -971,6 +971,14 @@ textarea {
     border-bottom-color: rgba(232, 104, 21, 0.16);
 }
 
+.category-row-child {
+    background: rgba(232, 104, 21, 0.05);
+}
+
+.category-row-child td {
+    border-bottom-color: rgba(232, 104, 21, 0.16);
+}
+
 .category-empty {
     min-height: 180px;
     display: flex;
@@ -983,7 +991,12 @@ textarea {
 .category-icon-cell {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
+}
+
+.category-icon-cell-child {
+    margin-left: 12px;
 }
 
 .category-icon-cell i {
@@ -998,6 +1011,11 @@ textarea {
     gap: 2px;
 }
 
+.category-name-stack-child {
+    border-left: 2px dashed rgba(232, 104, 21, 0.35);
+    padding-left: 10px;
+}
+
 .category-name-line {
     display: inline-flex;
     align-items: center;
@@ -1006,6 +1024,19 @@ textarea {
 
 .category-indent-marker {
     color: var(--text-muted);
+}
+
+.category-subtree-badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #b45309;
+    background: rgba(232, 104, 21, 0.12);
+    border: 1px solid rgba(232, 104, 21, 0.3);
+    border-radius: 999px;
+    padding: 1px 6px;
+    line-height: 1.4;
 }
 
 .category-pagination {
