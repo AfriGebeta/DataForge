@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import ModalsMount from "@/features/shared/ModalsMount";
 
 function findActionTarget(start: HTMLElement, root: HTMLElement): HTMLElement | null {
   let el: HTMLElement | null = start;
@@ -116,15 +117,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       }
     };
 
-    main.addEventListener("click", handleClick);
     main.addEventListener("change", handleChange);
-    main.addEventListener("error", handleImageError, true);
+main.addEventListener("error", handleImageError, true);
+document.addEventListener("click", handleClick);
 
-    return () => {
-      main.removeEventListener("click", handleClick);
-      main.removeEventListener("change", handleChange);
-      main.removeEventListener("error", handleImageError, true);
-    };
+return () => {
+  main.removeEventListener("change", handleChange);
+  main.removeEventListener("error", handleImageError, true);
+  document.removeEventListener("click", handleClick);
+};
   }, [closeModal, filterIng, openModal, showToast, toggleSchedule]);
 
   return (
@@ -151,6 +152,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <i className="ti ti-check" style={{ color: "var(--text-success)" }} />
         <span>{toastMsg}</span>
       </div>
+      <ModalsMount />
     </>
   );
 }
