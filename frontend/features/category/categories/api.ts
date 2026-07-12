@@ -4,6 +4,7 @@ import type {
   CategoryLanguage,
   CategoryListResponse,
   CategoryNameMap,
+  CategoryTreeNode,
   CreateCategoryRequestBody,
   UpdateCategoryRequestBody,
 } from "./types";
@@ -113,6 +114,36 @@ let categoryStore: Category[] = [
     createdAt: "2024-01-05T09:20:00.000Z",
     updatedAt: "2024-01-05T09:20:00.000Z",
   },
+  {
+    id: "3f7a9e0e-1111-4a11-8a11-000000000009",
+    slug: "specialty-coffee",
+    parentId: "3f7a9e0e-1111-4a11-8a11-000000000002",
+    icon: "coffee",
+    name: { en: "Specialty Coffee", am: "ልዩ ቡና" },
+    deletedAt: null,
+    createdAt: "2024-01-05T09:21:00.000Z",
+    updatedAt: "2024-01-05T09:21:00.000Z",
+  },
+  {
+    id: "3f7a9e0e-1111-4a11-8a11-00000000000a",
+    slug: "espresso-bars",
+    parentId: "3f7a9e0e-1111-4a11-8a11-000000000009",
+    icon: "coffee",
+    name: { en: "Espresso Bars", am: "ኤስፕሬሶ" },
+    deletedAt: null,
+    createdAt: "2024-01-05T09:22:00.000Z",
+    updatedAt: "2024-01-05T09:22:00.000Z",
+  },
+  {
+    id: "3f7a9e0e-1111-4a11-8a11-00000000000b",
+    slug: "single-origin",
+    parentId: "3f7a9e0e-1111-4a11-8a11-00000000000a",
+    icon: "coffee",
+    name: { en: "Single Origin", am: "ነጠላ ምንጭ" },
+    deletedAt: null,
+    createdAt: "2024-01-05T09:23:00.000Z",
+    updatedAt: "2024-01-05T09:23:00.000Z",
+  },
 ];
 
 function activeCategories(): Category[] {
@@ -125,6 +156,88 @@ function sortByName(categories: Category[]): Category[] {
     const bName = b.name.en ?? b.name.am ?? b.slug;
     return aName.localeCompare(bName);
   });
+}
+
+/**
+ * Builds the nested tree wire shape (roots + embedded `children`) from a
+ * flat list of active categories, matching the GET /api/v1/categories
+ * response contract exactly.
+ */
+function buildCategoryTree(
+  categories: Category[],
+  rootParentId: string | null = null,
+): CategoryTreeNode[] {
+  const byParent = new Map<string | null, Category[]>();
+
+  categories.forEach((category) => {
+    const key = category.parentId ?? null;
+    const siblings = byParent.get(key) ?? [];
+    siblings.push(category);
+    byParent.set(key, siblings);
+  });
+
+  byParent.forEach((siblings, key) => {
+    byParent.set(key, sortByName(siblings));
+  });
+
+  const buildNode = (category: Category): CategoryTreeNode => {
+    const node: CategoryTreeNode = {
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+    };
+
+    const children = (byParent.get(category.id) ?? []).map(buildNode);
+    if (children.length > 0) {
+      node.children = children;
+    }
+
+    if (category.createdAt) {
+      node.createdAt = category.createdAt;
+    }
+    if (category.updatedAt) {
+      node.updatedAt = category.updatedAt;
+    }
+
+    return node;
+  };
+
+  return (byParent.get(rootParentId) ?? []).map(buildNode);
+}
+
+/**
+ * Walks the nested wire tree and yields the flat internal `Category`
+ * shape (adjacency-list with `parentId`), preserving pre-order traversal
+ * so the UI can render indented rows without extra sorting.
+ */
+export function flattenCategoryTree(
+  nodes: CategoryTreeNode[] | undefined,
+  parentId: string | null = null,
+): Category[] {
+  if (!nodes || nodes.length === 0) {
+    return [];
+  }
+
+  const flat: Category[] = [];
+
+  nodes.forEach((node) => {
+    flat.push({
+      id: node.id,
+      slug: node.slug,
+      parentId,
+      icon: "",
+      name: node.name,
+      deletedAt: null,
+      createdAt: node.createdAt,
+      updatedAt: node.updatedAt,
+    });
+
+    if (node.children && node.children.length > 0) {
+      flat.push(...flattenCategoryTree(node.children, node.id));
+    }
+  });
+
+  return flat;
 }
 
 /**
@@ -335,7 +448,7 @@ function fetchCategoriesFromMock(
   const visibleCategories = active.filter((category) =>
     visibleIds.has(category.id),
   );
-  const data = buildHierarchyOrder(visibleCategories);
+  const data = buildCategoryTree(visibleCategories);
 
   return { data, total: roots.length, limit, offset };
 }
@@ -366,15 +479,15 @@ export async function fetchCategories(
 
 /**
  * Fetches all active categories in hierarchy order for parent dropdowns.
- * This supports deep nesting (parent -> child -> grandchild ...).
+ * The wire response is a nested tree; we flatten it into pre-ordered
+ * `Category[]` so existing consumers can keep using `parentId` traversal.
  */
 export async function fetchParentCategories(): Promise<Category[]> {
   try {
     const response = await requestJson<CategoryListResponse>(
       "?limit=250&offset=0",
     );
-    const active = response.data.filter((category) => !category.deletedAt);
-    return buildHierarchyOrder(active);
+    return flattenCategoryTree(response.data);
   } catch (cause) {
     console.warn(
       "Falling back to local mock data for fetchParentCategories:",
@@ -389,12 +502,21 @@ export async function fetchRootCategories(): Promise<Category[]> {
   return fetchParentCategories();
 }
 
-function createCategoryInMock(body: CreateCategoryRequestBody): Category {
+/**
+ * Recursively creates a category and any nested `children` in the mock
+ * store. Children inherit `parentId` from the freshly-generated id of the
+ * node they sit inside, so the same call works for depth 2, 3, 4, N.
+ * Returns the root node that was inserted.
+ */
+function createCategoryInMock(
+  body: CreateCategoryRequestBody,
+  parentIdOverride: string | null = null,
+): Category {
   const timestamp = nowIso();
   const newCategory: Category = {
     id: generateId(),
     slug: body.slug,
-    parentId: body.parentId ?? null,
+    parentId: parentIdOverride ?? body.parentId ?? null,
     icon: body.icon ?? "",
     name: body.name,
     deletedAt: null,
@@ -403,6 +525,13 @@ function createCategoryInMock(body: CreateCategoryRequestBody): Category {
   };
 
   categoryStore = [...categoryStore, newCategory];
+
+  if (body.children && body.children.length > 0) {
+    body.children.forEach((child) => {
+      createCategoryInMock(child, newCategory.id);
+    });
+  }
+
   return newCategory;
 }
 

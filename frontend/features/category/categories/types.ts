@@ -7,13 +7,11 @@ export type CategoryNameMap = {
 };
 
 /**
- * Domain shape used throughout the frontend. Mirrors the flat object the
- * API returns for single-object responses (POST / PUT / GET by id):
- * system-managed `id`, `createdAt`, `updatedAt` plus the category fields.
+ * Internal flat shape used throughout the frontend UI. Any category can be
+ * a parent, allowing unlimited tree depth via `parentId` links.
  *
- * Hierarchy JSON model:
- * - The API uses an adjacency-list format (flat array + parentId links).
- * - Any category can be a parent, allowing unlimited tree depth.
+ * The wire format (see `CategoryTreeNode`) is nested; `flattenCategoryTree`
+ * in `api.ts` converts wire → this shape.
  */
 export type Category = {
   id: string;
@@ -27,12 +25,26 @@ export type Category = {
 };
 
 /**
- * Paginated list response shape for GET /api/v1/categories.
- * The array of categories is wrapped inside a `data` envelope alongside
- * `total`/`limit`/`offset`.
+ * Nested tree node returned by GET /api/v1/categories. Each node embeds
+ * its descendants under `children`; there is no `parentId` on the wire.
+ * `children` is omitted (or empty) for leaf nodes.
+ */
+export type CategoryTreeNode = {
+  id: string;
+  name: CategoryNameMap;
+  slug: string;
+  children?: CategoryTreeNode[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+/**
+ * Paginated list response shape for GET /api/v1/categories. `data` is a
+ * nested tree of root categories with their full subtrees embedded under
+ * `children`; `total`/`limit`/`offset` paginate over the roots.
  */
 export type CategoryListResponse = {
-  data: Category[];
+  data: CategoryTreeNode[];
   total: number;
   limit: number;
   offset: number;
@@ -47,13 +59,21 @@ export type CategoryFormValues = {
   icon: string;
 };
 
-/** Exact wire payload for POST /api/v1/categories. */
+/**
+ * Exact wire payload for POST /api/v1/categories.
+ *
+ * `children` is self-referential so a single request can create an entire
+ * subtree of arbitrary depth (root → child → grandchild → …). Each child
+ * inherits its parent from tree position — `parentId` on children is
+ * ignored by the server when the node appears inside a `children` array.
+ */
 export type CreateCategoryRequestBody = {
   name: CategoryNameMap;
   slug: string;
   icon?: string;
   /** Parent can point to any category id (not only roots). */
   parentId?: string;
+  children?: CreateCategoryRequestBody[];
 };
 
 /**
