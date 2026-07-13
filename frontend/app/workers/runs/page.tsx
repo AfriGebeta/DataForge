@@ -1,2 +1,5 @@
-import RunsPage from "@/features/workers/runs/RunsPage";
-export default function Page() { return <RunsPage />; }
+import { RunsPage } from "@/features/workers/runs/sections/runs-table";
+
+export default function Page() {
+  return <RunsPage />;
+}
