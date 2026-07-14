@@ -33,11 +33,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ display: "flex", width: "100vw", height: "100vh", background: "var(--surface-0)", overflow: "hidden" }}>
+    <div className="login-root">
 
-      <div style={{ flex: "0 0 48%", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--sidebar-bg)", borderRight: "1px solid var(--sidebar-border)", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: "35%", left: "50%", transform: "translate(-50%, -50%)", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(208,90,11,0.12) 0%, transparent 68%)", pointerEvents: "none" }} />
-        <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", gap: 32, padding: "0 52px", maxWidth: 420 }}>
+      <div className="login-left">
+        <div className="login-glow" />
+        <div className="login-left-content">
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ width: 64, height: 64, borderRadius: 16, overflow: "hidden", background: "var(--sidebar-elevated)", border: "1px solid var(--sidebar-border)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Image src="/image.png" alt="GebetaMaps" width={56} height={56} style={{ objectFit: "contain", display: "block" }} priority />
@@ -46,11 +46,11 @@ export default function LoginPage() {
             <div style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase" }}>Cartographic Intel Platform</div>
           </div>
 
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.7, maxWidth: 300 }}>
+          <p className="login-tagline">
             Real-time geographical data health and AI analysis metrics.
           </p>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 20, background: "var(--sidebar-elevated)", border: "1px solid var(--sidebar-border)", borderRadius: 12, padding: "14px 20px" }}>
+          <div className="login-stats">
             <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
               <span style={{ fontSize: 17, fontWeight: 600, color: "var(--text-accent)", letterSpacing: "-0.01em" }}>42M+</span>
               <span style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Places</span>
@@ -71,8 +71,19 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 40px" }}>
-        <form onSubmit={handleSubmit} noValidate style={{ width: "100%", maxWidth: 380, display: "flex", flexDirection: "column" }}>
+      <div className="login-right">
+        <form onSubmit={handleSubmit} noValidate className="login-form">
+
+          <div className="login-mobile-brand">
+            <div className="login-mobile-logo">
+              <Image src="/image.png" alt="GebetaMaps" width={32} height={32} style={{ objectFit: "contain", display: "block" }} priority />
+            </div>
+            <div className="login-mobile-text">
+              <span className="login-mobile-name">GebetaMaps</span>
+              <span className="login-mobile-sub">Cartographic Intel Platform</span>
+            </div>
+          </div>
+
           <div style={{ marginBottom: 28 }}>
             <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--text-primary)", marginBottom: 6 }}>Welcome back</h1>
             <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>Sign in to your account to continue</p>
