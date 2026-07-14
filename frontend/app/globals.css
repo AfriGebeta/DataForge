@@ -818,6 +818,11 @@ textarea {
         opacity: 0.4;
     }
 }
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
 .chip {
     display: inline-flex;
     align-items: center;

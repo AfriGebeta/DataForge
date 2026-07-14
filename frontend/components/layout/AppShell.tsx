@@ -24,6 +24,7 @@ function findActionTarget(start: HTMLElement, root: HTMLElement): HTMLElement | 
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isLogin = pathname === "/login";
   const [toastMsg, setToastMsg] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -76,6 +77,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (isLogin) return;
     const main = mainRef.current;
     if (!main) return;
 
@@ -118,15 +120,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     };
 
     main.addEventListener("change", handleChange);
-main.addEventListener("error", handleImageError, true);
-document.addEventListener("click", handleClick);
+    main.addEventListener("error", handleImageError, true);
+    document.addEventListener("click", handleClick);
 
-return () => {
-  main.removeEventListener("change", handleChange);
-  main.removeEventListener("error", handleImageError, true);
-  document.removeEventListener("click", handleClick);
-};
-  }, [closeModal, filterIng, openModal, showToast, toggleSchedule]);
+    return () => {
+      main.removeEventListener("change", handleChange);
+      main.removeEventListener("error", handleImageError, true);
+      document.removeEventListener("click", handleClick);
+    };
+  }, [isLogin, closeModal, filterIng, openModal, showToast, toggleSchedule]);
+
+  if (isLogin) {
+    return <>{children}</>;
+  }
 
   return (
     <>
