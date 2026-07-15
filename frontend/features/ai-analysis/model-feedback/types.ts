@@ -1,12 +1,23 @@
-/** Domain types for model-feedback — align with backend contracts. */
+export type FeedbackItemType = "MISCLASSIFIED" | "LOW_CONFIDENCE" | "CORRECT";
 
-export type ModelFeedbackParams = {
-  page?: number;
-  pageSize?: number;
-  search?: string;
+export type FeedbackItem = {
+  id: string;
+  geo_id: string;
+  type: FeedbackItemType;
+  prediction: string;
+  actual: string;
+  time_ago: string;
+  icon: string;
 };
 
-export type ModelFeedbackResponse = {
-  items: unknown[];
-  total: number;
+export type ModelFeedbackData = {
+  model_version: string;
+  human_corrections: number;
+  human_corrections_delta: string;
+  ai_mistakes: number;
+  ai_mistakes_delta: string;
+  retrained_samples: number;
+  retrained_percent: number;
+  review_queue: FeedbackItem[];
+  total_queue: number;
 };

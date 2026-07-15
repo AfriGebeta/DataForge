@@ -1,2 +1,5 @@
-import AnalyticsPage from "@/features/ai-analysis/analytics/AnalyticsPage";
-export default function Page() { return <AnalyticsPage />; }
+import { AnalyticsPage } from "@/features/ai-analysis/analytics/sections/analytics-view";
+
+export default function Page() {
+  return <AnalyticsPage />;
+}

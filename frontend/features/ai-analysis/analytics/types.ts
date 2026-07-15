@@ -1,12 +1,22 @@
-/** Domain types for analytics — align with backend contracts. */
+export type RiskLevel = "HIGH_ALERT" | "ELEVATED" | "STABLE";
 
-export type AnalyticsParams = {
-  page?: number;
-  pageSize?: number;
-  search?: string;
+export type RiskZone = {
+  name: string;
+  level: RiskLevel;
+  width_percent: number;
 };
 
-export type AnalyticsResponse = {
-  items: unknown[];
-  total: number;
+export type TrustScoreBar = {
+  height_percent: number;
+  is_accent: boolean;
+};
+
+export type AnalyticsData = {
+  trust_score_trend: TrustScoreBar[];
+  trust_score_delta: string;
+  duplicate_detection_rate: number;
+  duplicate_detection_delta: string;
+  reviewer_productivity: number;
+  peak_hours: string;
+  risk_zones: RiskZone[];
 };
