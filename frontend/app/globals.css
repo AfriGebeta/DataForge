@@ -108,19 +108,31 @@ body {
         inset 0 1px 0 rgba(255, 255, 255, 0.04);
     transition:
         width 0.25s ease,
+        margin 0.25s ease,
         opacity 0.2s ease,
-        transform 0.25s ease;
+        transform 0.25s ease,
+        visibility 0.25s ease;
 }
 
 .shell:not(.sidebar-open) .sidebar {
     width: 0;
     min-width: 0;
+    margin: 10px 0;
     padding-left: 0;
     padding-right: 0;
     opacity: 0;
     border-right: none;
     overflow: hidden;
     pointer-events: none;
+    box-shadow: none;
+    visibility: hidden;
+}
+
+/* The collapsed sidebar no longer supplies the 10px left gutter —
+   the topbar/content take it over so the layout stays balanced. */
+.shell:not(.sidebar-open) .topbar,
+.shell:not(.sidebar-open) .content {
+    margin-left: 10px;
 }
 
 /* ==== Brand card — curved glass container ==== */
@@ -800,14 +812,17 @@ body {
     border: 1px solid var(--border);
 }
 
-/* TABLE */
-table {
+/* TABLE (legacy static pages — scoped to .card/.card-dark so they don't
+   override Tailwind utility classes on the modern glass tables) */
+.card table,
+.card-dark table {
     width: 100%;
     border-collapse: collapse;
     font-size: 12px;
     table-layout: fixed;
 }
-th {
+.card th,
+.card-dark th {
     text-align: left;
     font-size: 10px;
     font-weight: 600;
@@ -820,7 +835,8 @@ th {
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
-td {
+.card td,
+.card-dark td {
     padding: 9px 0;
     border-bottom: 1px solid var(--border);
     vertical-align: middle;
@@ -828,11 +844,14 @@ td {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-tr:last-child td {
+.card tr:last-child td,
+.card-dark tr:last-child td {
     border-bottom: none;
 }
-td:not(:first-child),
-th:not(:first-child) {
+.card td:not(:first-child),
+.card th:not(:first-child),
+.card-dark td:not(:first-child),
+.card-dark th:not(:first-child) {
     padding-left: 10px;
 }
 .row-act {
@@ -1496,7 +1515,8 @@ textarea {
     .card {
         overflow-x: auto;
     }
-    table {
+    .card table,
+    .card-dark table {
         min-width: 520px;
     }
     .category-modal {
@@ -1539,28 +1559,50 @@ textarea {
         left: 0;
         bottom: 0;
         z-index: 200;
+        margin: 0;
+        border-radius: 0 20px 20px 0;
         width: min(260px, 85vw);
         min-width: min(260px, 85vw);
         height: 100vh;
         height: 100dvh;
         min-height: 100vh;
         min-height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
         opacity: 1;
         transform: translateX(-100%);
         pointer-events: auto;
         box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35);
+        transition:
+            transform 0.25s ease,
+            visibility 0.25s ease;
     }
 
     .shell:not(.sidebar-open) .sidebar {
         width: min(260px, 85vw);
         min-width: min(260px, 85vw);
+        padding: 12px 10px;
         opacity: 1;
         transform: translateX(-100%);
+        visibility: hidden;
+        box-shadow: none;
+        pointer-events: none;
     }
 
     .shell.sidebar-open .sidebar {
         transform: translateX(0);
+        visibility: visible;
         pointer-events: auto;
+    }
+
+    /* With the drawer off-canvas the sidebar no longer supplies the left
+       gutter — rebalance topbar/content margins so nothing hugs the edge. */
+    .topbar {
+        margin-left: 10px;
+    }
+
+    .content {
+        margin-left: 10px;
     }
 
     .topbar-live,
