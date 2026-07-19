@@ -1,4 +1,4 @@
-import type { FlagSeverity } from "../../../types";
+import type { FlagSeverity } from "../../types";
 
 type Props = { severity: FlagSeverity };
 
