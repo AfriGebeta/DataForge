@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Merge Records",
   "icon": "ti-layers-intersect",
   "slug": "merge-records",
+  "path": "/quality/merges",
   "apiEndpoint": "/api/quality/merges"
 } satisfies PageConfig;

@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Worker Types",
   "icon": "ti-cpu",
   "slug": "worker-types",
+  "path": "/workers/types",
   "apiEndpoint": "/api/workers/types"
 } satisfies PageConfig;

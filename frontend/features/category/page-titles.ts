@@ -2,6 +2,6 @@ import { pageConfig as CategoryStructureConfig } from "./categories/sections/cat
 import { pageConfig as NewCategoryConfig } from "./categories/sections/add-category-form/config";
 
 export const pageTitles = {
-  "category-structure": CategoryStructureConfig.title,
-  "new-category": NewCategoryConfig.title,
+  [CategoryStructureConfig.path]: CategoryStructureConfig.title,
+  [NewCategoryConfig.path]: NewCategoryConfig.title,
 } as const;

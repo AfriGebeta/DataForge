@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Geographic Validation",
   "icon": "ti-map-search",
   "slug": "geographic-validation",
+  "path": "/verification/geographic-validation",
   "apiEndpoint": "/api/verification/geo"
 } satisfies PageConfig;

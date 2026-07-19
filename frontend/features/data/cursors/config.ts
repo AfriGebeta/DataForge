@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Cursors",
   "icon": "ti-cursor-text",
   "slug": "cursors",
+  "path": "/data/cursors",
   "apiEndpoint": "/api/data/cursors"
 } satisfies PageConfig;

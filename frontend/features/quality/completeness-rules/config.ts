@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Completeness Rules",
   "icon": "ti-checklist",
   "slug": "completeness-rules",
+  "path": "/quality/rules",
   "apiEndpoint": "/api/quality/rules"
 } satisfies PageConfig;

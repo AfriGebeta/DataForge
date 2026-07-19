@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Worker Runs",
   "icon": "ti-rotate-clockwise",
   "slug": "runs",
+  "path": "/workers/runs",
   "apiEndpoint": "/api/workers/runs"
 } satisfies PageConfig;

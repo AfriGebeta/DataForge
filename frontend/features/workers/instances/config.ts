@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Worker Instances",
   "icon": "ti-server",
   "slug": "instances",
+  "path": "/workers/instances",
   "apiEndpoint": "/api/workers/instances"
 } satisfies PageConfig;

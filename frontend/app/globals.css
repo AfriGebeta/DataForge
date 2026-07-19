@@ -1130,6 +1130,154 @@ textarea {
         opacity: 0.4;
     }
 }
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.login-root {
+    display: flex;
+    flex-direction: row;
+    width: 100vw;
+    height: 100vh;
+    background: var(--surface-0);
+    overflow: hidden;
+}
+
+.login-left {
+    flex: 0 0 48%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-left-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    padding: 0 52px;
+    max-width: 420px;
+}
+
+.login-glow {
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(208,90,11,0.12) 0%, transparent 68%);
+    pointer-events: none;
+}
+
+.login-tagline {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    max-width: 300px;
+}
+
+.login-stats {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: var(--sidebar-elevated);
+    border: 1px solid var(--sidebar-border);
+    border-radius: 12px;
+    padding: 14px 20px;
+}
+
+.login-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 40px;
+}
+
+.login-form {
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+}
+
+.login-mobile-brand {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .login-root {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+    }
+
+    .login-left {
+        display: none;
+    }
+
+    .login-right {
+        flex: 1;
+        align-items: flex-start;
+        padding: 32px 24px 40px;
+    }
+
+    .login-form {
+        max-width: 100%;
+    }
+
+    .login-mobile-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 32px;
+    }
+
+    .login-mobile-logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--sidebar-elevated);
+        border: 1px solid var(--sidebar-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .login-mobile-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .login-mobile-name {
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.01em;
+        line-height: 1;
+    }
+
+    .login-mobile-sub {
+        font-size: 10px;
+        font-weight: 500;
+        color: rgba(255,255,255,0.35);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+}
 .chip {
     display: inline-flex;
     align-items: center;
@@ -1630,180 +1778,3 @@ textarea {
     }
 }
 
-/* ============================================================
-   shadcn/ui theme tokens — mapped to the existing dark palette.
-   Consumed by @theme inline below so `bg-card`, `text-primary`,
-   `border`, `rounded-lg`, etc. resolve to the app's design.
-   ============================================================ */
-:root {
-    --background: var(--surface-0);
-    --foreground: var(--text-primary);
-    --card: var(--surface-1);
-    --card-foreground: var(--text-primary);
-    --popover: var(--surface-1);
-    --popover-foreground: var(--text-primary);
-    --primary: var(--orange-500);
-    --primary-foreground: var(--on-accent);
-    --secondary: var(--surface-2);
-    --secondary-foreground: var(--text-secondary);
-    --muted: var(--surface-2);
-    --muted-foreground: var(--text-muted);
-    --accent: var(--orange-400);
-    --accent-foreground: var(--on-accent);
-    --destructive: var(--text-danger);
-    --input: var(--surface-2);
-    --ring: rgba(232, 104, 21, 0.55);
-    --chart-1: var(--text-success);
-    --chart-2: #3b82f6;
-    --chart-3: var(--text-warning);
-    --chart-4: var(--text-danger);
-    --chart-5: var(--orange-400);
-    --radius-token: 12px;
-}
-
-@theme inline {
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --color-card: var(--card);
-    --color-card-foreground: var(--card-foreground);
-    --color-popover: var(--popover);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-primary: var(--primary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-secondary: var(--secondary);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-muted: var(--muted);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-accent: var(--accent);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-destructive: var(--destructive);
-    --color-destructive-foreground: var(--on-accent);
-    --color-border: var(--border-strong);
-    --color-input: var(--input);
-    --color-ring: var(--ring);
-    --color-success: var(--text-success);
-    --color-warning: var(--text-warning);
-    --color-danger: var(--text-danger);
-    --color-chart-1: var(--chart-1);
-    --color-chart-2: var(--chart-2);
-    --color-chart-3: var(--chart-3);
-    --color-chart-4: var(--chart-4);
-    --color-chart-5: var(--chart-5);
-    --radius-sm: calc(var(--radius-token) - 6px);
-    --radius-md: calc(var(--radius-token) - 4px);
-    --radius-lg: var(--radius-token);
-    --radius-xl: calc(var(--radius-token) + 4px);
-}
-
-/* ============================================================
-   Glass surfaces + animated backdrops used by the redesigned
-   Overview Dashboard.
-   ============================================================ */
-.glass-surface {
-    background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)) padding-box,
-        linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04)) border-box;
-    border: 1px solid transparent;
-    -webkit-backdrop-filter: blur(18px) saturate(140%);
-    backdrop-filter: blur(18px) saturate(140%);
-    box-shadow:
-        0 10px 30px -12px rgba(0, 0, 0, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-.glass-surface-accent {
-    background:
-        radial-gradient(120% 120% at 0% 0%, rgba(232, 104, 21, 0.18), transparent 55%),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)) padding-box,
-        linear-gradient(135deg, rgba(232, 104, 21, 0.45), rgba(255, 255, 255, 0.04)) border-box;
-    border: 1px solid transparent;
-    -webkit-backdrop-filter: blur(18px) saturate(140%);
-    backdrop-filter: blur(18px) saturate(140%);
-    box-shadow:
-        0 10px 30px -12px rgba(208, 90, 11, 0.35),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-.glass-surface-danger {
-    background:
-        radial-gradient(120% 120% at 100% 0%, rgba(248, 113, 113, 0.18), transparent 55%),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)) padding-box,
-        linear-gradient(135deg, rgba(248, 113, 113, 0.35), rgba(255, 255, 255, 0.04)) border-box;
-    border: 1px solid transparent;
-    -webkit-backdrop-filter: blur(18px) saturate(140%);
-    backdrop-filter: blur(18px) saturate(140%);
-    box-shadow:
-        0 10px 30px -12px rgba(248, 113, 113, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-.glass-glow::before {
-    content: "";
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(135deg, rgba(232, 104, 21, 0.6), transparent 60%);
-    -webkit-mask:
-        linear-gradient(#000 0 0) content-box,
-        linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 250ms ease;
-}
-
-.glass-glow:hover::before {
-    opacity: 1;
-}
-
-.aurora-bg {
-    position: absolute;
-    /* Bleed past the wrapper's clipped edges so the blur's fade band sits
-       outside the visible area — only the clean, opaque interior shows. */
-    inset: -60px;
-    background:
-        radial-gradient(55% 55% at 22% 25%, rgba(232, 104, 21, 0.34), transparent 62%),
-        radial-gradient(55% 55% at 82% 18%, rgba(59, 130, 246, 0.22), transparent 62%),
-        radial-gradient(45% 50% at 55% 75%, rgba(74, 222, 128, 0.16), transparent 62%),
-        radial-gradient(35% 45% at 90% 85%, rgba(232, 104, 21, 0.20), transparent 62%),
-        var(--surface-0);
-    filter: blur(50px);
-    pointer-events: none;
-    z-index: 0;
-    animation: aurora-drift 22s ease-in-out infinite alternate;
-}
-
-@keyframes aurora-drift {
-    0%   { transform: translate3d(0, 0, 0)         scale(1); }
-    50%  { transform: translate3d(4%, 2%, 0)       scale(1.05); }
-    100% { transform: translate3d(-4%, -2%, 0)     scale(1); }
-}
-
-@keyframes shimmer {
-    0%   { transform: translateX(-100%); }
-    100% { transform: translateX(200%); }
-}
-
-.shimmer-line {
-    position: relative;
-    overflow: hidden;
-}
-
-.shimmer-line::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
-    animation: shimmer 2.6s infinite;
-}
-
-@keyframes pulse-dot {
-    0%, 100% { transform: scale(1);   opacity: 0.85; }
-    50%      { transform: scale(1.4); opacity: 0.35; }
-}
-
-.pulse-dot {
-    animation: pulse-dot 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}

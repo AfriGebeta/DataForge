@@ -1,7 +1,9 @@
 import { pageConfig as AuditLogsConfig } from './audit-logs/config';
 import { pageConfig as SettingsConfig } from './settings/config';
+import { pageConfig as UsersConfig } from './users/config';
 
 export const pageTitles = {
-  'audit-logs': AuditLogsConfig.title,
-  'settings': SettingsConfig.title,
+  [AuditLogsConfig.path]: AuditLogsConfig.title,
+  [SettingsConfig.path]: SettingsConfig.title,
+  [UsersConfig.path]: UsersConfig.title,
 } as const;

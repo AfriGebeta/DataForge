@@ -6,5 +6,6 @@ export const pageConfig = {
   "title": "Executive Insights",
   "icon": "ti-chart-bar",
   "slug": "analytics",
+  "path": "/ai-analysis/analytics",
   "apiEndpoint": "/api/ai/analytics"
 } satisfies PageConfig;

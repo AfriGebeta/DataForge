@@ -13,9 +13,9 @@ export const modalsHtml = [
   aiAnalysisModals,
   dataModals,
   workersModals,
-  ...qualityModals,
-  ...systemModals,
-  ...categoryModals,
+  qualityModals,
+  systemModals,
+  categoryModals,
 ]
   .filter(Boolean)
   .join("\n\n");
