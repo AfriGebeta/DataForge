@@ -29,13 +29,24 @@ export default function GebetaMapsApp() {
   const [activeView, setActiveView] = useState("overview");
   const [toastMsg, setToastMsg] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(
-    () => typeof window === "undefined" || window.innerWidth > 768,
-  );
+  // Start "open" to match the server-rendered markup (avoids a hydration
+  // class mismatch that leaves the DOM stuck with `sidebar-open`), then
+  // sync to the real viewport after mount and on breakpoint changes.
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const mainRef = useRef<HTMLDivElement>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    setSidebarOpen(!mq.matches);
+    const handleChange = (event: MediaQueryListEvent) => {
+      setSidebarOpen(!event.matches);
+    };
+    mq.addEventListener("change", handleChange);
+    return () => mq.removeEventListener("change", handleChange);
+  }, []);
 
   const showToast = useCallback((msg: string) => {
     setToastMsg(msg);

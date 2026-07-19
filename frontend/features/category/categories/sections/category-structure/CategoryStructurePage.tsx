@@ -5,6 +5,7 @@ import {
   deleteCategory,
   fetchCategories,
   fetchParentCategories,
+  flattenCategoryTree,
   updateCategory,
 } from "../../api";
 import type {
@@ -42,7 +43,7 @@ export default function CategoryStructurePage() {
         fetchParentCategories(),
       ]);
 
-      setCategories(paged.data.filter((category) => !category.deletedAt));
+      setCategories(flattenCategoryTree(paged.data));
       setTotal(paged.total);
       setParentCategories(parents);
     } catch (cause) {
