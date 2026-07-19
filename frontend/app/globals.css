@@ -818,6 +818,154 @@ textarea {
         opacity: 0.4;
     }
 }
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.login-root {
+    display: flex;
+    flex-direction: row;
+    width: 100vw;
+    height: 100vh;
+    background: var(--surface-0);
+    overflow: hidden;
+}
+
+.login-left {
+    flex: 0 0 48%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-left-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    padding: 0 52px;
+    max-width: 420px;
+}
+
+.login-glow {
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(208,90,11,0.12) 0%, transparent 68%);
+    pointer-events: none;
+}
+
+.login-tagline {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    max-width: 300px;
+}
+
+.login-stats {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: var(--sidebar-elevated);
+    border: 1px solid var(--sidebar-border);
+    border-radius: 12px;
+    padding: 14px 20px;
+}
+
+.login-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 40px;
+}
+
+.login-form {
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+}
+
+.login-mobile-brand {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .login-root {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+    }
+
+    .login-left {
+        display: none;
+    }
+
+    .login-right {
+        flex: 1;
+        align-items: flex-start;
+        padding: 32px 24px 40px;
+    }
+
+    .login-form {
+        max-width: 100%;
+    }
+
+    .login-mobile-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 32px;
+    }
+
+    .login-mobile-logo {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--sidebar-elevated);
+        border: 1px solid var(--sidebar-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .login-mobile-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .login-mobile-name {
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.01em;
+        line-height: 1;
+    }
+
+    .login-mobile-sub {
+        font-size: 10px;
+        font-weight: 500;
+        color: rgba(255,255,255,0.35);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+}
 .chip {
     display: inline-flex;
     align-items: center;

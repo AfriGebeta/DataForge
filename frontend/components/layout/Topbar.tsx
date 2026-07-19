@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { pageTitles } from "@/features/shared/page-titles";
 
 type TopbarProps = {
@@ -14,6 +15,7 @@ export default function Topbar({
   sidebarOpen,
   onToggleSidebar,
 }: TopbarProps) {
+  const router = useRouter();
   const [clock, setClock] = useState("");
 
   useEffect(() => {
@@ -76,6 +78,18 @@ const pageTitle = pageTitles[pathname] ?? pathname;
           <span>Deploy</span>
         </button>
         <div className="topbar-avatar">AD</div>
+        <button
+          type="button"
+          className="btn ghost sm topbar-icon-btn"
+          onClick={() => {
+            document.cookie = "gebeta_token=; path=/; max-age=0";
+            router.push("/login");
+          }}
+          aria-label="Sign out"
+          title="Sign out"
+        >
+          <i className="ti ti-logout" />
+        </button>
       </div>
     </div>
   );
