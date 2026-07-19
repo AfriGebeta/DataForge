@@ -1,6 +1,5 @@
 import type { MergeRecord, MergeStrategy } from "../../types";
-import { StrategyBadge } from "./components";
-
+import StrategyBadge from "./StrategyBadge";
 type Props = {
   records: MergeRecord[];
   loading: boolean;

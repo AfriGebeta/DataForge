@@ -1,4 +1,4 @@
-import type { MergeStrategy } from "../../../types";
+import type { MergeStrategy } from "../../types";
 
 type Props = {
   strategy: MergeStrategy;

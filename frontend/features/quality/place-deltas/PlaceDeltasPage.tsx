@@ -1,9 +1,5 @@
 "use client";
-
-import HtmlContentPage from '@/features/shared/HtmlContentPage';
-import { content } from './content';
-import { pageConfig } from './config';
-
+import { PlaceDeltasPage as Page } from "./sections/place-deltas-table";
 export default function PlaceDeltasPage() {
-  return <HtmlContentPage content={content} pageId={pageConfig.id} />;
+  return <Page />;
 }

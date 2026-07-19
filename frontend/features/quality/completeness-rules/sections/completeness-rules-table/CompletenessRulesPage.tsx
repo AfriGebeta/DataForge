@@ -12,7 +12,7 @@ import type {
   CompletenessRule,
   PlaceType,
 } from "../../types";
-import { CreateRuleModal } from "./components";
+import ActionModals from "../action-modals";
 import CompletenessRulesSection from "./CompletenessRulesSection";
 
 export default function CompletenessRulesPage() {
@@ -82,14 +82,11 @@ export default function CompletenessRulesPage() {
         onCreateRule={() => setCreateOpen(true)}
       />
 
-      <CreateRuleModal
-        isOpen={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreated={() => {
-          showToast("Rule created successfully.");
-          void load();
-        }}
-      />
+     <ActionModals
+  createOpen={createOpen}
+  onCreateClose={() => setCreateOpen(false)}
+  onCreated={() => { showToast("Rule created successfully."); void load(); }}
+/>
 
       <Toast message={message} visible={visible} />
     </div>

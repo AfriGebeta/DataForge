@@ -3,7 +3,8 @@ import type {
   CompletenessRule,
   PlaceType,
 } from "../../types";
-import { LevelBadge, PlaceTypeBadge } from "./components";
+import LevelBadge from "./LevelBadge";
+import PlaceTypeBadge from "./PlaceTypeBadge";
 
 type Props = {
   rules: CompletenessRule[];

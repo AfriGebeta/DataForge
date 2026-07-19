@@ -11,7 +11,8 @@ import type {
   FlagStatusFilter,
   ValidationFlag,
 } from "../../types";
-import { BulkResolveModal, CreateFlagModal } from "./components";
+import ActionModals from "../action-modals";
+import SeverityBadge from "./SeverityBadge";
 import ValidationFlagsSection from "./ValidationFlagsSection";
 
 export default function ValidationFlagsPage() {
@@ -92,23 +93,14 @@ export default function ValidationFlagsPage() {
         onBulkResolve={() => setBulkOpen(true)}
       />
 
-      <CreateFlagModal
-        isOpen={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreated={() => {
-          showToast("Flag created successfully.");
-          void load();
-        }}
-      />
-
-      <BulkResolveModal
-        isOpen={bulkOpen}
-        onClose={() => setBulkOpen(false)}
-        onResolved={() => {
-          showToast("Flags resolved successfully.");
-          void load();
-        }}
-      />
+      <ActionModals
+  createOpen={createOpen}
+  onCreateClose={() => setCreateOpen(false)}
+  onCreated={() => { showToast("Flag created successfully."); void load(); }}
+  bulkOpen={bulkOpen}
+  onBulkClose={() => setBulkOpen(false)}
+  onResolved={() => { showToast("Flags resolved successfully."); void load(); }}
+/>
 
       <Toast message={message} visible={visible} />
     </div>

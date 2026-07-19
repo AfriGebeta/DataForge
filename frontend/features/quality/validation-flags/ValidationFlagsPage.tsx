@@ -1,9 +1,5 @@
 "use client";
-
-import HtmlContentPage from '@/features/shared/HtmlContentPage';
-import { content } from './content';
-import { pageConfig } from './config';
-
+import { ValidationFlagsPage as Page } from "./sections/validation-flags-table";
 export default function ValidationFlagsPage() {
-  return <HtmlContentPage content={content} pageId={pageConfig.id} />;
+  return <Page />;
 }

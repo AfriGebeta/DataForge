@@ -1,4 +1,4 @@
-import type { PlaceType } from "../../../types";
+import type { PlaceType } from "../../types";
 
 type Props = {
   placeType: PlaceType;

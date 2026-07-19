@@ -1,4 +1,4 @@
-import type { CompletenessLevel } from "../../../types";
+import type { CompletenessLevel } from "../../types";
 
 type Props = {
   level: CompletenessLevel;

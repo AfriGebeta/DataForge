@@ -5,7 +5,7 @@ import Toast from "@/components/custom/Toast";
 import { useToast } from "@/hooks/useToast";
 import { fetchMergeRecords } from "../../api";
 import type { MergeRecord, MergeStrategy } from "../../types";
-import { RecordMergeModal } from "./components";
+import ActionModals from "../action-modals";
 import MergeRecordsSection from "./MergeRecordsSection";
 
 export default function MergeRecordsPage() {
@@ -55,14 +55,11 @@ export default function MergeRecordsPage() {
         onRecordMerge={() => setRecordMergeOpen(true)}
       />
 
-      <RecordMergeModal
-        isOpen={recordMergeOpen}
-        onClose={() => setRecordMergeOpen(false)}
-        onCreated={() => {
-          showToast("Merge recorded successfully.");
-          void load();
-        }}
-      />
+      <ActionModals
+  recordOpen={recordMergeOpen}
+  onRecordClose={() => setRecordMergeOpen(false)}
+  onCreated={() => { showToast("Merge recorded successfully."); void load(); }}
+/>
 
       <Toast message={message} visible={visible} />
     </div>

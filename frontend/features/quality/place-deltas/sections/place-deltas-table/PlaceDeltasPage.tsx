@@ -5,7 +5,7 @@ import Toast from "@/components/custom/Toast";
 import { useToast } from "@/hooks/useToast";
 import { applyPlaceDelta, deletePlaceDelta, fetchPlaceDeltas } from "../../api";
 import type { DeltaAction, DeltaAppliedFilter, DeltaSourceType, PlaceDelta } from "../../types";
-import { RecordDeltaModal } from "./components";
+import ActionModals from "../action-modals";
 import PlaceDeltasSection from "./PlaceDeltasSection";
 
 export default function PlaceDeltasPage() {
@@ -91,14 +91,11 @@ export default function PlaceDeltasPage() {
         onRecordDelta={() => setRecordOpen(true)}
       />
 
-      <RecordDeltaModal
-        isOpen={recordOpen}
-        onClose={() => setRecordOpen(false)}
-        onCreated={() => {
-          showToast("Delta recorded successfully.");
-          void load();
-        }}
-      />
+      <ActionModals
+  recordOpen={recordOpen}
+  onRecordClose={() => setRecordOpen(false)}
+  onCreated={() => { showToast("Delta recorded successfully."); void load(); }}
+/>
 
       <Toast message={message} visible={visible} />
     </div>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { bulkResolveFlags } from "../../../api";
-import type { BulkResolveRequest, FlagCategory } from "../../../types";
+import { bulkResolveFlags } from "../../api";
+import type { BulkResolveRequest, FlagCategory } from "../../types";
 
 type Props = {
   isOpen: boolean;

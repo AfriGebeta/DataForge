@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { createCompletenessRule } from "../../../api";
+import { createCompletenessRule } from "../../api";
 import type {
   CompletenessLevel,
   CreateCompletenessRuleRequest,
   PlaceType,
-} from "../../../types";
+} from "../../types";
 
 type Props = {
   isOpen: boolean;

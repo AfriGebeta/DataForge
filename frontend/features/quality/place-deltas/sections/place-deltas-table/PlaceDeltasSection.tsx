@@ -1,5 +1,5 @@
 import type { DeltaAction, DeltaAppliedFilter, DeltaSourceType, PlaceDelta } from "../../types";
-import { ActionBadge } from "./components";
+import ActionBadge from "./ActionBadge";
 
 type Props = {
   deltas: PlaceDelta[];

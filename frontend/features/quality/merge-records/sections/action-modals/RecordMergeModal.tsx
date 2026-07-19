@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { createPlaceDelta } from "../../../api";
-import type { CreatePlaceDeltaRequest, DeltaAction } from "../../../types";
+import { createMergeRecord } from "../../api";
+import type { CreateMergeRecordRequest, MergeStrategy } from "../../types";
 
 type Props = {
   isOpen: boolean;
@@ -10,17 +10,16 @@ type Props = {
   onCreated: () => void;
 };
 
-const defaultForm: CreatePlaceDeltaRequest = {
-  source_place_id: "",
-  target_place_id: "",
-  action: "UPDATE",
-  field_name: "",
-  before_data: "",
-  after_data: "",
+const defaultForm: CreateMergeRecordRequest = {
+  winner_id: "",
+  loser_id: "",
+  strategy: "MANUAL",
+  reason: "",
+  merged_by: "",
 };
 
-export default function RecordDeltaModal({ isOpen, onClose, onCreated }: Props) {
-  const [form, setForm] = useState<CreatePlaceDeltaRequest>(defaultForm);
+export default function RecordMergeModal({ isOpen, onClose, onCreated }: Props) {
+  const [form, setForm] = useState<CreateMergeRecordRequest>(defaultForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,19 +33,19 @@ export default function RecordDeltaModal({ isOpen, onClose, onCreated }: Props) 
   };
 
   const handleSubmit = async () => {
-    if (!form.source_place_id || !form.after_data) {
-      setError("Source place ID and After data are required.");
+    if (!form.winner_id || !form.loser_id || !form.reason) {
+      setError("Winner ID, Loser ID and Merge reason are required.");
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
-      await createPlaceDelta(form);
+      await createMergeRecord(form);
       onCreated();
       onClose();
       setForm(defaultForm);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Failed to record delta.");
+      setError(cause instanceof Error ? cause.message : "Failed to record merge.");
     } finally {
       setSubmitting(false);
     }
@@ -70,9 +69,7 @@ export default function RecordDeltaModal({ isOpen, onClose, onCreated }: Props) 
           background: "var(--surface-2)",
           border: "1px solid var(--border-strong)",
           borderRadius: 12,
-          width: 460,
-          maxHeight: "88vh",
-          overflowY: "auto",
+          width: 440,
         }}
       >
         <div
@@ -84,7 +81,7 @@ export default function RecordDeltaModal({ isOpen, onClose, onCreated }: Props) 
             borderBottom: "1px solid var(--border)",
           }}
         >
-          <span style={{ fontSize: 14, fontWeight: 600 }}>Record place delta</span>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Record merge</span>
           <button className="btn sm ghost" onClick={onClose}>
             <i className="ti ti-x" />
           </button>
@@ -99,49 +96,55 @@ export default function RecordDeltaModal({ isOpen, onClose, onCreated }: Props) 
 
           <div className="fr">
             <div className="fg">
-              <label className="fl">Source place ID <span>*</span></label>
-              <input type="text" name="source_place_id" placeholder="UUID" value={form.source_place_id} onChange={handleChange} />
+              <label className="fl">Winner place ID <span>*</span></label>
+              <input
+                type="text"
+                name="winner_id"
+                placeholder="UUID kept"
+                value={form.winner_id}
+                onChange={handleChange}
+              />
             </div>
             <div className="fg">
-              <label className="fl">Target place ID</label>
-              <input type="text" name="target_place_id" placeholder="UUID (optional)" value={form.target_place_id ?? ""} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div className="fr">
-            <div className="fg">
-              <label className="fl">Action <span>*</span></label>
-              <select name="action" value={form.action} onChange={handleChange}>
-                <option value="UPDATE">UPDATE</option>
-                <option value="ADD">ADD</option>
-                <option value="REMOVE">REMOVE</option>
-              </select>
-            </div>
-            <div className="fg">
-              <label className="fl">Field name</label>
-              <input type="text" name="field_name" placeholder="phone" value={form.field_name ?? ""} onChange={handleChange} />
+              <label className="fl">Loser place ID <span>*</span></label>
+              <input
+                type="text"
+                name="loser_id"
+                placeholder="UUID removed"
+                value={form.loser_id}
+                onChange={handleChange}
+              />
             </div>
           </div>
 
           <div className="fg">
-            <label className="fl">Before data (JSON)</label>
+            <label className="fl">Strategy <span>*</span></label>
+            <select name="strategy" value={form.strategy} onChange={handleChange}>
+              <option value="MANUAL">MANUAL</option>
+              <option value="AUTO_DISTANCE">AUTO_DISTANCE</option>
+              <option value="AUTO_NAME_MATCH">AUTO_NAME_MATCH</option>
+              <option value="AUTO_OVERLAP">AUTO_OVERLAP</option>
+            </select>
+          </div>
+
+          <div className="fg">
+            <label className="fl">Merge reason <span>*</span></label>
             <textarea
-              name="before_data"
-              placeholder='{"phone":"+251911000001"}'
-              value={form.before_data ?? ""}
+              name="reason"
+              placeholder="Distance 4.2m, name similarity 0.97, same address block"
+              value={form.reason}
               onChange={handleChange}
-              style={{ fontFamily: "var(--font-mono)", fontSize: 11, minHeight: 50 }}
             />
           </div>
 
           <div className="fg">
-            <label className="fl">After data (JSON) <span>*</span></label>
-            <textarea
-              name="after_data"
-              placeholder='{"phone":"+251911000002"}'
-              value={form.after_data}
+            <label className="fl">Merged by</label>
+            <input
+              type="text"
+              name="merged_by"
+              placeholder="conflation-worker-v2"
+              value={form.merged_by}
               onChange={handleChange}
-              style={{ fontFamily: "var(--font-mono)", fontSize: 11, minHeight: 50 }}
             />
           </div>
         </div>
@@ -158,7 +161,7 @@ export default function RecordDeltaModal({ isOpen, onClose, onCreated }: Props) 
           <button className="btn" onClick={onClose}>Cancel</button>
           <button className="btn p" onClick={handleSubmit} disabled={submitting}>
             <i className="ti ti-check" />
-            {submitting ? "Recording..." : "Record delta"}
+            {submitting ? "Recording..." : "Record merge"}
           </button>
         </div>
       </div>

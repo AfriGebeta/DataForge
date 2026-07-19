@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { createValidationFlag } from "../../../api";
-import type { CreateFlagRequest, FlagCategory, FlagSeverity } from "../../../types";
+import { createValidationFlag } from "../../api";
+import type { CreateFlagRequest, FlagCategory, FlagSeverity } from "../../types";
 
 type Props = {
   isOpen: boolean;

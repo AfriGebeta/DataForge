@@ -1,5 +1,2 @@
-import { CompletenessRulesPage } from "@/features/quality/completeness-rules/sections/completeness-rules-table";
-
-export default function Page() {
-  return <CompletenessRulesPage />;
-}
+import CompletenessRulesPage from "@/features/quality/completeness-rules/CompletenessRulesPage";
+export default function Page() { return <CompletenessRulesPage />; }

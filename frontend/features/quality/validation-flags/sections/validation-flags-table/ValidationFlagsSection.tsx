@@ -5,8 +5,7 @@ import type {
   FlagStatusFilter,
   ValidationFlag,
 } from "../../types";
-import { SeverityBadge } from "./components";
-
+import SeverityBadge from "./SeverityBadge";
 type Props = {
   flags: ValidationFlag[];
   stats: FlagStats | null;

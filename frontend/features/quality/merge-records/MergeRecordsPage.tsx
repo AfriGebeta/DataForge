@@ -1,9 +1,5 @@
 "use client";
-
-import HtmlContentPage from '@/features/shared/HtmlContentPage';
-import { content } from './content';
-import { pageConfig } from './config';
-
+import { MergeRecordsPage as Page } from "./sections/merge-records-table";
 export default function MergeRecordsPage() {
-  return <HtmlContentPage content={content} pageId={pageConfig.id} />;
+  return <Page />;
 }

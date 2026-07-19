@@ -1,9 +1,5 @@
 "use client";
-
-import HtmlContentPage from '@/features/shared/HtmlContentPage';
-import { content } from './content';
-import { pageConfig } from './config';
-
+import { CompletenessRulesPage as Page } from "./sections/completeness-rules-table";
 export default function CompletenessRulesPage() {
-  return <HtmlContentPage content={content} pageId={pageConfig.id} />;
+  return <Page />;
 }

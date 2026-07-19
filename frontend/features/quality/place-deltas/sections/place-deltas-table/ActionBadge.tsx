@@ -1,4 +1,4 @@
-import type { DeltaAction } from "../../../types";
+import type { DeltaAction } from "../../types";
 
 type Props = { action: DeltaAction };
 
