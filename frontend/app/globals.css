@@ -138,6 +138,7 @@ body {
 /* ==== Brand card — curved glass container ==== */
 .sidebar-brand {
     position: relative;
+    flex-shrink: 0;
     border-radius: 18px;
     padding: 14px 14px;
     overflow: hidden;
@@ -247,6 +248,8 @@ body {
     position: relative;
     flex: 1;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
     border-radius: 18px;
     overflow: hidden;
     background:
@@ -324,9 +327,12 @@ body {
 .sidebar-nav-inner {
     position: relative;
     z-index: 1;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     padding: 6px 6px 12px;
     scrollbar-width: thin;
     scrollbar-color: rgba(232, 104, 21, 0.25) transparent;
