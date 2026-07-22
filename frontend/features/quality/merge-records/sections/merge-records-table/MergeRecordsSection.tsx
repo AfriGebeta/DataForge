@@ -1,5 +1,58 @@
+"use client";
+
+import DataTable, { ColumnDef } from "@/components/ui/DataTable";
 import type { MergeRecord, MergeStrategy } from "../../types";
 import StrategyBadge from "./StrategyBadge";
+
+const columns: ColumnDef<MergeRecord>[] = [
+  {
+    accessorKey: "winner_id",
+    header: "Winner",
+    size: 160,
+    cell: ({ row }) => (
+      <span className="mono">{row.original.winner_id}…</span>
+    ),
+  },
+  {
+    accessorKey: "loser_id",
+    header: "Loser",
+    size: 160,
+    cell: ({ row }) => (
+      <span className="mono">{row.original.loser_id}…</span>
+    ),
+  },
+  {
+    accessorKey: "strategy",
+    header: "Strategy",
+    size: 200,
+    cell: ({ row }) => <StrategyBadge strategy={row.original.strategy} />,
+  },
+  {
+    accessorKey: "reason",
+    header: "Reason",
+    size: 260,
+    cell: ({ row }) => (
+      <span style={{ color: "var(--text-secondary)" }}>{row.original.reason}</span>
+    ),
+  },
+  {
+    accessorKey: "merged_by",
+    header: "Merged by",
+    size: 120,
+    cell: ({ row }) => (
+      <span style={{ color: "var(--text-muted)" }}>{row.original.merged_by}</span>
+    ),
+  },
+  {
+    accessorKey: "merged_at",
+    header: "Merged at",
+    size: 100,
+    cell: ({ row }) => (
+      <span style={{ color: "var(--text-muted)" }}>{row.original.merged_at}</span>
+    ),
+  },
+];
+
 type Props = {
   records: MergeRecord[];
   loading: boolean;
@@ -45,46 +98,12 @@ export default function MergeRecordsSection({
         </button>
       </div>
 
-      <div className="card">
-        {loading ? (
-          <p style={{ color: "var(--text-muted)", fontSize: 12 }}>Loading...</p>
-        ) : records.length === 0 ? (
-          <p style={{ color: "var(--text-muted)", fontSize: 12 }}>No merge records found.</p>
-        ) : (
-          <table>
-            <colgroup>
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "20%" }} />
-              <col style={{ width: "26%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "10%" }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>Winner</th>
-                <th>Loser</th>
-                <th>Strategy</th>
-                <th>Reason</th>
-                <th>Merged by</th>
-                <th>Merged at</th>
-              </tr>
-            </thead>
-            <tbody>
-              {records.map((record) => (
-                <tr key={record.id}>
-                  <td className="mono">{record.winner_id}…</td>
-                  <td className="mono">{record.loser_id}…</td>
-                  <td><StrategyBadge strategy={record.strategy} /></td>
-                  <td style={{ color: "var(--text-secondary)" }}>{record.reason}</td>
-                  <td style={{ color: "var(--text-muted)" }}>{record.merged_by}</td>
-                  <td style={{ color: "var(--text-muted)" }}>{record.merged_at}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <DataTable
+        columns={columns}
+        data={records}
+        loading={loading}
+        emptyMessage="No merge records found."
+      />
     </>
   );
 }
