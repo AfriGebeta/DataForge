@@ -1,3 +1,5 @@
+import { GlassCard } from "@/features/shared/GlassCard";
+
 type Props = {
   humanCorrections: number;
   humanCorrectionsDelta: string;
@@ -17,7 +19,7 @@ export default function MetricCards({
 }: Props) {
   return (
     <div className="g3">
-      <div className="mc">
+      <GlassCard flat className="mc">
         <i className="ti ti-pencil mc-icon" style={{ color: "var(--text-accent)" }} />
         <div className="ml">Human Corrections</div>
         <div className="mv" style={{ color: "var(--text-accent)" }}>
@@ -26,16 +28,16 @@ export default function MetricCards({
         <div className="ms" style={{ color: "var(--text-success)" }}>
           ↑ {humanCorrectionsDelta}
         </div>
-      </div>
-      <div className="mc">
+      </GlassCard>
+      <GlassCard flat className="mc">
         <i className="ti ti-alert-triangle mc-icon" style={{ color: "var(--text-warning)" }} />
         <div className="ml">AI Mistakes Detected</div>
         <div className="mv">{aiMistakes.toLocaleString()}</div>
         <div className="ms" style={{ color: "var(--text-success)" }}>
           ↓ {aiMistakesDelta}
         </div>
-      </div>
-      <div className="mc">
+      </GlassCard>
+      <GlassCard flat className="mc">
         <i className="ti ti-refresh mc-icon" />
         <div className="ml">Retrained Samples</div>
         <div className="mv">{retrainedSamples.toLocaleString()}</div>
@@ -45,7 +47,7 @@ export default function MetricCards({
             <div className="pbf" style={{ width: `${retrainedPercent}%` }} />
           </div>
         </div>
-      </div>
+      </GlassCard>
     </div>
   );
 }

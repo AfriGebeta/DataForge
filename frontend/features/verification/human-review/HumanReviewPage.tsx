@@ -19,11 +19,11 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import {
-  Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { GlassCard } from "@/features/shared/GlassCard";
 import { cn } from "@/lib/utils";
 
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
@@ -279,7 +279,7 @@ export default function HumanReviewPage() {
         <div className="grid grid-cols-1 gap-7 xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
           {/* LEFT: pending list */}
           <motion.div variants={item}>
-            <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+            <GlassCard>
               <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                 <div className="flex items-center gap-2">
                   <div
@@ -341,13 +341,13 @@ export default function HumanReviewPage() {
                   </motion.div>
                 ))}
               </CardContent>
-            </Card>
+            </GlassCard>
           </motion.div>
 
           {/* RIGHT: map + fields + actions */}
           <div className="flex flex-col gap-7">
             <motion.div variants={item}>
-              <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+              <GlassCard>
                 <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                   <div className="flex items-center gap-2">
                     <div
@@ -408,11 +408,11 @@ export default function HumanReviewPage() {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
+              </GlassCard>
             </motion.div>
 
             <motion.div variants={item}>
-              <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+              <GlassCard>
                 <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                   <div className="flex items-center gap-2">
                     <div
@@ -493,7 +493,7 @@ export default function HumanReviewPage() {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
+              </GlassCard>
             </motion.div>
           </div>
         </div>

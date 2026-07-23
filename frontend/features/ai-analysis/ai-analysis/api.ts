@@ -2,7 +2,7 @@ import type { AiAnalysisData } from "./types";
 
 export const API_ENDPOINT = "http://localhost:8080/api/ai/analysis" as const;
 
-const fakeData: AiAnalysisData = {
+export const fakeData: AiAnalysisData = {
   metrics: {
     f1_score: 0.942,
     f1_delta: 0.015,

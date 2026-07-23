@@ -1,5 +1,6 @@
 import type { MergeRecord, MergeStrategy } from "../../types";
 import StrategyBadge from "./StrategyBadge";
+import { GlassCard } from "@/features/shared/GlassCard";
 type Props = {
   records: MergeRecord[];
   loading: boolean;
@@ -45,7 +46,7 @@ export default function MergeRecordsSection({
         </button>
       </div>
 
-      <div className="card">
+      <GlassCard flat className="card">
         {loading ? (
           <p style={{ color: "var(--text-muted)", fontSize: 12 }}>Loading...</p>
         ) : records.length === 0 ? (
@@ -84,7 +85,7 @@ export default function MergeRecordsSection({
             </tbody>
           </table>
         )}
-      </div>
+      </GlassCard>
     </>
   );
 }

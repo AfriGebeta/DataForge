@@ -1,4 +1,5 @@
 import type { FeedbackItem } from "../../../types";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   item: FeedbackItem;
@@ -8,7 +9,7 @@ type Props = {
 
 export default function FeedbackDetailPanel({ item, onDiscard, onApprove }: Props) {
   return (
-    <div className="card">
+    <GlassCard flat className="card">
       <div
         style={{
           fontSize: 11,
@@ -172,6 +173,6 @@ export default function FeedbackDetailPanel({ item, onDiscard, onApprove }: Prop
           Approve & Add to Retrain
         </button>
       </div>
-    </div>
+    </GlassCard>
   );
 }

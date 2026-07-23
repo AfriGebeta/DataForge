@@ -7,7 +7,7 @@ import type {
 
 export const API_ENDPOINT = "http://localhost:8080/api/workers/types" as const;
 
-const fakeWorkerTypes: WorkerType[] = [
+export const fakeWorkerTypes: WorkerType[] = [
   {
     id: "wt-001",
     name: "telegram-scraper",
@@ -53,69 +53,39 @@ const fakeWorkerTypes: WorkerType[] = [
 export async function fetchWorkerTypes(
   params?: WorkerTypesParams,
 ): Promise<WorkerTypesResponse> {
-  try {
-    const page = params?.page || 1;
-    const pageSize = params?.pageSize || 10;
-    const res = await fetch(
-      `${API_ENDPOINT}?limit=${pageSize}&offset=${(page - 1) * pageSize}`,
-    );
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
-    return res.json();
-  } catch (cause) {
-    console.warn("Falling back to mock data for fetchWorkerTypes:", cause);
-    const page = params?.page || 1;
-    const pageSize = params?.pageSize || 10;
-    const start = (page - 1) * pageSize;
-    return {
-      data: fakeWorkerTypes.slice(start, start + pageSize),
-      total: fakeWorkerTypes.length,
-      limit: pageSize,
-      offset: start,
-    };
-  }
+  // Static mock data — no network/background fetching.
+  const page = params?.page || 1;
+  const pageSize = params?.pageSize || 10;
+  const start = (page - 1) * pageSize;
+  return {
+    data: fakeWorkerTypes.slice(start, start + pageSize),
+    total: fakeWorkerTypes.length,
+    limit: pageSize,
+    offset: start,
+  };
 }
 
 export async function createWorkerType(
   request: CreateWorkerTypeRequest,
 ): Promise<WorkerType> {
-  try {
-    const res = await fetch(API_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    });
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
-    return res.json();
-  } catch (cause) {
-    console.warn("Falling back to mock data for createWorkerType:", cause);
-    const newWorker: WorkerType = {
-      id: `wt-${Date.now()}`,
-      ...request,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    fakeWorkerTypes.push(newWorker);
-    return newWorker;
-  }
+  // Static mock — no network.
+  const newWorker: WorkerType = {
+    id: `wt-${Date.now()}`,
+    ...request,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  fakeWorkerTypes.push(newWorker);
+  return newWorker;
 }
 
 export async function toggleWorkerTypeStatus(
   id: string,
   is_active: boolean,
 ): Promise<WorkerType> {
-  try {
-    const res = await fetch(`${API_ENDPOINT}/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_active }),
-    });
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
-    return res.json();
-  } catch (cause) {
-    console.warn("Falling back to mock data for toggleWorkerTypeStatus:", cause);
-    const worker = fakeWorkerTypes.find((w) => w.id === id);
-    if (!worker) throw new Error("Worker not found");
-    worker.is_active = is_active;
-    return worker;
-  }
+  // Static mock — no network.
+  const worker = fakeWorkerTypes.find((w) => w.id === id);
+  if (!worker) throw new Error("Worker not found");
+  worker.is_active = is_active;
+  return worker;
 }

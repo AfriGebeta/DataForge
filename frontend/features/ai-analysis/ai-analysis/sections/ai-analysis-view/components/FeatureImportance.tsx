@@ -1,4 +1,5 @@
 import type { FeatureImportance as FeatureImportanceType } from "../../../types";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   items: FeatureImportanceType[];
@@ -6,7 +7,7 @@ type Props = {
 
 export default function FeatureImportance({ items }: Props) {
   return (
-    <div className="card">
+    <GlassCard flat className="card">
       <div className="ch">
         <span className="ct">Feature Importance Attribution</span>
         <button className="btn ghost sm">
@@ -39,6 +40,6 @@ export default function FeatureImportance({ items }: Props) {
           </div>
         ))}
       </div>
-    </div>
+    </GlassCard>
   );
 }

@@ -29,23 +29,15 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import {
-  Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { GlassCard } from "@/features/shared/GlassCard";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
-
-const toneRing: Record<Tone, string> = {
-  neutral: "ring-white/5",
-  accent: "ring-[color:var(--orange-400)]/30",
-  success: "ring-[color:var(--text-success)]/25",
-  warning: "ring-[color:var(--text-warning)]/25",
-  danger: "ring-[color:var(--text-danger)]/30",
-};
 
 const toneIconWrap: Record<Tone, string> = {
   neutral: "bg-white/5 text-white/70 ring-1 ring-inset ring-white/10",
@@ -471,13 +463,7 @@ function KpiCard({
       whileHover={{ y: -4, transition: { duration: 0.25 } }}
       className="relative"
     >
-      <Card
-        className={cn(
-          "glass-glow relative h-full overflow-hidden border-0 py-0 ring-1",
-          toneRing[tone],
-          accent ? "glass-surface-accent" : "glass-surface",
-        )}
-      >
+      <GlassCard tone={accent ? "accent" : "neutral"} ring ringTone={tone} className="h-full">
         <div
           className={cn(
             "relative flex h-full min-w-0 flex-col items-center justify-center text-center",
@@ -549,7 +535,7 @@ function KpiCard({
             </div>
           ) : null}
         </div>
-      </Card>
+      </GlassCard>
     </motion.div>
   );
 }
@@ -643,7 +629,7 @@ export default function OverviewDashboardPage() {
         {/* Trust Score + Alerts */}
         <div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
           <motion.div variants={item}>
-            <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+            <GlassCard>
               <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                 <div className="flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
@@ -696,11 +682,11 @@ export default function OverviewDashboardPage() {
                   ))}
                 </div>
               </CardContent>
-            </Card>
+            </GlassCard>
           </motion.div>
 
           <motion.div variants={item}>
-            <Card className="glass-surface-danger glass-glow relative overflow-hidden border-0 py-0">
+            <GlassCard tone="danger">
               <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                 <div className="flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--text-danger)]/15 text-[color:var(--text-danger)] ring-1 ring-inset ring-[color:var(--text-danger)]/25">
@@ -756,14 +742,14 @@ export default function OverviewDashboardPage() {
                   );
                 })}
               </CardContent>
-            </Card>
+            </GlassCard>
           </motion.div>
         </div>
 
         {/* Ingest breakdown + Activity feed */}
         <div className="grid grid-cols-1 gap-7 lg:grid-cols-2">
           <motion.div variants={item}>
-            <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+            <GlassCard>
               <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                 <div className="flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
@@ -818,11 +804,11 @@ export default function OverviewDashboardPage() {
                   ))}
                 </div>
               </CardContent>
-            </Card>
+            </GlassCard>
           </motion.div>
 
           <motion.div variants={item}>
-            <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+            <GlassCard>
               <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                 <div className="flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
@@ -862,7 +848,7 @@ export default function OverviewDashboardPage() {
                   </motion.div>
                 ))}
               </CardContent>
-            </Card>
+            </GlassCard>
           </motion.div>
         </div>
 

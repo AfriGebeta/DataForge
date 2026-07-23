@@ -1,4 +1,5 @@
 import type { WorkerType } from "../../types";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   workerTypes: WorkerType[];
@@ -28,7 +29,7 @@ export default function WorkerTypesSection({
         </button>
       </div>
 
-      <div className="card">
+      <GlassCard flat className="card">
         {loading ? (
           <p style={{ color: "var(--text-muted)", fontSize: 12 }}>
             Loading...
@@ -101,7 +102,7 @@ export default function WorkerTypesSection({
             </tbody>
           </table>
         )}
-      </div>
+      </GlassCard>
     </>
   );
 }

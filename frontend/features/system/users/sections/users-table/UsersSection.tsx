@@ -1,4 +1,5 @@
 import type { AdminRole, AdminUser } from "../../types";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   users: AdminUser[];
@@ -62,7 +63,7 @@ export default function UsersSection({ users, loading, roleFilter, onRoleFilter,
         </button>
       </div>
 
-      <div className="card">
+      <GlassCard flat className="card">
         {loading ? (
           <p style={{ color: "var(--text-muted)", fontSize: 12 }}>Loading...</p>
         ) : users.length === 0 ? (
@@ -132,7 +133,7 @@ export default function UsersSection({ users, loading, roleFilter, onRoleFilter,
             </tbody>
           </table>
         )}
-      </div>
+      </GlassCard>
     </>
   );
 }

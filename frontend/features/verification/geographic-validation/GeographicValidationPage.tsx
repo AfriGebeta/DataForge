@@ -16,11 +16,11 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import {
-  Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { GlassCard } from "@/features/shared/GlassCard";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
@@ -256,7 +256,7 @@ export default function GeographicValidationPage() {
           {/* LEFT column: checks */}
           <div className="flex flex-col gap-7">
             <motion.div variants={item}>
-              <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+              <GlassCard>
                 <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                   <div className="flex items-center gap-2">
                     <div
@@ -325,11 +325,11 @@ export default function GeographicValidationPage() {
                     </table>
                   </div>
                 </CardContent>
-              </Card>
+              </GlassCard>
             </motion.div>
 
             <motion.div variants={item}>
-              <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+              <GlassCard>
                 <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                   <div className="flex items-center gap-2">
                     <div
@@ -408,14 +408,14 @@ export default function GeographicValidationPage() {
                     })}
                   </div>
                 </CardContent>
-              </Card>
+              </GlassCard>
             </motion.div>
           </div>
 
           {/* RIGHT column: RAG score + sources */}
           <div className="flex flex-col gap-7">
             <motion.div variants={item}>
-              <Card className="glass-surface-danger glass-glow relative overflow-hidden border-0 py-0">
+              <GlassCard tone="danger">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                   <div className="flex items-center gap-2">
                     <div
@@ -456,11 +456,11 @@ export default function GeographicValidationPage() {
                     inputted City (Dire Dawa).
                   </div>
                 </CardContent>
-              </Card>
+              </GlassCard>
             </motion.div>
 
             <motion.div variants={item}>
-              <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+              <GlassCard>
                 <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                   <div className="flex items-center gap-2">
                     <div
@@ -522,7 +522,7 @@ export default function GeographicValidationPage() {
                     Force Re-fetch Sources
                   </button>
                 </CardContent>
-              </Card>
+              </GlassCard>
             </motion.div>
           </div>
         </div>

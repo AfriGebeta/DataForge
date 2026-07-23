@@ -1,5 +1,6 @@
 import type { DeltaAction, DeltaAppliedFilter, DeltaSourceType, PlaceDelta } from "../../types";
 import ActionBadge from "./ActionBadge";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   deltas: PlaceDelta[];
@@ -68,7 +69,7 @@ export default function PlaceDeltasSection({
         </button>
       </div>
 
-      <div className="card">
+      <GlassCard flat className="card">
         {loading ? (
           <p style={{ color: "var(--text-muted)", fontSize: 12 }}>Loading...</p>
         ) : deltas.length === 0 ? (
@@ -122,7 +123,7 @@ export default function PlaceDeltasSection({
             </tbody>
           </table>
         )}
-      </div>
+      </GlassCard>
     </>
   );
 }

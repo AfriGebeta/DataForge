@@ -1,18 +1,13 @@
+import { GlassCard } from "@/features/shared/GlassCard";
+
 export default function DecisionExplainer() {
   return (
-    <div className="card">
+    <GlassCard flat className="card">
       <div className="ch">
         <span className="ct">Decision Explainer: Score Reduction Example</span>
       </div>
       <div className="g2" style={{ gap: 8, marginBottom: 10 }}>
-        <div
-          style={{
-            background: "var(--surface-2)",
-            border: "1px solid var(--border)",
-            borderRadius: 8,
-            padding: 10,
-          }}
-        >
+        <GlassCard flat className="card" style={{ borderRadius: 8, padding: 10 }}>
           <div
             style={{
               fontSize: 10,
@@ -28,15 +23,8 @@ export default function DecisionExplainer() {
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
             LAT: 40.7128, LNG: -74.0060
           </div>
-        </div>
-        <div
-          style={{
-            background: "var(--surface-2)",
-            border: "1px solid var(--border)",
-            borderRadius: 8,
-            padding: 10,
-          }}
-        >
+        </GlassCard>
+        <GlassCard flat className="card" style={{ borderRadius: 8, padding: 10 }}>
           <div
             style={{
               fontSize: 10,
@@ -52,16 +40,9 @@ export default function DecisionExplainer() {
           <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
             LAT: 40.7130, LNG: -74.0065
           </div>
-        </div>
+        </GlassCard>
       </div>
-      <div
-        style={{
-          background: "var(--surface-0)",
-          border: "1px solid var(--border)",
-          borderRadius: 8,
-          padding: 10,
-        }}
-      >
+      <GlassCard flat className="card-dark" style={{ borderRadius: 8, padding: 10 }}>
         <div
           style={{
             display: "flex",
@@ -87,7 +68,7 @@ export default function DecisionExplainer() {
         <div className="log-entry log-err" style={{ border: "none" }}>
           ⇒ Penalty applied: -0.25 due to category mismatch. Review flagged.
         </div>
-      </div>
-    </div>
+      </GlassCard>
+    </GlassCard>
   );
 }

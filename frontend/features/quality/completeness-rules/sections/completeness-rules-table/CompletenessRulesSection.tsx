@@ -5,6 +5,7 @@ import type {
 } from "../../types";
 import LevelBadge from "./LevelBadge";
 import PlaceTypeBadge from "./PlaceTypeBadge";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   rules: CompletenessRule[];
@@ -70,7 +71,7 @@ export default function CompletenessRulesSection({
         </button>
       </div>
 
-      <div className="card">
+      <GlassCard flat className="card">
         {loading ? (
           <p style={{ color: "var(--text-muted)", fontSize: 12 }}>Loading...</p>
         ) : rules.length === 0 ? (
@@ -122,7 +123,7 @@ export default function CompletenessRulesSection({
             </tbody>
           </table>
         )}
-      </div>
+      </GlassCard>
     </>
   );
 }

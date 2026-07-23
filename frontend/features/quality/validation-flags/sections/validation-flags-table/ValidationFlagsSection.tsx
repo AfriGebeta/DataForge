@@ -6,6 +6,7 @@ import type {
   ValidationFlag,
 } from "../../types";
 import SeverityBadge from "./SeverityBadge";
+import { GlassCard } from "@/features/shared/GlassCard";
 type Props = {
   flags: ValidationFlag[];
   stats: FlagStats | null;
@@ -46,22 +47,22 @@ export default function ValidationFlagsSection({
 
       {stats && (
         <div className="g4" style={{ marginBottom: 14 }}>
-          <div className="mc">
+          <GlassCard flat className="mc">
             <div className="ml">Critical</div>
             <div className="mv" style={{ color: "var(--text-danger)" }}>{stats.critical}</div>
-          </div>
-          <div className="mc">
+          </GlassCard>
+          <GlassCard flat className="mc">
             <div className="ml">Error</div>
             <div className="mv" style={{ color: "var(--text-danger)" }}>{stats.error}</div>
-          </div>
-          <div className="mc">
+          </GlassCard>
+          <GlassCard flat className="mc">
             <div className="ml">Warning</div>
             <div className="mv" style={{ color: "var(--text-warning)" }}>{stats.warning}</div>
-          </div>
-          <div className="mc">
+          </GlassCard>
+          <GlassCard flat className="mc">
             <div className="ml">Info</div>
             <div className="mv" style={{ color: "var(--text-accent)" }}>{stats.info}</div>
-          </div>
+          </GlassCard>
         </div>
       )}
 
@@ -101,7 +102,7 @@ export default function ValidationFlagsSection({
         </button>
       </div>
 
-      <div className="card">
+      <GlassCard flat className="card">
         {loading ? (
           <p style={{ color: "var(--text-muted)", fontSize: 12 }}>Loading...</p>
         ) : flags.length === 0 ? (
@@ -147,7 +148,7 @@ export default function ValidationFlagsSection({
             </tbody>
           </table>
         )}
-      </div>
+      </GlassCard>
     </>
   );
 }

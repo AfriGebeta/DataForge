@@ -23,22 +23,14 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import {
-  Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { GlassCard } from "@/features/shared/GlassCard";
 import { cn } from "@/lib/utils";
 
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
-
-const toneRing: Record<Tone, string> = {
-  neutral: "ring-white/5",
-  accent: "ring-[color:var(--orange-400)]/30",
-  success: "ring-[color:var(--text-success)]/25",
-  warning: "ring-[color:var(--text-warning)]/25",
-  danger: "ring-[color:var(--text-danger)]/30",
-};
 
 const toneIconWrap: Record<Tone, string> = {
   neutral: "bg-white/5 text-white/70 ring-1 ring-inset ring-white/10",
@@ -336,12 +328,7 @@ export default function VerificationQueuePage() {
               const Icon = k.icon;
               return (
                 <motion.div key={k.label} variants={item} whileHover={{ y: -4 }}>
-                  <Card
-                    className={cn(
-                      "glass-surface glass-glow relative h-full overflow-hidden border-0 py-0 ring-1",
-                      toneRing[k.tone],
-                    )}
-                  >
+                  <GlassCard ring ringTone={k.tone} className="h-full">
                     <div className="relative flex h-full min-h-[168px] flex-col items-center justify-center p-6 text-center">
                       <div
                         className={cn(
@@ -366,7 +353,7 @@ export default function VerificationQueuePage() {
                         {k.delta}
                       </div>
                     </div>
-                  </Card>
+                  </GlassCard>
                 </motion.div>
               );
             })}
@@ -376,7 +363,7 @@ export default function VerificationQueuePage() {
         {/* Main content: Queue table + Review detail */}
         <div className="grid grid-cols-1 gap-7 xl:grid-cols-[minmax(0,1fr)_360px]">
           <motion.div variants={item}>
-            <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+            <GlassCard>
               <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                 <div className="flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
@@ -461,11 +448,11 @@ export default function VerificationQueuePage() {
                   </table>
                 </div>
               </CardContent>
-            </Card>
+            </GlassCard>
           </motion.div>
 
           <motion.div variants={item}>
-            <Card className="glass-surface-accent glass-glow relative overflow-hidden border-0 py-0">
+            <GlassCard tone="accent">
               <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                 <div className="flex items-center gap-2">
                   <div
@@ -557,7 +544,7 @@ export default function VerificationQueuePage() {
                   <GlassButton label="Approve" icon={Check} tone="success" />
                 </div>
               </CardContent>
-            </Card>
+            </GlassCard>
           </motion.div>
         </div>
       </motion.div>

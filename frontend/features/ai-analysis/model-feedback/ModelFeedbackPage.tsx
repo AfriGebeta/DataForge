@@ -1,9 +1,7 @@
 "use client";
 
-import HtmlContentPage from '@/features/shared/HtmlContentPage';
-import { content } from './content';
-import { pageConfig } from './config';
+import { ModelFeedbackPage as ModelFeedbackView } from "./sections/model-feedback-view";
 
 export default function ModelFeedbackPage() {
-  return <HtmlContentPage content={content} pageId={pageConfig.id} />;
+  return <ModelFeedbackView />;
 }

@@ -1,4 +1,5 @@
 import type { FeedbackItem, FeedbackItemType } from "../../../types";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   items: FeedbackItem[];
@@ -13,7 +14,7 @@ function FeedbackChip({ type }: { type: FeedbackItemType }) {
 
 export default function ReviewQueue({ items, total }: Props) {
   return (
-    <div className="card">
+    <GlassCard flat className="card">
       <div className="ch">
         <span className="ct">Review Queue</span>
         <button className="btn ghost sm">
@@ -102,6 +103,6 @@ export default function ReviewQueue({ items, total }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </GlassCard>
   );
 }

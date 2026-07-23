@@ -6,7 +6,15 @@ export type AuditLogsParams = {
   search?: string;
 };
 
+export type AuditLogItem = {
+  timestamp: string;
+  actor: string;
+  action: string;
+  entityId: string;
+  status: string;
+};
+
 export type AuditLogsResponse = {
-  items: unknown[];
+  items: AuditLogItem[];
   total: number;
 };

@@ -6,7 +6,7 @@ import type {
 
 export const API_ENDPOINT = "http://localhost:8080/api/workers/runs" as const;
 
-const fakeRuns: WorkerRun[] = [
+export const fakeRuns: WorkerRun[] = [
   {
     id: "run-001",
     run_id: "run-a1b2",
@@ -60,35 +60,23 @@ const fakeRuns: WorkerRun[] = [
 export async function fetchRuns(
   params?: RunsParams,
 ): Promise<RunsResponse> {
-  try {
-    const page = params?.page || 1;
-    const pageSize = params?.pageSize || 10;
-    const status = params?.status ? `&status=${params.status}` : "";
-    const channel = params?.channel ? `&channel=${params.channel}` : "";
-    const res = await fetch(
-      `${API_ENDPOINT}?limit=${pageSize}&offset=${(page - 1) * pageSize}${status}${channel}`,
-    );
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
-    return res.json();
-  } catch (cause) {
-    console.warn("Falling back to mock data for fetchRuns:", cause);
-    const page = params?.page || 1;
-    const pageSize = params?.pageSize || 10;
-    const start = (page - 1) * pageSize;
-    let filtered = [...fakeRuns];
-    if (params?.status) filtered = filtered.filter((r) => r.status === params.status);
-    if (params?.channel) filtered = filtered.filter((r) => r.channel === params.channel);
-    return {
-      data: filtered.slice(start, start + pageSize),
-      stats: {
-        total_runs: 1482,
-        success_rate: 99.8,
-        total_ingested: 48200,
-        avg_duration_seconds: 4.3,
-      },
-      total: filtered.length,
-      limit: pageSize,
-      offset: start,
-    };
-  }
+  // Static mock data — no network/background fetching.
+  const page = params?.page || 1;
+  const pageSize = params?.pageSize || 10;
+  const start = (page - 1) * pageSize;
+  let filtered = [...fakeRuns];
+  if (params?.status) filtered = filtered.filter((r) => r.status === params.status);
+  if (params?.channel) filtered = filtered.filter((r) => r.channel === params.channel);
+  return {
+    data: filtered.slice(start, start + pageSize),
+    stats: {
+      total_runs: 1482,
+      success_rate: 99.8,
+      total_ingested: 48200,
+      avg_duration_seconds: 4.3,
+    },
+    total: filtered.length,
+    limit: pageSize,
+    offset: start,
+  };
 }
