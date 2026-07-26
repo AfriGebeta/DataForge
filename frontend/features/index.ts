@@ -6,4 +6,5 @@ export * as data from "./data";
 export * as category from "./category";
 export * as workers from "./workers";
 export * as quality from "./quality";
+export * as place from "./place";
 export * as system from "./system";

@@ -6,6 +6,7 @@ import { navGroup as dataNav } from "@/features/data/nav";
 import { navGroup as categoryNav } from "@/features/category/nav";
 import { navGroup as workersNav } from "@/features/workers/nav";
 import { navGroup as qualityNav } from "@/features/quality/nav";
+import { navGroup as placeNav } from "@/features/place/nav";
 import { navGroup as systemNav } from "@/features/system/nav";
 
 export type {
@@ -19,6 +20,7 @@ export const navGroups: FeatureNavGroup[] = [
   aiAnalysisNav,
   dataNav,
   categoryNav,
+  placeNav,
   workersNav,
   qualityNav,
   systemNav,
