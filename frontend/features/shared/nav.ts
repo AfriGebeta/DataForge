@@ -8,6 +8,7 @@ import { navGroup as workersNav } from "@/features/workers/nav";
 import { navGroup as qualityNav } from "@/features/quality/nav";
 import { navGroup as systemNav } from "@/features/system/nav";
 import { navGroup as schemaNav } from "@/features/schema/nav";
+import { navGroup as businessNav } from "@/features/business/nav";
 
 export type {
   PageConfig as NavItem,
@@ -24,4 +25,5 @@ export const navGroups: FeatureNavGroup[] = [
   qualityNav,
   systemNav,
   schemaNav,
+  businessNav,
 ];
