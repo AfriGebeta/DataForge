@@ -1,4 +1,5 @@
 import type { InstanceStatus, WorkerInstance } from "../../types";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   instances: WorkerInstance[];
@@ -77,7 +78,7 @@ export default function InstancesSection({
         </button>
       </div>
 
-      <div className="card">
+      <GlassCard flat className="card">
         {loading ? (
           <p style={{ color: "var(--text-muted)", fontSize: 12 }}>
             Loading...
@@ -154,7 +155,7 @@ export default function InstancesSection({
             </tbody>
           </table>
         )}
-      </div>
+      </GlassCard>
     </>
   );
 }

@@ -1,4 +1,5 @@
 import type { RegionStats } from "../../../types";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   stats: RegionStats;
@@ -8,24 +9,24 @@ type Props = {
 
 export default function RegionAnalysis({ stats, onRunAnalysis, onExport }: Props) {
   return (
-    <div className="card">
+    <GlassCard flat className="card">
       <div className="ch">
         <span className="ct">Region Analysis: Selected Area</span>
         <span className="chip hi">High Risk</span>
       </div>
       <div className="g3" style={{ gap: 8, marginBottom: 10 }}>
-        <div className="mc">
+        <GlassCard flat className="mc">
           <div className="ml">Total Points</div>
           <div className="mv">{stats.total_points.toLocaleString()}</div>
           <div className="ms">nodes</div>
-        </div>
-        <div className="mc">
+        </GlassCard>
+        <GlassCard flat className="mc">
           <div className="ml">Duplicate Density</div>
           <div className="mv" style={{ color: "var(--text-danger)" }}>
             {stats.duplicate_density}%
           </div>
           <div className="ms">critical</div>
-        </div>
+        </GlassCard>
         <div style={{ display: "flex", flexDirection: "column", gap: 6, justifyContent: "center" }}>
           <button
             className="btn p sm"
@@ -43,6 +44,6 @@ export default function RegionAnalysis({ stats, onRunAnalysis, onExport }: Props
           </button>
         </div>
       </div>
-    </div>
+    </GlassCard>
   );
 }

@@ -1,4 +1,5 @@
 import type { ModelMetrics, RetrainingStatus as RetrainingStatusType } from "../../../types";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   retraining: RetrainingStatusType;
@@ -12,7 +13,7 @@ export default function RetrainingStatus({
   onForceRetrain,
 }: Props) {
   return (
-    <div className="card">
+    <GlassCard flat className="card">
       <div className="ch">
         <span className="ct">
           <i className="ti ti-refresh" style={{ fontSize: 14, marginRight: 4 }} />
@@ -61,11 +62,11 @@ export default function RetrainingStatus({
         <i className="ti ti-refresh" />
         Force Retrain (Admin)
       </button>
-      <div className="mc" style={{ marginTop: 10, background: "var(--surface-0)" }}>
+      <GlassCard flat className="mc" style={{ marginTop: 10 }}>
         <div className="ml">False Negatives</div>
         <div className="mv">{falseNegatives}</div>
         <div className="ms">Within tolerance</div>
-      </div>
-    </div>
+      </GlassCard>
+    </GlassCard>
   );
 }

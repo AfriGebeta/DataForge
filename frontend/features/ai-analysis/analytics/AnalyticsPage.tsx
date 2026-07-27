@@ -1,9 +1,7 @@
 "use client";
 
-import HtmlContentPage from '@/features/shared/HtmlContentPage';
-import { content } from './content';
-import { pageConfig } from './config';
+import { AnalyticsPage as AnalyticsView } from "./sections/analytics-view";
 
 export default function AnalyticsPage() {
-  return <HtmlContentPage content={content} pageId={pageConfig.id} />;
+  return <AnalyticsView />;
 }

@@ -2,7 +2,7 @@ import type { AnalyticsData } from "./types";
 
 export const API_ENDPOINT = "http://localhost:8080/api/ai/analytics" as const;
 
-const fakeData: AnalyticsData = {
+export const fakeData: AnalyticsData = {
   trust_score_trend: [
     { height_percent: 55, is_accent: false },
     { height_percent: 60, is_accent: false },

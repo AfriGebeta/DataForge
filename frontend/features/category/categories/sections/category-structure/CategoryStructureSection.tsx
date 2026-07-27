@@ -2,6 +2,7 @@
 
 import { getLocalizedName } from "../../api";
 import type { Category, CategoryLanguage } from "../../types";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type CategoryStructureSectionProps = {
   categories: Category[];
@@ -153,7 +154,7 @@ export default function CategoryStructureSection({
         </div>
       </div>
 
-      <div className="card-dark category-table-shell">
+      <GlassCard flat className="card-dark category-table-shell">
         {loading ? (
           <div className="category-empty">Loading categories…</div>
         ) : flattened.length === 0 ? (
@@ -243,7 +244,7 @@ export default function CategoryStructureSection({
             </tbody>
           </table>
         )}
-      </div>
+      </GlassCard>
 
       <div className="category-pagination">
         <div className="category-pagination-summary">

@@ -1,9 +1,7 @@
 "use client";
 
-import HtmlContentPage from '@/features/shared/HtmlContentPage';
-import { content } from './content';
-import { pageConfig } from './config';
+import { MapExplorerPage as MapExplorerView } from "./sections/map-explorer-view";
 
 export default function MapExplorerPage() {
-  return <HtmlContentPage content={content} pageId={pageConfig.id} />;
+  return <MapExplorerView />;
 }

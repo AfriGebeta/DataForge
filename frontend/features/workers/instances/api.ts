@@ -6,7 +6,7 @@ import type {
 
 export const API_ENDPOINT = "http://localhost:8080/api/workers/instances" as const;
 
-const fakeInstances: WorkerInstance[] = [
+export const fakeInstances: WorkerInstance[] = [
   {
     id: "inst-001",
     instance_id: "pod-tg-abc123",
@@ -52,54 +52,29 @@ const fakeInstances: WorkerInstance[] = [
 export async function fetchInstances(
   params?: InstancesParams,
 ): Promise<InstancesResponse> {
-  try {
-    const page = params?.page || 1;
-    const pageSize = params?.pageSize || 10;
-    const status = params?.status ? `&status=${params.status}` : "";
-    const res = await fetch(
-      `${API_ENDPOINT}?limit=${pageSize}&offset=${(page - 1) * pageSize}${status}`,
-    );
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
-    return res.json();
-  } catch (cause) {
-    console.warn("Falling back to mock data for fetchInstances:", cause);
-    const page = params?.page || 1;
-    const pageSize = params?.pageSize || 10;
-    const start = (page - 1) * pageSize;
-    const filtered = params?.status
-      ? fakeInstances.filter((i) => i.status === params.status)
-      : fakeInstances;
-    return {
-      data: filtered.slice(start, start + pageSize),
-      total: filtered.length,
-      limit: pageSize,
-      offset: start,
-    };
-  }
+  // Static mock data — no network/background fetching.
+  const page = params?.page || 1;
+  const pageSize = params?.pageSize || 10;
+  const start = (page - 1) * pageSize;
+  const filtered = params?.status
+    ? fakeInstances.filter((i) => i.status === params.status)
+    : fakeInstances;
+  return {
+    data: filtered.slice(start, start + pageSize),
+    total: filtered.length,
+    limit: pageSize,
+    offset: start,
+  };
 }
 
 export async function drainInstance(id: string): Promise<void> {
-  try {
-    const res = await fetch(`${API_ENDPOINT}/${id}/drain`, {
-      method: "POST",
-    });
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
-  } catch (cause) {
-    console.warn("Falling back to mock for drainInstance:", cause);
-    const instance = fakeInstances.find((i) => i.id === id);
-    if (instance) instance.status = "DRAINING";
-  }
+  // Static mock — no network.
+  const instance = fakeInstances.find((i) => i.id === id);
+  if (instance) instance.status = "DRAINING";
 }
 
 export async function stopInstance(id: string): Promise<void> {
-  try {
-    const res = await fetch(`${API_ENDPOINT}/${id}/stop`, {
-      method: "POST",
-    });
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
-  } catch (cause) {
-    console.warn("Falling back to mock for stopInstance:", cause);
-    const instance = fakeInstances.find((i) => i.id === id);
-    if (instance) instance.status = "DEAD";
-  }
+  // Static mock — no network.
+  const instance = fakeInstances.find((i) => i.id === id);
+  if (instance) instance.status = "DEAD";
 }

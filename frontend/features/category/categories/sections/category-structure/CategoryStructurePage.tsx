@@ -15,6 +15,7 @@ import type {
 } from "../../types";
 import CategoryStructureSection from "./CategoryStructureSection";
 import ActionModals from "../action-modals/ActionModals";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 export default function CategoryStructurePage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -145,7 +146,7 @@ export default function CategoryStructurePage() {
       {feedback ? <div className="category-feedback">{feedback}</div> : null}
       {error ? <div className="category-inline-error">{error}</div> : null}
 
-      <div className="card">
+      <GlassCard flat className="card">
         <CategoryStructureSection
           categories={categories}
           total={total}
@@ -162,7 +163,7 @@ export default function CategoryStructurePage() {
           onEdit={setEditingCategory}
           onDelete={setDeletingCategory}
         />
-      </div>
+      </GlassCard>
 
       <ActionModals
         editingCategory={editingCategory}

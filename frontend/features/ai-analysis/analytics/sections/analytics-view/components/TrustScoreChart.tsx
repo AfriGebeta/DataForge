@@ -1,4 +1,5 @@
 import type { TrustScoreBar } from "../../../types";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   bars: TrustScoreBar[];
@@ -19,7 +20,7 @@ export default function TrustScoreChart({
 }: Props) {
   return (
     <div>
-      <div className="card" style={{ marginBottom: 12 }}>
+      <GlassCard flat className="card" style={{ marginBottom: 12 }}>
         <div className="ch">
           <span className="ct">Global Trust Score Trend</span>
           <span className="chip lo">↑ {delta}</span>
@@ -55,10 +56,10 @@ export default function TrustScoreChart({
             />
           ))}
         </div>
-      </div>
+      </GlassCard>
 
       <div className="g2" style={{ gap: 10, marginBottom: 0 }}>
-        <div className="card">
+        <GlassCard flat className="card">
           <div
             style={{
               fontSize: 10,
@@ -85,9 +86,9 @@ export default function TrustScoreChart({
           <div style={{ fontSize: 10, color: "var(--text-muted)" }}>
             Nodes flagged per 10k entities
           </div>
-        </div>
+        </GlassCard>
 
-        <div className="card-dark">
+        <GlassCard flat className="card-dark">
           <div
             style={{
               fontSize: 10,
@@ -148,7 +149,7 @@ export default function TrustScoreChart({
               />
             </div>
           </div>
-        </div>
+        </GlassCard>
       </div>
     </div>
   );

@@ -1,9 +1,7 @@
 "use client";
 
-import HtmlContentPage from '@/features/shared/HtmlContentPage';
-import { content } from './content';
-import { pageConfig } from './config';
+import WorkerTypesView from "./sections/worker-types-table/WorkerTypesPage";
 
 export default function WorkerTypesPage() {
-  return <HtmlContentPage content={content} pageId={pageConfig.id} />;
+  return <WorkerTypesView />;
 }

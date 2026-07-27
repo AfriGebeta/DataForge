@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createCategory, fetchParentCategories } from "../../api";
 import type { Category, CategoryFormValues } from "../../types";
 import AddCategorySection from "./AddCategorySection";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 export default function NewCategoryPage() {
   const [parentCategories, setParentCategories] = useState<Category[]>([]);
@@ -73,7 +74,7 @@ export default function NewCategoryPage() {
       {feedback ? <div className="category-feedback">{feedback}</div> : null}
       {error ? <div className="category-inline-error">{error}</div> : null}
 
-      <div className="card category-form-card">
+      <GlassCard flat className="card category-form-card">
         {loadingRoots ? (
           <div className="category-empty category-empty-compact">
             Loading parent categories…
@@ -86,7 +87,7 @@ export default function NewCategoryPage() {
             onCreate={handleCreate}
           />
         )}
-      </div>
+      </GlassCard>
     </div>
   );
 }

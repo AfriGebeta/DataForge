@@ -49,55 +49,68 @@ export default function Sidebar({ pathname, isOpen, onClose }: SidebarProps) {
         aria-hidden="true"
       />
       <aside className={`sidebar${isOpen ? " open" : ""}`}>
-        <div className="logo">
-          <div className="logo-icon">
-            <Image
-              src="/image.png"
-              alt="Gebeta Maps"
-              width={32}
-              height={32}
-              className="logo-image"
-              priority
-            />
-          </div>
-          <div className="logo-text">
-            <span className="logo-name">GebetaMaps</span>
-            <span className="logo-sub">Cartographic Intel</span>
+        <div className="sidebar-brand">
+          <span className="sidebar-brand-glow" aria-hidden />
+          <div className="sidebar-brand-inner">
+            <div className="logo-icon">
+              <Image
+                src="/image.png"
+                alt="Gebeta Maps"
+                width={32}
+                height={32}
+                className="logo-image"
+                priority
+              />
+            </div>
+            <div className="logo-text">
+              <span className="logo-name">GebetaMaps</span>
+              <span className="logo-sub">Cartographic Intel</span>
+            </div>
           </div>
         </div>
 
-        {navGroups.map((group) => {
-          const isGroupOpen = openGroups[group.title];
-          return (
-            <div key={group.title} className={`nav-group${isGroupOpen ? " open" : ""}`}>
-              <button
-                type="button"
-                className="nav-section"
-                aria-expanded={isGroupOpen}
-                onClick={() => toggleGroup(group.title)}
-              >
-                {group.title}
-                <i className="ti ti-chevron-down nav-chevron" />
-              </button>
-              {isGroupOpen &&
-                group.items.map((item) => {
- const href = item.path;
-const isActive = pathname === href;
-                  return (
-                    <Link
-                      key={item.id}
-                      href={href}
-                      className={`nav-item${isActive ? " active" : ""}`}
-                      onClick={handleNav}
-                    >
-                      <i className={`ti ${item.icon}`} />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-            </div>
-          );
-        })}
+        <div className="sidebar-nav">
+          <span className="sidebar-nav-scanline" aria-hidden />
+          <span className="sidebar-nav-tick sidebar-nav-tick-tr" aria-hidden />
+          <span className="sidebar-nav-tick sidebar-nav-tick-bl" aria-hidden />
+          <div className="sidebar-nav-inner">
+            {navGroups.map((group) => {
+              const isGroupOpen = openGroups[group.title];
+              return (
+                <div
+                  key={group.title}
+                  className={`nav-group${isGroupOpen ? " open" : ""}`}
+                >
+                  <button
+                    type="button"
+                    className="nav-section"
+                    aria-expanded={isGroupOpen}
+                    onClick={() => toggleGroup(group.title)}
+                  >
+                    {group.title}
+                    <i className="ti ti-chevron-down nav-chevron" />
+                  </button>
+                  {isGroupOpen &&
+                    group.items.map((item) => {
+                      const href = item.path;
+                      const isActive = pathname === href;
+                      return (
+                        <Link
+                          key={item.id}
+                          href={href}
+                          className={`nav-item${isActive ? " active" : ""}`}
+                          onClick={handleNav}
+                        >
+                          <i className={`ti ${item.icon}`} />
+                          <span className="nav-item-label">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </aside>
     </>
   );

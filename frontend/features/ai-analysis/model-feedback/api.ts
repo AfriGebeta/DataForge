@@ -2,7 +2,7 @@ import type { ModelFeedbackData } from "./types";
 
 export const API_ENDPOINT = "http://localhost:8080/api/ai/feedback" as const;
 
-const fakeData: ModelFeedbackData = {
+export const fakeData: ModelFeedbackData = {
   model_version: "v2.4.1-beta",
   human_corrections: 12408,
   human_corrections_delta: "+8% vs last epoch",

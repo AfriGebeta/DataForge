@@ -5,11 +5,11 @@ import { Plus, Radio, RadioTower } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
-  Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 import { ChannelList } from "./ChannelList";
 
@@ -86,7 +86,7 @@ export default function ChannelsPage() {
 
         {/* Channel table */}
         <motion.div variants={item}>
-          <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+          <GlassCard>
             <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
@@ -103,7 +103,7 @@ export default function ChannelsPage() {
             <CardContent className="px-6 pb-6 pt-5">
               <ChannelList />
             </CardContent>
-          </Card>
+          </GlassCard>
         </motion.div>
       </motion.div>
     </div>

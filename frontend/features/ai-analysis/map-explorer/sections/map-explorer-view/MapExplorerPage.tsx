@@ -1,73 +1,32 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Toast from "@/components/custom/Toast";
 import { useToast } from "@/hooks/useToast";
-import { fetchMapExplorer } from "../../api";
+import { fakeData } from "../../api";
 import type { MapExplorerData } from "../../types";
 import MapExplorerSection from "./MapExplorerSection";
 
 export default function MapExplorerPage() {
-  const [data, setData] = useState<MapExplorerData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<MapExplorerData>(fakeData);
   const { message, visible, showToast } = useToast();
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetchMapExplorer();
-      setData(res);
-    } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "Unable to load map explorer data.",
-      );
-    } finally {
-      setLoading(false);
-    }
+  const handleOverlayToggle = useCallback((id: string) => {
+    setData((d) => ({
+      ...d,
+      overlays: d.overlays.map((o) =>
+        o.id === id ? { ...o, enabled: !o.enabled } : o,
+      ),
+    }));
   }, []);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const handleTrustScoreChange = useCallback((value: number) => {
+    setData((d) => ({ ...d, trust_score_range: value }));
+  }, []);
 
-  const handleOverlayToggle = useCallback(
-    (id: string) => {
-      if (!data) return;
-      setData({
-        ...data,
-        overlays: data.overlays.map((o) =>
-          o.id === id ? { ...o, enabled: !o.enabled } : o,
-        ),
-      });
-    },
-    [data],
-  );
-
-  const handleTrustScoreChange = useCallback(
-    (value: number) => {
-      if (!data) return;
-      setData({ ...data, trust_score_range: value });
-    },
-    [data],
-  );
-
-  const handleDataSourceChange = useCallback(
-    (value: string) => {
-      if (!data) return;
-      setData({ ...data, data_source: value });
-    },
-    [data],
-  );
-
-  if (loading)
-    return <p style={{ color: "var(--text-muted)", fontSize: 12 }}>Loading...</p>;
-  if (error)
-    return <p style={{ color: "var(--text-danger)", fontSize: 12 }}>{error}</p>;
-  if (!data) return null;
+  const handleDataSourceChange = useCallback((value: string) => {
+    setData((d) => ({ ...d, data_source: value }));
+  }, []);
 
   return (
     <div>

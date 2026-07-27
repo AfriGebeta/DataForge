@@ -22,23 +22,15 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import {
-  Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { GlassCard } from "@/features/shared/GlassCard";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
-
-const toneRing: Record<Tone, string> = {
-  neutral: "ring-white/5",
-  accent: "ring-[color:var(--orange-400)]/30",
-  success: "ring-[color:var(--text-success)]/25",
-  warning: "ring-[color:var(--text-warning)]/25",
-  danger: "ring-[color:var(--text-danger)]/30",
-};
 
 const toneIconWrap: Record<Tone, string> = {
   neutral: "bg-white/5 text-white/70 ring-1 ring-inset ring-white/10",
@@ -363,7 +355,7 @@ export default function DuplicateDetectionPage() {
           {/* LEFT column: clusters + similarity */}
           <div className="flex flex-col gap-7">
             <motion.div variants={item}>
-              <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+              <GlassCard>
                 <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                   <div className="flex items-center gap-2">
                     <div
@@ -430,11 +422,11 @@ export default function DuplicateDetectionPage() {
                     );
                   })}
                 </CardContent>
-              </Card>
+              </GlassCard>
             </motion.div>
 
             <motion.div variants={item}>
-              <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+              <GlassCard>
                 <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                   <div className="flex items-center gap-2">
                     <div
@@ -491,14 +483,14 @@ export default function DuplicateDetectionPage() {
                     </motion.div>
                   ))}
                 </CardContent>
-              </Card>
+              </GlassCard>
             </motion.div>
           </div>
 
           {/* RIGHT column: merge preview + graph */}
           <div className="flex flex-col gap-7">
             <motion.div variants={item}>
-              <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+              <GlassCard>
                 <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                   <div className="flex items-center gap-2">
                     <div
@@ -526,11 +518,11 @@ export default function DuplicateDetectionPage() {
                   <EntityCard fields={entityA} recordId="GE0-8821-A" />
                   <EntityCard fields={entityB} recordId="GE0-9942-B" master />
                 </CardContent>
-              </Card>
+              </GlassCard>
             </motion.div>
 
             <motion.div variants={item}>
-              <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+              <GlassCard>
                 <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                   <div className="flex items-center gap-2">
                     <div
@@ -635,7 +627,7 @@ export default function DuplicateDetectionPage() {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
+              </GlassCard>
             </motion.div>
           </div>
         </div>

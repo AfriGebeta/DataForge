@@ -1,4 +1,5 @@
 import type { RunStatus, RunsStats, WorkerRun } from "../../types";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   runs: WorkerRun[];
@@ -41,24 +42,24 @@ export default function RunsSection({
       {/* Stats cards */}
       {stats && (
         <div className="g4" style={{ marginBottom: 14 }}>
-          <div className="mc">
+          <GlassCard flat className="mc">
             <div className="ml">Total Runs</div>
             <div className="mv">{stats.total_runs.toLocaleString()}</div>
-          </div>
-          <div className="mc">
+          </GlassCard>
+          <GlassCard flat className="mc">
             <div className="ml">Success Rate</div>
             <div className="mv" style={{ color: "var(--text-success)" }}>
               {stats.success_rate}%
             </div>
-          </div>
-          <div className="mc">
+          </GlassCard>
+          <GlassCard flat className="mc">
             <div className="ml">Total Ingested</div>
             <div className="mv">{stats.total_ingested.toLocaleString()}</div>
-          </div>
-          <div className="mc">
+          </GlassCard>
+          <GlassCard flat className="mc">
             <div className="ml">Avg Duration</div>
             <div className="mv">{stats.avg_duration_seconds}s</div>
-          </div>
+          </GlassCard>
         </div>
       )}
 
@@ -91,7 +92,7 @@ export default function RunsSection({
       </div>
 
       {/* Table */}
-      <div className="card">
+      <GlassCard flat className="card">
         {loading ? (
           <p style={{ color: "var(--text-muted)", fontSize: 12 }}>
             Loading...
@@ -146,7 +147,7 @@ export default function RunsSection({
             </tbody>
           </table>
         )}
-      </div>
+      </GlassCard>
     </>
   );
 }

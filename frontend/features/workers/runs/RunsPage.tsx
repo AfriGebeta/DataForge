@@ -1,9 +1,7 @@
 "use client";
 
-import HtmlContentPage from '@/features/shared/HtmlContentPage';
-import { content } from './content';
-import { pageConfig } from './config';
+import { RunsPage as RunsView } from "./sections/runs-table";
 
 export default function RunsPage() {
-  return <HtmlContentPage content={content} pageId={pageConfig.id} />;
+  return <RunsView />;
 }

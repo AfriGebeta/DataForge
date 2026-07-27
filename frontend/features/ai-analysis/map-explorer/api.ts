@@ -2,7 +2,7 @@ import type { MapExplorerData } from "./types";
 
 export const API_ENDPOINT = "http://localhost:8080/api/ai/map" as const;
 
-const fakeData: MapExplorerData = {
+export const fakeData: MapExplorerData = {
   overlays: [
     { id: "trust", label: "Trust Heatmap", dot_class: "dd", enabled: true },
     { id: "duplicate", label: "Duplicate Density", dot_class: "dw", enabled: true },

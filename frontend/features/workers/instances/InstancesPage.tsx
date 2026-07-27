@@ -1,9 +1,7 @@
 "use client";
 
-import HtmlContentPage from '@/features/shared/HtmlContentPage';
-import { content } from './content';
-import { pageConfig } from './config';
+import { InstancesPage as InstancesView } from "./sections/instances-table";
 
 export default function InstancesPage() {
-  return <HtmlContentPage content={content} pageId={pageConfig.id} />;
+  return <InstancesView />;
 }

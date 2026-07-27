@@ -7,6 +7,7 @@ import { pages as workersPages } from "@/features/workers/registry";
 import { pages as qualityPages } from "@/features/quality/registry";
 import { pages as systemPages } from "@/features/system/registry";
 import { pages as categoryPages } from "@/features/category/registry";
+import { pages as placePages } from "@/features/place/registry";
 import { pages as schemaPages } from "@/features/schema/registry";
 import { pages as businessPages } from "@/features/business/registry";
 
@@ -19,6 +20,7 @@ export const pageRegistry = {
   ...qualityPages,
   ...systemPages,
   ...categoryPages,
+  ...placePages,
   ...schemaPages,
   ...businessPages,
 } satisfies Record<string, ComponentType>;

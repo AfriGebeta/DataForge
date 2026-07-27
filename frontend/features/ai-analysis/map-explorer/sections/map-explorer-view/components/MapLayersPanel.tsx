@@ -1,4 +1,5 @@
 import type { MapOverlay } from "../../../types";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   overlays: MapOverlay[];
@@ -18,7 +19,7 @@ export default function MapLayersPanel({
   onDataSourceChange,
 }: Props) {
   return (
-    <div className="card" style={{ marginBottom: 12 }}>
+    <GlassCard flat className="card" style={{ marginBottom: 12 }}>
       <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
         Map Layers
       </div>
@@ -105,6 +106,6 @@ export default function MapLayersPanel({
           <option>Gov Data Only</option>
         </select>
       </div>
-    </div>
+    </GlassCard>
   );
 }

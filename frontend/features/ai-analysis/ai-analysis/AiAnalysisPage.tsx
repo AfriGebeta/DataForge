@@ -1,9 +1,7 @@
 "use client";
 
-import HtmlContentPage from '@/features/shared/HtmlContentPage';
-import { content } from './content';
-import { pageConfig } from './config';
+import { AiAnalysisPage as AiAnalysisView } from "./sections/ai-analysis-view";
 
 export default function AiAnalysisPage() {
-  return <HtmlContentPage content={content} pageId={pageConfig.id} />;
+  return <AiAnalysisView />;
 }

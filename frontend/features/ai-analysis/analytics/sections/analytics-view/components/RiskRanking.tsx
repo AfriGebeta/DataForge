@@ -1,4 +1,5 @@
 import type { RiskLevel, RiskZone } from "../../../types";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   zones: RiskZone[];
@@ -19,7 +20,7 @@ function riskBarColor(level: RiskLevel): string {
 
 export default function RiskRanking({ zones, onViewRegistry }: Props) {
   return (
-    <div className="card">
+    <GlassCard flat className="card">
       <div className="ch">
         <span className="ct">Risk Ranking</span>
         <button className="btn ghost sm">
@@ -68,6 +69,6 @@ export default function RiskRanking({ zones, onViewRegistry }: Props) {
       >
         View Full Registry
       </button>
-    </div>
+    </GlassCard>
   );
 }

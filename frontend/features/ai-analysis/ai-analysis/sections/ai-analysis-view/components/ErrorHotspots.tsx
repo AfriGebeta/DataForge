@@ -1,4 +1,5 @@
 import type { ErrorHotspot } from "../../../types";
+import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   hotspots: ErrorHotspot[];
@@ -6,7 +7,7 @@ type Props = {
 
 export default function ErrorHotspots({ hotspots }: Props) {
   return (
-    <div className="card">
+    <GlassCard flat className="card">
       <div className="ch">
         <span className="ct">Error Hotspots</span>
         <span className="chip hi">Anomaly Detected</span>
@@ -37,6 +38,6 @@ export default function ErrorHotspots({ hotspots }: Props) {
           ))}
         </tbody>
       </table>
-    </div>
+    </GlassCard>
   );
 }

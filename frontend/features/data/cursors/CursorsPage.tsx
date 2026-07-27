@@ -5,11 +5,11 @@ import { ArrowUp, MousePointer2, RotateCcw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
-  Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { GlassCard } from "@/features/shared/GlassCard";
 import { cn } from "@/lib/utils";
 
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
@@ -147,7 +147,7 @@ export default function CursorsPage() {
 
         {/* Cursor table */}
         <motion.div variants={item}>
-          <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
+          <GlassCard>
             <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
@@ -213,12 +213,12 @@ export default function CursorsPage() {
                 </table>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
         </motion.div>
 
         {/* Advance cursor manually */}
         <motion.div variants={item}>
-          <Card className="glass-surface-accent glass-glow relative overflow-hidden border-0 py-0">
+          <GlassCard tone="accent">
             <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)] ring-1 ring-inset ring-[color:var(--orange-400)]/25">
@@ -260,7 +260,7 @@ export default function CursorsPage() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </GlassCard>
         </motion.div>
       </motion.div>
     </div>
