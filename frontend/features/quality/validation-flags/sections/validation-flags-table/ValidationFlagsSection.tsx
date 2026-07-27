@@ -1,3 +1,6 @@
+"use client";
+
+import DataTable, { ColumnDef } from "@/components/ui/DataTable";
 import type {
   FlagCategory,
   FlagSeverity,
@@ -6,6 +9,7 @@ import type {
   ValidationFlag,
 } from "../../types";
 import SeverityBadge from "./SeverityBadge";
+
 type Props = {
   flags: ValidationFlag[];
   stats: FlagStats | null;
@@ -37,6 +41,75 @@ export default function ValidationFlagsSection({
   onCreateFlag,
   onBulkResolve,
 }: Props) {
+  const columns: ColumnDef<ValidationFlag>[] = [
+    {
+      accessorKey: "place_id",
+      header: "Place ID",
+      size: 140,
+      cell: ({ row }) => (
+        <span className="mono">{row.original.place_id}</span>
+      ),
+    },
+    {
+      accessorKey: "category",
+      header: "Category",
+      size: 140,
+      cell: ({ row }) => (
+        <span className="tag">{row.original.category}</span>
+      ),
+    },
+    {
+      accessorKey: "severity",
+      header: "Severity",
+      size: 140,
+      cell: ({ row }) => <SeverityBadge severity={row.original.severity} />,
+    },
+    {
+      accessorKey: "flag_code",
+      header: "Flag code",
+      size: 160,
+      cell: ({ row }) => (
+        <span className="mono" style={{ fontSize: 10 }}>
+          {row.original.flag_code}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "message",
+      header: "Message",
+      size: 260,
+      cell: ({ row }) => (
+        <span style={{ color: "var(--text-secondary)" }}>
+          {row.original.message}
+        </span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      size: 160,
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="row-act">
+          {!row.original.is_resolved && (
+            <button
+              className="btn sm"
+              onClick={() => onResolve(row.original.id)}
+            >
+              Resolve
+            </button>
+          )}
+          <button
+            className="btn sm d"
+            onClick={() => onDelete(row.original.id)}
+          >
+            Delete
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="page-hd">
@@ -48,25 +121,37 @@ export default function ValidationFlagsSection({
         <div className="g4" style={{ marginBottom: 14 }}>
           <div className="mc">
             <div className="ml">Critical</div>
-            <div className="mv" style={{ color: "var(--text-danger)" }}>{stats.critical}</div>
+            <div className="mv" style={{ color: "var(--text-danger)" }}>
+              {stats.critical}
+            </div>
           </div>
           <div className="mc">
             <div className="ml">Error</div>
-            <div className="mv" style={{ color: "var(--text-danger)" }}>{stats.error}</div>
+            <div className="mv" style={{ color: "var(--text-danger)" }}>
+              {stats.error}
+            </div>
           </div>
           <div className="mc">
             <div className="ml">Warning</div>
-            <div className="mv" style={{ color: "var(--text-warning)" }}>{stats.warning}</div>
+            <div className="mv" style={{ color: "var(--text-warning)" }}>
+              {stats.warning}
+            </div>
           </div>
           <div className="mc">
             <div className="ml">Info</div>
-            <div className="mv" style={{ color: "var(--text-accent)" }}>{stats.info}</div>
+            <div className="mv" style={{ color: "var(--text-accent)" }}>
+              {stats.info}
+            </div>
           </div>
         </div>
       )}
 
       <div className="toolbar">
-        <select value={categoryFilter} onChange={(e) => onCategoryFilter(e.target.value as FlagCategory | "")} style={{ width: 120 }}>
+        <select
+          value={categoryFilter}
+          onChange={(e) => onCategoryFilter(e.target.value as FlagCategory | "")}
+          style={{ width: 120 }}
+        >
           <option value="">All categories</option>
           <option value="GEOMETRY">GEOMETRY</option>
           <option value="ADDRESS">ADDRESS</option>
@@ -77,7 +162,11 @@ export default function ValidationFlagsSection({
           <option value="CONSISTENCY">CONSISTENCY</option>
         </select>
 
-        <select value={severityFilter} onChange={(e) => onSeverityFilter(e.target.value as FlagSeverity | "")} style={{ width: 110 }}>
+        <select
+          value={severityFilter}
+          onChange={(e) => onSeverityFilter(e.target.value as FlagSeverity | "")}
+          style={{ width: 110 }}
+        >
           <option value="">All severities</option>
           <option value="CRITICAL">CRITICAL</option>
           <option value="ERROR">ERROR</option>
@@ -85,13 +174,21 @@ export default function ValidationFlagsSection({
           <option value="INFO">INFO</option>
         </select>
 
-        <select value={statusFilter} onChange={(e) => onStatusFilter(e.target.value as FlagStatusFilter)} style={{ width: 110 }}>
+        <select
+          value={statusFilter}
+          onChange={(e) => onStatusFilter(e.target.value as FlagStatusFilter)}
+          style={{ width: 110 }}
+        >
           <option value="unresolved">Unresolved</option>
           <option value="all">All</option>
           <option value="resolved">Resolved</option>
         </select>
 
-        <button className="btn p" style={{ marginLeft: "auto" }} onClick={onCreateFlag}>
+        <button
+          className="btn p"
+          style={{ marginLeft: "auto" }}
+          onClick={onCreateFlag}
+        >
           <i className="ti ti-plus" />
           Create flag
         </button>
@@ -101,53 +198,12 @@ export default function ValidationFlagsSection({
         </button>
       </div>
 
-      <div className="card">
-        {loading ? (
-          <p style={{ color: "var(--text-muted)", fontSize: 12 }}>Loading...</p>
-        ) : flags.length === 0 ? (
-          <p style={{ color: "var(--text-muted)", fontSize: 12 }}>No flags found.</p>
-        ) : (
-          <table>
-            <colgroup>
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "26%" }} />
-              <col style={{ width: "16%" }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>Place ID</th>
-                <th>Category</th>
-                <th>Severity</th>
-                <th>Flag code</th>
-                <th>Message</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {flags.map((flag) => (
-                <tr key={flag.id}>
-                  <td className="mono">{flag.place_id}</td>
-                  <td><span className="tag">{flag.category}</span></td>
-                  <td><SeverityBadge severity={flag.severity} /></td>
-                  <td className="mono" style={{ fontSize: 10 }}>{flag.flag_code}</td>
-                  <td style={{ color: "var(--text-secondary)" }}>{flag.message}</td>
-                  <td>
-                    <div className="row-act">
-                      {!flag.is_resolved && (
-                        <button className="btn sm" onClick={() => onResolve(flag.id)}>Resolve</button>
-                      )}
-                      <button className="btn sm d" onClick={() => onDelete(flag.id)}>Delete</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <DataTable
+        columns={columns}
+        data={flags}
+        loading={loading}
+        emptyMessage="No flags found."
+      />
     </>
   );
 }

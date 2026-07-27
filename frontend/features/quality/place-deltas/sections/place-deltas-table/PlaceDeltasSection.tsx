@@ -1,4 +1,12 @@
-import type { DeltaAction, DeltaAppliedFilter, DeltaSourceType, PlaceDelta } from "../../types";
+"use client";
+
+import DataTable, { ColumnDef } from "@/components/ui/DataTable";
+import type {
+  DeltaAction,
+  DeltaAppliedFilter,
+  DeltaSourceType,
+  PlaceDelta,
+} from "../../types";
 import ActionBadge from "./ActionBadge";
 
 type Props = {
@@ -30,6 +38,82 @@ export default function PlaceDeltasSection({
   onBulkApply,
   onRecordDelta,
 }: Props) {
+  const columns: ColumnDef<PlaceDelta>[] = [
+    {
+      accessorKey: "source_place_id",
+      header: "Source place",
+      size: 140,
+      cell: ({ row }) => (
+        <span className="mono">{row.original.source_place_id}</span>
+      ),
+    },
+    {
+      accessorKey: "action",
+      header: "Action",
+      size: 140,
+      cell: ({ row }) => <ActionBadge action={row.original.action} />,
+    },
+    {
+      accessorKey: "field_name",
+      header: "Field",
+      size: 100,
+      cell: ({ row }) => (
+        <span className="mono">{row.original.field_name}</span>
+      ),
+    },
+    {
+      accessorKey: "source_type",
+      header: "Source type",
+      size: 140,
+      cell: ({ row }) => (
+        <span className="tag">{row.original.source_type}</span>
+      ),
+    },
+    {
+      accessorKey: "after_value",
+      header: "After value",
+      size: 160,
+      cell: ({ row }) => (
+        <span className="mono">{row.original.after_value}</span>
+      ),
+    },
+    {
+      accessorKey: "is_applied",
+      header: "Applied",
+      size: 140,
+      cell: ({ row }) =>
+        row.original.is_applied ? (
+          <span className="bx s">Yes</span>
+        ) : (
+          <span className="bx m">No</span>
+        ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      size: 180,
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="row-act">
+          {!row.original.is_applied && (
+            <button
+              className="btn sm p"
+              onClick={() => onApply(row.original.id)}
+            >
+              Apply
+            </button>
+          )}
+          <button
+            className="btn sm d"
+            onClick={() => onDelete(row.original.id)}
+          >
+            Delete
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="page-hd">
@@ -38,27 +122,43 @@ export default function PlaceDeltasSection({
       </div>
 
       <div className="toolbar">
-        <select value={actionFilter} onChange={(e) => onActionFilter(e.target.value as DeltaAction | "")} style={{ width: 100 }}>
+        <select
+          value={actionFilter}
+          onChange={(e) => onActionFilter(e.target.value as DeltaAction | "")}
+          style={{ width: 100 }}
+        >
           <option value="">All actions</option>
           <option value="ADD">ADD</option>
           <option value="UPDATE">UPDATE</option>
           <option value="REMOVE">REMOVE</option>
         </select>
 
-        <select value={appliedFilter} onChange={(e) => onAppliedFilter(e.target.value as DeltaAppliedFilter)} style={{ width: 110 }}>
+        <select
+          value={appliedFilter}
+          onChange={(e) => onAppliedFilter(e.target.value as DeltaAppliedFilter)}
+          style={{ width: 110 }}
+        >
           <option value="unapplied">Unapplied</option>
           <option value="all">All</option>
           <option value="applied">Applied</option>
         </select>
 
-        <select value={sourceFilter} onChange={(e) => onSourceFilter(e.target.value as DeltaSourceType | "")} style={{ width: 130 }}>
+        <select
+          value={sourceFilter}
+          onChange={(e) => onSourceFilter(e.target.value as DeltaSourceType | "")}
+          style={{ width: 130 }}
+        >
           <option value="">All sources</option>
           <option value="USER_SUBMISSION">USER_SUBMISSION</option>
           <option value="OSM">OSM</option>
           <option value="PARTNER_IMPORT">PARTNER_IMPORT</option>
         </select>
 
-        <button className="btn p" style={{ marginLeft: "auto" }} onClick={onRecordDelta}>
+        <button
+          className="btn p"
+          style={{ marginLeft: "auto" }}
+          onClick={onRecordDelta}
+        >
           <i className="ti ti-plus" />
           Record delta
         </button>
@@ -68,61 +168,12 @@ export default function PlaceDeltasSection({
         </button>
       </div>
 
-      <div className="card">
-        {loading ? (
-          <p style={{ color: "var(--text-muted)", fontSize: 12 }}>Loading...</p>
-        ) : deltas.length === 0 ? (
-          <p style={{ color: "var(--text-muted)", fontSize: 12 }}>No deltas found.</p>
-        ) : (
-          <table>
-            <colgroup>
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "18%" }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>Source place</th>
-                <th>Action</th>
-                <th>Field</th>
-                <th>Source type</th>
-                <th>After value</th>
-                <th>Applied</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deltas.map((delta) => (
-                <tr key={delta.id}>
-                  <td className="mono">{delta.source_place_id}</td>
-                  <td><ActionBadge action={delta.action} /></td>
-                  <td className="mono">{delta.field_name}</td>
-                  <td><span className="tag">{delta.source_type}</span></td>
-                  <td className="mono">{delta.after_value}</td>
-                  <td>
-                    {delta.is_applied
-                      ? <span className="bx s">Yes</span>
-                      : <span className="bx m">No</span>
-                    }
-                  </td>
-                  <td>
-                    <div className="row-act">
-                      {!delta.is_applied && (
-                        <button className="btn sm p" onClick={() => onApply(delta.id)}>Apply</button>
-                      )}
-                      <button className="btn sm d" onClick={() => onDelete(delta.id)}>Delete</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <DataTable
+        columns={columns}
+        data={deltas}
+        loading={loading}
+        emptyMessage="No deltas found."
+      />
     </>
   );
 }

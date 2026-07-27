@@ -1,9 +1,5 @@
 "use client";
-
-import HtmlContentPage from '@/features/shared/HtmlContentPage';
-import { content } from './content';
-import { pageConfig } from './config';
-
+import { SettingsPage as Page } from "./sections/settings-view";
 export default function SettingsPage() {
-  return <HtmlContentPage content={content} pageId={pageConfig.id} />;
+  return <Page />;
 }
