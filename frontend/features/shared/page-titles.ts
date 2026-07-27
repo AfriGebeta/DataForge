@@ -7,6 +7,8 @@ import { pageTitles as qualityTitles } from "@/features/quality/page-titles";
 import { pageTitles as systemTitles } from "@/features/system/page-titles";
 import { pageTitles as categoryTitles } from "@/features/category/page-titles";
 import { pageTitles as placeTitles } from "@/features/place/page-titles";
+import { pageTitles as schemaTitles } from "@/features/schema/page-titles";
+import { pageTitles as businessTitles } from "@/features/business/page-titles";
 
 export const pageTitles: Record<string, string> = {
   ...overviewTitles,
@@ -18,4 +20,6 @@ export const pageTitles: Record<string, string> = {
   ...systemTitles,
   ...categoryTitles,
   ...placeTitles,
+  ...schemaTitles,
+  ...businessTitles,
 };

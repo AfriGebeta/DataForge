@@ -1,11 +1,9 @@
-import type {
-  CompletenessLevel,
-  CompletenessRule,
-  PlaceType,
-} from "../../types";
+"use client";
+
+import DataTable, { ColumnDef } from "@/components/ui/DataTable";
+import type { CompletenessLevel, CompletenessRule, PlaceType } from "../../types";
 import LevelBadge from "./LevelBadge";
 import PlaceTypeBadge from "./PlaceTypeBadge";
-import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
   rules: CompletenessRule[];
@@ -28,6 +26,59 @@ export default function CompletenessRulesSection({
   onDelete,
   onCreateRule,
 }: Props) {
+  const columns: ColumnDef<CompletenessRule>[] = [
+    {
+      accessorKey: "place_type",
+      header: "Place type",
+      size: 160,
+      cell: ({ row }) => <PlaceTypeBadge placeType={row.original.place_type} />,
+    },
+    {
+      accessorKey: "required_field",
+      header: "Required field",
+      size: 200,
+      cell: ({ row }) => (
+        <span className="mono">{row.original.required_field}</span>
+      ),
+    },
+    {
+      accessorKey: "weight",
+      header: "Weight",
+      size: 140,
+      cell: ({ row }) => row.original.weight.toFixed(2),
+    },
+    {
+      accessorKey: "level",
+      header: "Level",
+      size: 160,
+      cell: ({ row }) => <LevelBadge level={row.original.level} />,
+    },
+    {
+      accessorKey: "description",
+      header: "Description",
+      size: 240,
+      cell: ({ row }) => (
+        <span style={{ color: "var(--text-secondary)" }}>
+          {row.original.description}
+        </span>
+      ),
+    },
+    {
+      id: "actions",
+      header: "",
+      size: 100,
+      enableSorting: false,
+      cell: ({ row }) => (
+        <button
+          className="btn sm d"
+          onClick={() => onDelete(row.original.id)}
+        >
+          Delete
+        </button>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="page-hd">
@@ -71,59 +122,12 @@ export default function CompletenessRulesSection({
         </button>
       </div>
 
-      <GlassCard flat className="card">
-        {loading ? (
-          <p style={{ color: "var(--text-muted)", fontSize: 12 }}>Loading...</p>
-        ) : rules.length === 0 ? (
-          <p style={{ color: "var(--text-muted)", fontSize: 12 }}>No rules found.</p>
-        ) : (
-          <table>
-            <colgroup>
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "20%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "24%" }} />
-              <col style={{ width: "10%" }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>Place type</th>
-                <th>Required field</th>
-                <th>Weight</th>
-                <th>Level</th>
-                <th>Description</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rules.map((rule) => (
-                <tr key={rule.id}>
-                  <td>
-                    <PlaceTypeBadge placeType={rule.place_type} />
-                  </td>
-                  <td className="mono">{rule.required_field}</td>
-                  <td>{rule.weight.toFixed(2)}</td>
-                  <td>
-                    <LevelBadge level={rule.level} />
-                  </td>
-                  <td style={{ color: "var(--text-secondary)" }}>
-                    {rule.description}
-                  </td>
-                  <td>
-                    <button
-                      className="btn sm d"
-                      onClick={() => onDelete(rule.id)}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </GlassCard>
+      <DataTable
+        columns={columns}
+        data={rules}
+        loading={loading}
+        emptyMessage="No rules found."
+      />
     </>
   );
 }
