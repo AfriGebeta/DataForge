@@ -1,6 +1,7 @@
 import type { AuditLogItem, AuditLogsParams, AuditLogsResponse } from "./types";
 
-export const API_ENDPOINT = "http://localhost:8080/api/system/audit-logs" as const;
+export const API_ENDPOINT = "http://localhost:8080/api/v1/audit/logs" as const;
+export const EXPORT_ENDPOINT = "http://localhost:8080/api/v1/audit/logs/export" as const;
 
 const fakeLogs: AuditLogItem[] = [
   {
@@ -71,11 +72,15 @@ export async function fetchAuditLogs(
   params?: AuditLogsParams,
 ): Promise<AuditLogsResponse> {
   try {
-    const page = params?.page || 1;
-    const pageSize = params?.pageSize || 25;
-    const res = await fetch(
-      `${API_ENDPOINT}?page=${page}&pageSize=${pageSize}`,
-    );
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set("page", params.page.toString());
+    else searchParams.set("page", "1");
+    if (params?.pageSize) searchParams.set("pageSize", params.pageSize.toString());
+    else searchParams.set("pageSize", "25");
+    if (params?.action_type) searchParams.set("action_type", params.action_type);
+    if (params?.actor) searchParams.set("actor", params.actor);
+
+    const res = await fetch(`${API_ENDPOINT}?${searchParams.toString()}`);
     if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
     return res.json();
   } catch (cause) {
