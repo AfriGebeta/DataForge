@@ -1,7 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion, type Variants } from "framer-motion";
 import { ArrowUp, MousePointer2, RotateCcw } from "lucide-react";
+import DataTable, { type ColumnDef } from "@/components/ui/DataTable";
+import { fetchCursors } from "./api";
+import type { IngestCursor } from "./types";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -41,37 +45,57 @@ const item: Variants = {
   },
 };
 
-type CursorRow = {
-  channel: string;
-  key: string;
-  value: string;
-  captured: string;
-};
-
-const cursorRows: CursorRow[] = [
+const columns: ColumnDef<IngestCursor>[] = [
   {
-    channel: "@addis_poi_reports",
-    key: "telegram_update_id",
-    value: "99341",
-    captured: "2s ago",
+    accessorKey: "channel_config_id",
+    header: "Channel",
+    cell: ({ row }) => (
+      <span className="font-medium text-white/90">
+        {row.getValue<string>("channel_config_id")}
+      </span>
+    ),
   },
   {
-    channel: "@addis_real_estate",
-    key: "telegram_update_id",
-    value: "54112",
-    captured: "14m ago",
+    accessorKey: "cursor_key",
+    header: "Cursor key",
+    cell: ({ row }) => (
+      <span className="font-mono text-[11px] text-white/60">
+        {row.getValue<string>("cursor_key")}
+      </span>
+    ),
   },
   {
-    channel: "REST ingest",
-    key: "last_event_id",
-    value: "EVT-8821",
-    captured: "1m ago",
+    accessorKey: "cursor_value",
+    header: "Value",
+    cell: ({ row }) => (
+      <span className="font-mono text-[11.5px] text-[color:var(--orange-400)] tabular-nums">
+        {row.getValue<string>("cursor_value")}
+      </span>
+    ),
   },
   {
-    channel: "Nightly batch",
-    key: "scrape_page",
-    value: "142",
-    captured: "8h ago",
+    accessorKey: "captured_at",
+    header: "Captured",
+    cell: ({ row }) => {
+      const dateStr = row.getValue<string>("captured_at");
+      const formatted = dateStr ? new Date(dateStr).toLocaleString() : "Unknown";
+      return <span className="text-[11.5px] text-white/55">{formatted}</span>;
+    },
+  },
+  {
+    id: "actions",
+    header: "",
+    cell: () => (
+      <div className="text-right">
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 rounded-md border border-[color:var(--text-danger)]/30 bg-[color:var(--text-danger)]/12 px-2 py-1 text-[10.5px] font-medium text-[color:var(--text-danger)] transition hover:bg-[color:var(--text-danger)]/20"
+        >
+          <RotateCcw className="h-3 w-3" />
+          Reset
+        </button>
+      </div>
+    ),
   },
 ];
 
@@ -100,9 +124,29 @@ function GlassInput({
 }
 
 export default function CursorsPage() {
+  const [data, setData] = useState<IngestCursor[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const response = await fetchCursors();
+        setData(response.items || []);
+      } catch (error) {
+        console.error("Error fetching cursors", error);
+        setData([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    loadData();
+  }, []);
+
   return (
     <div
-      className="view active relative min-h-full overflow-hidden bg-[color:var(--surface-0)] px-6 pt-10 pb-8 md:px-10 md:pt-14 md:pb-10 xl:px-14 xl:pt-16 xl:pb-12"
+      className="view active relative min-h-full overflow-y-auto bg-[color:var(--surface-0)] px-6 pt-10 pb-8 md:px-10 md:pt-14 md:pb-10 xl:px-14 xl:pt-16 xl:pb-12"
       id="v-cursors"
     >
       <div className="aurora-bg" aria-hidden />
@@ -162,56 +206,11 @@ export default function CursorsPage() {
               </span>
             </CardHeader>
             <CardContent className="px-6 pb-6 pt-5">
-              <div className="overflow-x-auto rounded-lg ring-1 ring-inset ring-white/10">
-                <table className="w-full text-left text-[12px]">
-                  <thead>
-                    <tr className="bg-white/[0.02] text-[10px] uppercase tracking-[0.14em] text-white/45">
-                      <th className="px-5 py-3.5 font-medium">Channel</th>
-                      <th className="px-5 py-3.5 font-medium">Cursor key</th>
-                      <th className="px-5 py-3.5 font-medium">Value</th>
-                      <th className="px-5 py-3.5 font-medium">Captured</th>
-                      <th className="px-5 py-3.5 font-medium" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cursorRows.map((row, i) => (
-                      <motion.tr
-                        key={`${row.channel}-${row.key}`}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{
-                          duration: 0.32,
-                          delay: 0.25 + i * 0.06,
-                          ease: "easeOut",
-                        }}
-                        className="border-t border-white/[0.06] transition hover:bg-white/[0.03]"
-                      >
-                        <td className="px-5 py-3.5 font-medium text-white/90">
-                          {row.channel}
-                        </td>
-                        <td className="px-5 py-3.5 font-mono text-[11px] text-white/60">
-                          {row.key}
-                        </td>
-                        <td className="px-5 py-3.5 font-mono text-[11.5px] text-[color:var(--orange-400)] tabular-nums">
-                          {row.value}
-                        </td>
-                        <td className="px-5 py-3.5 text-[11.5px] text-white/55">
-                          {row.captured}
-                        </td>
-                        <td className="px-5 py-3.5 text-right">
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-1 rounded-md border border-[color:var(--text-danger)]/30 bg-[color:var(--text-danger)]/12 px-2 py-1 text-[10.5px] font-medium text-[color:var(--text-danger)] transition hover:bg-[color:var(--text-danger)]/20"
-                          >
-                            <RotateCcw className="h-3 w-3" />
-                            Reset
-                          </button>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                columns={columns}
+                data={data}
+                loading={isLoading}
+              />
             </CardContent>
           </GlassCard>
         </motion.div>

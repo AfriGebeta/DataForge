@@ -1,7 +1,10 @@
 "use client";
 
-import { type ComponentType } from "react";
+import { type ComponentType, useState, useEffect } from "react";
 import { motion, type Variants } from "framer-motion";
+import DataTable, { type ColumnDef } from "@/components/ui/DataTable";
+import { fetchRawIngests } from "./api";
+import type { RawIngestItem } from "./types";
 import {
   AlertTriangle,
 
@@ -117,22 +120,27 @@ function SectionEyebrow({ label, hint }: { label: string; hint?: string }) {
 function FilterSelect({
   label,
   options,
+  value,
+  onChange,
 }: {
   label: string;
   options: string[];
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }) {
   return (
     <div className="relative">
       <select
         aria-label={label}
+        value={value}
+        onChange={onChange}
         className="appearance-none rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-3 pr-8 text-[11.5px] text-white/80 outline-none transition hover:bg-white/[0.07] focus:border-[color:var(--orange-400)]/40"
       >
         <option value="">{label}</option>
         {options.map((opt) => (
-          <option key={opt}>{opt}</option>
+          <option key={opt} value={opt}>{opt}</option>
         ))}
       </select>
-
     </div>
   );
 }
@@ -176,67 +184,85 @@ const kpis: Kpi[] = [
   },
 ];
 
-type IngestRow = {
-  id: string;
-  channel: string;
-  type: string;
-  status: string;
-  statusTone: Tone;
-  received: string;
-  retries: number;
-  actions: ("skip" | "retry" | "dlq")[];
-};
+const columns: ColumnDef<RawIngestItem>[] = [
+  {
+    accessorKey: "id",
+    header: "ID",
+    cell: ({ row }) => {
+      const id = row.getValue<string>("id") || "";
+      return <span className="font-mono text-[11px] text-white/70">{id.substring(0, 8)}...</span>;
+    },
+  },
+  {
+    accessorKey: "channel",
+    header: "Channel",
+    cell: ({ row }) => (
+      <StatusBadge tone="accent">{row.getValue<string>("channel")}</StatusBadge>
+    ),
+  },
+  {
+    accessorKey: "source_type",
+    header: "Type",
+    cell: ({ row }) => (
+      <span className="text-[11.5px] text-white/75">{row.getValue<string>("source_type")}</span>
+    ),
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const status = row.getValue<string>("status") || "";
+      let tone: Tone = "neutral";
+      if (status === "DONE" || status === "SUCCESS") tone = "success";
+      if (status === "FAILED" || status === "ERROR") tone = "danger";
+      if (status === "DUPLICATE" || status === "WARNING") tone = "warning";
+      if (status === "PARSING" || status === "GEO_RESOLVING" || status === "PENDING") tone = "accent";
 
-const ingestRows: IngestRow[] = [
-  {
-    id: "a4e2…91f0",
-    channel: "TELEGRAM_BOT",
-    type: "POI",
-    status: "DONE",
-    statusTone: "success",
-    received: "3s ago",
-    retries: 0,
-    actions: ["skip"],
+      return (
+        <StatusBadge tone={tone} fixed>
+          {status}
+        </StatusBadge>
+      );
+    },
   },
   {
-    id: "b7c1…33a2",
-    channel: "TELEGRAM_BOT",
-    type: "POI",
-    status: "PARSING",
-    statusTone: "accent",
-    received: "12s ago",
-    retries: 0,
-    actions: ["retry"],
+    accessorKey: "received_at",
+    header: "Received",
+    cell: ({ row }) => {
+      const dateStr = row.getValue<string>("received_at");
+      const formatted = dateStr ? new Date(dateStr).toLocaleString() : "Unknown";
+      return <span className="text-[11.5px] text-white/55">{formatted}</span>;
+    },
   },
   {
-    id: "c9d4…77b8",
-    channel: "REST_API",
-    type: "ROAD",
-    status: "FAILED",
-    statusTone: "danger",
-    received: "1m ago",
-    retries: 2,
-    actions: ["retry", "dlq"],
+    accessorKey: "retry_count",
+    header: "Retries",
+    cell: ({ row }) => {
+      const retries = row.getValue<number>("retry_count") || 0;
+      return (
+        <span className={cn("font-mono text-[11.5px] tabular-nums", retries > 0 ? "text-[color:var(--text-warning)]" : "text-white/55")}>
+          {retries}
+        </span>
+      );
+    },
   },
   {
-    id: "d0e5…12c3",
-    channel: "TELEGRAM_BOT",
-    type: "POI",
-    status: "DUPLICATE",
-    statusTone: "warning",
-    received: "3m ago",
-    retries: 0,
-    actions: ["skip"],
-  },
-  {
-    id: "e1f6…45d4",
-    channel: "BATCH_IMPORT",
-    type: "NATURAL",
-    status: "DONE",
-    statusTone: "success",
-    received: "8h ago",
-    retries: 0,
-    actions: ["skip"],
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => {
+      const status = row.getValue<string>("status") || "";
+      const actions: ("skip" | "retry" | "dlq")[] = [];
+      if (status === "FAILED") actions.push("retry", "dlq");
+      else if (status !== "DONE" && status !== "SUCCESS") actions.push("skip");
+
+      return (
+        <div className="flex items-center gap-1.5">
+          {actions.map((action) => (
+            <RowAction key={action} kind={action} />
+          ))}
+        </div>
+      );
+    },
   },
 ];
 
@@ -278,6 +304,31 @@ function RowAction({
 }
 
 export default function RawIngestsPage() {
+  const [data, setData] = useState<RawIngestItem[]>([]);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [channelFilter, setChannelFilter] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const response = await fetchRawIngests({
+          status: statusFilter || undefined,
+          channel: channelFilter || undefined,
+        });
+        setData(response.items || []);
+      } catch (error) {
+        console.error("Error fetching ingests", error);
+        setData([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadData();
+  }, [statusFilter, channelFilter]);
+
   return (
     <div
       className="view active relative min-h-full overflow-hidden bg-[color:var(--surface-0)] px-6 pt-10 pb-8 md:px-10 md:pt-14 md:pb-10 xl:px-14 xl:pt-16 xl:pb-12"
@@ -392,6 +443,8 @@ export default function RawIngestsPage() {
               <div className="flex items-center gap-2">
                 <FilterSelect
                   label="All statuses"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
                   options={[
                     "PENDING",
                     "PARSING",
@@ -404,80 +457,18 @@ export default function RawIngestsPage() {
                 />
                 <FilterSelect
                   label="All channels"
+                  value={channelFilter}
+                  onChange={(e) => setChannelFilter(e.target.value)}
                   options={["TELEGRAM_BOT", "REST_API", "BATCH_IMPORT"]}
                 />
               </div>
             </CardHeader>
             <CardContent className="px-6 pb-6 pt-5">
-              <div className="overflow-x-auto rounded-lg ring-1 ring-inset ring-white/10">
-                <table className="w-full text-left text-[12px]">
-                  <thead>
-                    <tr className="bg-white/[0.02] text-[10px] uppercase tracking-[0.14em] text-white/45">
-                      <th className="px-5 py-3.5 font-medium">ID</th>
-                      <th className="px-5 py-3.5 font-medium">Channel</th>
-                      <th className="px-5 py-3.5 font-medium">Type</th>
-                      <th className="px-5 py-3.5 font-medium">Status</th>
-                      <th className="px-5 py-3.5 font-medium">Received</th>
-                      <th className="px-5 py-3.5 font-medium">Retries</th>
-                      <th className="px-5 py-3.5 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ingestRows.map((row, i) => (
-                      <motion.tr
-                        key={row.id}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{
-                          duration: 0.32,
-                          delay: 0.25 + i * 0.06,
-                          ease: "easeOut",
-                        }}
-                        className={cn(
-                          "border-t border-white/[0.06] transition hover:bg-white/[0.03]",
-                          row.statusTone === "danger" &&
-                            "bg-[color:var(--text-danger)]/[0.04]",
-                        )}
-                      >
-                        <td className="px-5 py-3.5 font-mono text-[11px] text-white/70">
-                          {row.id}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <StatusBadge tone="accent">{row.channel}</StatusBadge>
-                        </td>
-                        <td className="px-5 py-3.5 text-[11.5px] text-white/75">
-                          {row.type}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <StatusBadge tone={row.statusTone} fixed>
-                            {row.status}
-                          </StatusBadge>
-                        </td>
-                        <td className="px-5 py-3.5 text-[11.5px] text-white/55">
-                          {row.received}
-                        </td>
-                        <td
-                          className={cn(
-                            "px-5 py-3.5 font-mono text-[11.5px] tabular-nums",
-                            row.retries > 0
-                              ? "text-[color:var(--text-warning)]"
-                              : "text-white/55",
-                          )}
-                        >
-                          {row.retries}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-1.5">
-                            {row.actions.map((action) => (
-                              <RowAction key={action} kind={action} />
-                            ))}
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                columns={columns}
+                data={data}
+                loading={isLoading}
+              />
             </CardContent>
           </GlassCard>
         </motion.div>
