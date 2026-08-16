@@ -54,11 +54,12 @@ export type AIValues = {
   aiGeoScore?: number;
   aiNameValid?: boolean;
   aiNameScore?: number;
+  aiLanguageValid?: boolean;
   aiDuplicateScore?: number;
   aiMlConfidence?: number;
   aiOverallScore?: number;
   aiDecision?: AIDecision;
-  aiReasons?: Record<string, unknown>;
+  aiReasons?: string[];
   aiValidatedAt?: string;
 };
 

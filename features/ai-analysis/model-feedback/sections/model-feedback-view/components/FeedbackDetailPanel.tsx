@@ -1,13 +1,17 @@
-import type { FeedbackItem } from "../../../types";
+import type { ReviewQueueItem } from "../../../types";
 import { GlassCard } from "@/features/shared/GlassCard";
+import { timeAgo } from "@/lib/utils";
 
 type Props = {
-  item: FeedbackItem;
-  onDiscard: (id: string) => void;
-  onApprove: (id: string) => void;
+  item: ReviewQueueItem;
+  busy: boolean;
+  onReject: () => void;
+  onApprove: () => void;
 };
 
-export default function FeedbackDetailPanel({ item, onDiscard, onApprove }: Props) {
+export default function FeedbackDetailPanel({ item, busy, onReject, onApprove }: Props) {
+  const reasons = item.ai_reasons ?? [];
+
   return (
     <GlassCard flat className="card">
       <div
@@ -19,15 +23,10 @@ export default function FeedbackDetailPanel({ item, onDiscard, onApprove }: Prop
           justifyContent: "space-between",
         }}
       >
-        <span>{item.geo_id} | Source: Sat-Sentinel-2</span>
-        <div style={{ display: "flex", gap: 4 }}>
-          <button className="btn ghost sm">
-            <i className="ti ti-arrows-maximize" />
-          </button>
-          <button className="btn ghost sm">
-            <i className="ti ti-settings" />
-          </button>
-        </div>
+        <span>
+          {item.name ?? `Place #${item.place_id}`} · #{item.place_id}
+        </span>
+        <span>Validated {timeAgo(item.ai_validated_at)}</span>
       </div>
 
       <div className="g2" style={{ gap: 8, marginBottom: 10 }}>
@@ -39,51 +38,22 @@ export default function FeedbackDetailPanel({ item, onDiscard, onApprove }: Prop
               textTransform: "uppercase",
               letterSpacing: ".05em",
               marginBottom: 5,
-              display: "flex",
-              justifyContent: "space-between",
             }}
           >
-            Model Prediction
-            <span className="chip hi">Confidence: 89%</span>
+            AI Decision
           </div>
           <div
             style={{
               background: "var(--surface-0)",
               border: "1px solid var(--border)",
               borderRadius: 6,
-              height: 100,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              position: "relative",
+              padding: 12,
             }}
           >
-            <div
-              style={{
-                width: "50%",
-                height: "40%",
-                border: "2px solid var(--text-danger)",
-                position: "absolute",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  color: "var(--text-danger)",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Industrial Zone
-              </span>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>{item.ai_decision ?? "—"}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+              {item.place_type}
             </div>
-            <i
-              className="ti ti-building-factory-2"
-              style={{ fontSize: 32, color: "var(--surface-3)" }}
-            />
           </div>
         </div>
 
@@ -95,82 +65,59 @@ export default function FeedbackDetailPanel({ item, onDiscard, onApprove }: Prop
               textTransform: "uppercase",
               letterSpacing: ".05em",
               marginBottom: 5,
-              display: "flex",
-              justifyContent: "space-between",
             }}
           >
-            Ground Truth (Corrected)
-            <span style={{ color: "var(--text-success)", fontSize: 10 }}>
-              Verified: Annotator_04
-            </span>
+            Overall Trust Score
           </div>
           <div
             style={{
               background: "var(--surface-0)",
               border: "1px solid var(--border)",
               borderRadius: 6,
-              height: 100,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              position: "relative",
+              padding: 12,
             }}
           >
-            <div
-              style={{
-                width: "50%",
-                height: "40%",
-                border: "2px solid var(--text-success)",
-                position: "absolute",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  color: "var(--text-success)",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                High-Density Residential
-              </span>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>
+              {item.ai_overall_score != null ? `${item.ai_overall_score}%` : "—"}
             </div>
-            <i
-              className="ti ti-building"
-              style={{ fontSize: 32, color: "var(--surface-3)" }}
-            />
+            <div className="pb" style={{ marginTop: 6 }}>
+              <div className="pbf" style={{ width: `${item.ai_overall_score ?? 0}%` }} />
+            </div>
           </div>
         </div>
       </div>
 
-      <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 6 }}>
-          Feedback Tagging
+      {reasons.length > 0 && (
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: "var(--text-secondary)", marginBottom: 6 }}>
+            AI Reasons
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+            {reasons.map((reason) => (
+              <span key={reason} className="tag">
+                {reason}
+              </span>
+            ))}
+          </div>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-          <span className="tag">Feature Extractor Error ×</span>
-          <span className="tag">Resolution Artifact ×</span>
-          <button className="btn ghost sm">+ Add Tag</button>
-        </div>
-      </div>
+      )}
 
       <div style={{ display: "flex", gap: 6 }}>
         <button
           className="btn sm d"
           style={{ flex: 1, justifyContent: "center" }}
-          onClick={() => onDiscard(item.id)}
+          onClick={onReject}
+          disabled={busy}
         >
-          Discard
+          Reject
         </button>
         <button
           className="btn sm p"
           style={{ flex: 1, justifyContent: "center" }}
-          onClick={() => onApprove(item.id)}
+          onClick={onApprove}
+          disabled={busy}
         >
-          Approve & Add to Retrain
+          Approve
         </button>
       </div>
     </GlassCard>

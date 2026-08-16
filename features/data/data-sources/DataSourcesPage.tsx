@@ -30,7 +30,7 @@ import type { SourceHealthSummary } from "./types";
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
 
 const toneIconWrap: Record<Tone, string> = {
-  neutral: "bg-white/5 text-white/70 ring-1 ring-inset ring-white/10",
+  neutral: "bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] ring-1 ring-inset ring-[color:var(--border)]",
   accent:
     "bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)] ring-1 ring-inset ring-[color:var(--orange-400)]/25",
   success:
@@ -42,7 +42,7 @@ const toneIconWrap: Record<Tone, string> = {
 };
 
 const toneText: Record<Tone, string> = {
-  neutral: "text-white",
+  neutral: "text-[color:var(--text-primary)]",
   accent: "text-[color:var(--orange-400)]",
   success: "text-[color:var(--text-success)]",
   warning: "text-[color:var(--text-warning)]",
@@ -50,7 +50,7 @@ const toneText: Record<Tone, string> = {
 };
 
 const toneBadgeVariant: Record<Tone, string> = {
-  neutral: "bg-white/5 text-white/70 border-white/10",
+  neutral: "bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] border-[color:var(--border)]",
   accent:
     "bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)] border-[color:var(--orange-400)]/30",
   success:
@@ -91,13 +91,13 @@ function SectionEyebrow({ label, hint }: { label: string; hint?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 px-0.5">
       <div className="flex items-center gap-2.5">
-        <span className="h-px w-6 bg-white/20" />
-        <span className="font-display text-[10.5px] font-semibold uppercase tracking-[0.22em] text-white/50">
+        <span className="h-px w-6 bg-[color:var(--surface-3)]" />
+        <span className="font-display text-[10.5px] font-semibold uppercase tracking-[0.22em] text-[color:var(--text-muted)]">
           {label}
         </span>
       </div>
       {hint ? (
-        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/30">
+        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
           {hint}
         </span>
       ) : null}
@@ -120,7 +120,7 @@ const STATUS_COLORS: Record<string, string> = {
   DONE: "bg-[color:var(--text-success)]",
   FAILED: "bg-[color:var(--text-danger)]",
   DUPLICATE: "bg-[color:var(--text-warning)]",
-  SKIPPED: "bg-white/30",
+  SKIPPED: "bg-[color:var(--surface-3)]",
 };
 
 export default function DataSourcesPage() {
@@ -210,14 +210,14 @@ export default function DataSourcesPage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="inline-flex h-2 w-2 rounded-full bg-[color:var(--text-success)] pulse-dot" />
-              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">
+              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--text-muted)]">
                 Live · Data › Ingestion Monitor
               </span>
             </div>
-            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-white">
+            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-[color:var(--text-primary)]">
               Data Sources
             </h2>
-            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-white/55">
+            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-[color:var(--text-muted)]">
               Real ingestion volume and channel health, computed from PlaceForge&apos;s
               raw ingest records — no simulated metrics.
             </p>
@@ -234,7 +234,7 @@ export default function DataSourcesPage() {
             <button
               type="button"
               onClick={() => void load()}
-              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-white/85 transition hover:text-white"
+              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-[color:var(--text-primary)] transition hover:text-[color:var(--text-primary)]"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
               Refresh
@@ -263,7 +263,7 @@ export default function DataSourcesPage() {
                       >
                         <Icon className="h-[19px] w-[19px]" />
                       </div>
-                      <div className="font-display mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-white/55">
+                      <div className="font-display mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
                         {k.label}
                       </div>
                       <div
@@ -274,7 +274,7 @@ export default function DataSourcesPage() {
                       >
                         {k.value}
                       </div>
-                      <div className="mt-2.5 text-[11px] text-white/55">{k.delta}</div>
+                      <div className="mt-2.5 text-[11px] text-[color:var(--text-muted)]">{k.delta}</div>
                     </div>
                   </GlassCard>
                 </motion.div>
@@ -289,17 +289,17 @@ export default function DataSourcesPage() {
             <GlassCard>
               <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
-                    <Database className="h-4 w-4 text-white/75" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--surface-2)] ring-1 ring-inset ring-[color:var(--border)]">
+                    <Database className="h-4 w-4 text-[color:var(--text-secondary)]" />
                   </div>
-                  <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                  <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                     Active Sources
                   </CardTitle>
                 </div>
                 <button
                   type="button"
                   onClick={() => setModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] text-white/75 transition hover:bg-white/[0.06]"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)]"
                 >
                   <Plus className="h-3 w-3" />
                   Add source
@@ -307,7 +307,7 @@ export default function DataSourcesPage() {
               </CardHeader>
               <CardContent className="flex flex-col gap-3 px-6 pb-6 pt-5">
                 {activeChannels.length === 0 ? (
-                  <div className="py-8 text-center text-[12px] text-white/45">
+                  <div className="py-8 text-center text-[12px] text-[color:var(--text-muted)]">
                     No active channels configured yet.
                   </div>
                 ) : (
@@ -317,18 +317,18 @@ export default function DataSourcesPage() {
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35, delay: 0.1 + i * 0.06, ease: "easeOut" }}
-                      className="rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3 transition hover:border-white/10 hover:bg-white/[0.04]"
+                      className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-1)] px-4 py-3 transition hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-2)]"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-2">
                           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[color:var(--text-success)]" />
-                          <span className="truncate text-[12.5px] font-medium text-white/90">
+                          <span className="truncate text-[12.5px] font-medium text-[color:var(--text-primary)]">
                             {source.channel_name || source.channel_id}
                           </span>
                         </div>
                         <StatusBadge tone="accent">{source.channel}</StatusBadge>
                       </div>
-                      <div className="mt-2 font-mono text-[10px] uppercase tracking-wider text-white/40">
+                      <div className="mt-2 font-mono text-[10px] uppercase tracking-wider text-[color:var(--text-muted)]">
                         Last message:{" "}
                         {source.last_message_at ? timeAgo(source.last_message_at) : "never"}
                         {source.last_run_status ? ` · last run ${source.last_run_status}` : ""}
@@ -344,17 +344,17 @@ export default function DataSourcesPage() {
             <GlassCard className="h-full">
               <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
-                    <Waves className="h-4 w-4 text-white/75" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--surface-2)] ring-1 ring-inset ring-[color:var(--border)]">
+                    <Waves className="h-4 w-4 text-[color:var(--text-secondary)]" />
                   </div>
-                  <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                  <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                     Per-Channel Breakdown
                   </CardTitle>
                 </div>
                 <select
                   value={breakdownChannel}
                   onChange={(e) => setBreakdownChannel(e.target.value)}
-                  className="appearance-none rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-3 pr-8 text-[11px] text-white/80 outline-none transition hover:bg-white/[0.07] focus:border-[color:var(--orange-400)]/40"
+                  className="appearance-none rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] py-1.5 pl-3 pr-8 text-[11px] text-[color:var(--text-secondary)] outline-none transition hover:bg-[color:var(--surface-3)] focus:border-[color:var(--orange-400)]/40"
                 >
                   {distinctChannelTypes.length === 0 ? <option value="">No channels</option> : null}
                   {distinctChannelTypes.map((t) => (
@@ -365,12 +365,12 @@ export default function DataSourcesPage() {
                 </select>
               </CardHeader>
               <CardContent className="px-6 pb-6 pt-5">
-                <div className="text-[11.5px] text-white/55">
+                <div className="text-[11.5px] text-[color:var(--text-muted)]">
                   Ingest status counts for {breakdownChannel || "—"} (GET /ingests/stats)
                 </div>
                 <div className="mt-4 flex flex-col gap-2.5">
                   {breakdownTotal === 0 ? (
-                    <div className="py-6 text-center text-[12px] text-white/40">
+                    <div className="py-6 text-center text-[12px] text-[color:var(--text-muted)]">
                       No ingests recorded for this channel yet.
                     </div>
                   ) : (
@@ -378,16 +378,16 @@ export default function DataSourcesPage() {
                       .sort((a, b) => b[1] - a[1])
                       .map(([status, count]) => (
                         <div key={status} className="flex items-center gap-3">
-                          <span className="w-24 shrink-0 font-mono text-[10.5px] uppercase tracking-wider text-white/50">
+                          <span className="w-24 shrink-0 font-mono text-[10.5px] uppercase tracking-wider text-[color:var(--text-muted)]">
                             {status}
                           </span>
-                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.04]">
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-[color:var(--surface-2)]">
                             <div
                               className={cn("h-full rounded-full", STATUS_COLORS[status] ?? "bg-[color:var(--orange-400)]")}
                               style={{ width: `${Math.round((count / breakdownTotal) * 100)}%` }}
                             />
                           </div>
-                          <span className="w-10 shrink-0 text-right font-mono text-[11px] tabular-nums text-white/70">
+                          <span className="w-10 shrink-0 text-right font-mono text-[11px] tabular-nums text-[color:var(--text-secondary)]">
                             {count}
                           </span>
                         </div>

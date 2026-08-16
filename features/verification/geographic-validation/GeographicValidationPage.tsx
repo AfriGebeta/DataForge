@@ -27,7 +27,7 @@ import type { AdminLevelChainItem, ValidationFlag } from "./types";
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
 
 const toneIconWrap: Record<Tone, string> = {
-  neutral: "bg-white/5 text-white/70 ring-1 ring-inset ring-white/10",
+  neutral: "bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] ring-1 ring-inset ring-[color:var(--border)]",
   accent:
     "bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)] ring-1 ring-inset ring-[color:var(--orange-400)]/25",
   success:
@@ -39,7 +39,7 @@ const toneIconWrap: Record<Tone, string> = {
 };
 
 const toneBadgeVariant: Record<Tone, string> = {
-  neutral: "bg-white/5 text-white/70 border-white/10",
+  neutral: "bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] border-[color:var(--border)]",
   accent:
     "bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)] border-[color:var(--orange-400)]/30",
   success:
@@ -158,14 +158,14 @@ export default function GeographicValidationPage() {
                   criticalCount > 0 ? "bg-[color:var(--text-danger)]" : "bg-[color:var(--text-success)]",
                 )}
               />
-              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">
+              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--text-muted)]">
                 Live · GEOMETRY + HIERARCHY flags
               </span>
             </div>
-            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-white">
+            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-[color:var(--text-primary)]">
               Geographic Validation
             </h2>
-            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-white/55">
+            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-[color:var(--text-muted)]">
               Validation flags a worker already raised for geometry or admin-hierarchy issues.
               <span className="ml-1 text-[color:var(--orange-400)]">
                 {unresolved.length} unresolved of {total}
@@ -188,7 +188,7 @@ export default function GeographicValidationPage() {
             <button
               type="button"
               onClick={() => void load()}
-              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-white/85 transition hover:text-white"
+              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-[color:var(--text-primary)] transition hover:text-[color:var(--text-primary)]"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
               Refresh
@@ -206,7 +206,7 @@ export default function GeographicValidationPage() {
                     <div className={cn("flex h-8 w-8 items-center justify-center rounded-md", toneIconWrap.neutral)}>
                       <Globe2 className="h-4 w-4" />
                     </div>
-                    <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                    <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                       Geometry &amp; Hierarchy Flags
                     </CardTitle>
                   </div>
@@ -216,14 +216,14 @@ export default function GeographicValidationPage() {
                 </CardHeader>
                 <CardContent className="px-6 pb-6 pt-5">
                   {flags.length === 0 && !loading ? (
-                    <div className="py-8 text-center text-[12px] text-white/45">
+                    <div className="py-8 text-center text-[12px] text-[color:var(--text-muted)]">
                       No GEOMETRY or HIERARCHY flags recorded.
                     </div>
                   ) : (
-                    <div className="overflow-hidden rounded-lg ring-1 ring-inset ring-white/10">
+                    <div className="overflow-hidden rounded-lg ring-1 ring-inset ring-[color:var(--border)]">
                       <table className="w-full text-left text-[12px]">
                         <thead>
-                          <tr className="bg-white/[0.02] text-[10px] uppercase tracking-[0.14em] text-white/45">
+                          <tr className="bg-[color:var(--surface-1)] text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
                             <th className="px-4 py-3 font-medium">Place</th>
                             <th className="px-4 py-3 font-medium">Category</th>
                             <th className="px-4 py-3 font-medium">Message</th>
@@ -240,13 +240,13 @@ export default function GeographicValidationPage() {
                               transition={{ duration: 0.32, delay: 0.2 + i * 0.05, ease: "easeOut" }}
                               onClick={() => router.push(`/verification/geographic-validation/${f.place_id}`)}
                               className={cn(
-                                "cursor-pointer border-t border-white/[0.06] transition hover:bg-white/[0.03]",
+                                "cursor-pointer border-t border-[color:var(--border)] transition hover:bg-[color:var(--surface-2)]",
                                 !f.is_resolved && f.severity === "CRITICAL" && "bg-[color:var(--text-danger)]/[0.05]",
                               )}
                             >
-                              <td className="px-4 py-3 font-mono text-[11px] text-white/70">#{f.place_id}</td>
-                              <td className="px-4 py-3 text-white/70">{f.category}</td>
-                              <td className="px-4 py-3 text-white/90">{f.message}</td>
+                              <td className="px-4 py-3 font-mono text-[11px] text-[color:var(--text-secondary)]">#{f.place_id}</td>
+                              <td className="px-4 py-3 text-[color:var(--text-secondary)]">{f.category}</td>
+                              <td className="px-4 py-3 text-[color:var(--text-primary)]">{f.message}</td>
                               <td className="px-4 py-3">
                                 <StatusBadge tone={severityTone(f.severity)}>{f.severity}</StatusBadge>
                               </td>
@@ -272,7 +272,7 @@ export default function GeographicValidationPage() {
                     <div className={cn("flex h-8 w-8 items-center justify-center rounded-md", toneIconWrap.neutral)}>
                       <MapPin className="h-4 w-4" />
                     </div>
-                    <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                    <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                       Admin-Level Chain Lookup
                     </CardTitle>
                   </div>
@@ -283,20 +283,20 @@ export default function GeographicValidationPage() {
                       value={addressId}
                       onChange={(e) => setAddressId(e.target.value)}
                       placeholder="Address UUID"
-                      className="flex-1 rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 font-mono text-[12px] text-white/85 outline-none focus:border-[color:var(--orange-400)]/50"
+                      className="flex-1 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-3 py-1.5 font-mono text-[12px] text-[color:var(--text-primary)] outline-none focus:border-[color:var(--orange-400)]/50"
                     />
                     <button
                       type="button"
                       onClick={() => void lookupChain()}
                       disabled={chainLoading}
-                      className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11.5px] font-medium text-white/85 transition hover:bg-white/[0.08] disabled:opacity-40"
+                      className="rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-3 py-1.5 text-[11.5px] font-medium text-[color:var(--text-primary)] transition hover:bg-[color:var(--surface-3)] disabled:opacity-40"
                     >
                       {chainLoading ? "Loading…" : "Look Up"}
                     </button>
                   </div>
 
                   {chainError ? (
-                    <div className="mt-3 text-[11.5px] text-white/50">{chainError}</div>
+                    <div className="mt-3 text-[11.5px] text-[color:var(--text-muted)]">{chainError}</div>
                   ) : null}
 
                   {chain ? (
@@ -316,16 +316,16 @@ export default function GeographicValidationPage() {
                             <div className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", toneIconWrap.accent)}>
                               <Icon className="h-[18px] w-[18px]" />
                             </div>
-                            <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-white/45">
+                            <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-muted)]">
                               {label}
                             </div>
-                            <div className="text-[11px] font-semibold text-white/90">{name}</div>
+                            <div className="text-[11px] font-semibold text-[color:var(--text-primary)]">{name}</div>
                           </motion.div>
                         );
                       })}
                     </div>
                   ) : (
-                    <div className="mt-3 text-[11px] text-white/40">
+                    <div className="mt-3 text-[11px] text-[color:var(--text-muted)]">
                       Paste an address UUID to load its stored admin-level chain
                       (GET /addresses/&#123;id&#125;/admin-levels). This is plain storage — there is
                       no expected-vs-actual comparison here.
@@ -344,11 +344,11 @@ export default function GeographicValidationPage() {
                   <div className={cn("flex h-8 w-8 items-center justify-center rounded-md", toneIconWrap.neutral)}>
                     <Info className="h-4 w-4" />
                   </div>
-                  <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                  <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                     About this page
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-3 px-6 pb-6 pt-5 text-[11.5px] leading-relaxed text-white/60">
+                <CardContent className="flex flex-col gap-3 px-6 pb-6 pt-5 text-[11.5px] leading-relaxed text-[color:var(--text-muted)]">
                   <p>
                     This page shows real flags and admin-level data stored in PlaceForge.
                     It does not compute anomalies live — comparing a place&apos;s coordinates
@@ -361,7 +361,7 @@ export default function GeographicValidationPage() {
                     knowledge-source integration (OSM/Gov registry lookups) anywhere in this
                     codebase — those were mockup placeholders, not real capability.
                   </p>
-                  <p className="text-white/40">
+                  <p className="text-[color:var(--text-muted)]">
                     See <code>features/verification/INTEGRATION.md</code> for the full
                     breakdown of what&apos;s real vs. planned on this page.
                   </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
+import { useRouter } from "next/navigation";
 import { animate, motion, useInView, type Variants } from "framer-motion";
 import {
   Activity,
@@ -11,11 +12,14 @@ import {
   Copy,
   Flag,
   GitMerge,
+  History,
   Layers3,
   Map,
+  MapPinOff,
   Minus,
   RefreshCw,
   Sparkles,
+  Tag,
   Timer,
   TrendingDown,
   TrendingUp,
@@ -39,7 +43,7 @@ import type { DashboardResponse } from "./types";
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
 
 const toneIconWrap: Record<Tone, string> = {
-  neutral: "bg-white/5 text-white/70 ring-1 ring-inset ring-white/10",
+  neutral: "bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] ring-1 ring-inset ring-[color:var(--border)]",
   accent:
     "bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)] ring-1 ring-inset ring-[color:var(--orange-400)]/25",
   success:
@@ -51,7 +55,7 @@ const toneIconWrap: Record<Tone, string> = {
 };
 
 const toneNumber: Record<Tone, string> = {
-  neutral: "text-white",
+  neutral: "text-[color:var(--text-primary)]",
   accent: "text-[color:var(--orange-400)]",
   success: "text-[color:var(--text-success)]",
   warning: "text-[color:var(--text-warning)]",
@@ -129,6 +133,8 @@ type Kpi = {
   deltaTone?: Tone;
   icon: ComponentType<{ className?: string }>;
   tone?: Tone;
+  /** When set, the card becomes clickable — used to drill into the filtered list that explains the number. */
+  onClick?: () => void;
 };
 
 // ── Builders: real DashboardResponse -> the view models above ───────────
@@ -168,6 +174,47 @@ function buildPrimaryKpis(d: DashboardResponse): Kpi[] {
       tone: d.duplicate_candidates > 0 ? "warning" : "success",
       delta: "pending merge review",
       deltaTone: "neutral",
+    },
+  ];
+}
+
+// "Unfinished places" — every reason a place can be incomplete and need an
+// operator's attention, each clicking through to Place List pre-filtered to
+// just that reason. Kept as its own strip (not folded into Primary Metrics)
+// since these are data-completeness signals, not top-line pipeline health.
+function buildCompletenessKpis(
+  d: DashboardResponse,
+  onMissingCategoryClick: () => void,
+  onMissingCoordinatesClick: () => void,
+  onNeedingRefreshClick: () => void,
+): Kpi[] {
+  return [
+    {
+      label: "Missing Category",
+      value: d.places_missing_category,
+      icon: Tag,
+      tone: d.places_missing_category > 0 ? "danger" : "success",
+      delta: d.places_missing_category > 0 ? "Click to fix" : "All places categorized",
+      deltaTone: d.places_missing_category > 0 ? "danger" : "success",
+      onClick: onMissingCategoryClick,
+    },
+    {
+      label: "Missing Coordinates",
+      value: d.places_missing_coordinates,
+      icon: MapPinOff,
+      tone: d.places_missing_coordinates > 0 ? "danger" : "success",
+      delta: d.places_missing_coordinates > 0 ? "Never geocoded — click to fix" : "All places geocoded",
+      deltaTone: d.places_missing_coordinates > 0 ? "danger" : "success",
+      onClick: onMissingCoordinatesClick,
+    },
+    {
+      label: "Needing Refresh",
+      value: d.places_needing_refresh,
+      icon: History,
+      tone: d.places_needing_refresh > 0 ? "warning" : "success",
+      delta: d.places_needing_refresh > 0 ? "Outdated — click to review" : "All places up to date",
+      deltaTone: d.places_needing_refresh > 0 ? "warning" : "success",
+      onClick: onNeedingRefreshClick,
     },
   ];
 }
@@ -289,7 +336,7 @@ function timeAgo(iso: string): string {
 }
 
 const toneBadgeVariant: Record<Tone, string> = {
-  neutral: "bg-white/5 text-white/70 border-white/10",
+  neutral: "bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] border-[color:var(--border)]",
   accent:
     "bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)] border-[color:var(--orange-400)]/30",
   success:
@@ -325,61 +372,16 @@ function StatusBadge({
 
 type KpiSize = "sm" | "md" | "lg";
 
-const kpiSizeConfig: Record<
-  KpiSize,
-  {
-    padding: string;
-    iconBox: string;
-    iconSize: string;
-    labelSize: string;
-    valueSize: string;
-    deltaSize: string;
-    trendIconSize: string;
-    minHeight: string;
-    gapIconToLabel: string;
-    gapLabelToValue: string;
-    gapValueToDelta: string;
-  }
-> = {
-  sm: {
-    padding: "p-5",
-    iconBox: "h-10 w-10",
-    iconSize: "h-[18px] w-[18px]",
-    labelSize: "text-[10.5px] tracking-[0.14em]",
-    valueSize: "text-[22px]",
-    deltaSize: "text-[10.5px]",
-    trendIconSize: "h-3 w-3",
-    minHeight: "min-h-[148px]",
-    gapIconToLabel: "mt-3.5",
-    gapLabelToValue: "mt-1.5",
-    gapValueToDelta: "mt-2",
-  },
-  md: {
-    padding: "p-6",
-    iconBox: "h-11 w-11",
-    iconSize: "h-[19px] w-[19px]",
-    labelSize: "text-[11px] tracking-[0.14em]",
-    valueSize: "text-[26px]",
-    deltaSize: "text-[11px]",
-    trendIconSize: "h-3.5 w-3.5",
-    minHeight: "min-h-[168px]",
-    gapIconToLabel: "mt-4",
-    gapLabelToValue: "mt-2",
-    gapValueToDelta: "mt-2.5",
-  },
-  lg: {
-    padding: "p-7",
-    iconBox: "h-12 w-12",
-    iconSize: "h-[22px] w-[22px]",
-    labelSize: "text-[11.5px] tracking-[0.15em]",
-    valueSize: "text-[30px]",
-    deltaSize: "text-[11.5px]",
-    trendIconSize: "h-3.5 w-3.5",
-    minHeight: "min-h-[190px]",
-    gapIconToLabel: "mt-5",
-    gapLabelToValue: "mt-2.5",
-    gapValueToDelta: "mt-3",
-  },
+const kpiValueSize: Record<KpiSize, string> = {
+  sm: "text-[19px]",
+  md: "text-[23px]",
+  lg: "text-[28px]",
+};
+
+const kpiPadding: Record<KpiSize, string> = {
+  sm: "p-4",
+  md: "p-5",
+  lg: "p-5",
 };
 
 function DeltaTrendIcon({
@@ -401,97 +403,107 @@ function DeltaTrendIcon({
   return <Minus className={className} />;
 }
 
-function KpiCard({
+/**
+ * One column inside a KpiStrip: small inline icon + label on top, the number
+ * as the only large element, delta underneath. No icon tile, no card
+ * chrome of its own — the strip supplies that once for the whole row.
+ */
+function KpiStat({
   kpi,
-  accent = false,
   size = "md",
+  emphasize = false,
 }: {
   kpi: Kpi;
-  accent?: boolean;
   size?: KpiSize;
+  emphasize?: boolean;
 }) {
   const Icon = kpi.icon;
   const tone = kpi.tone ?? "neutral";
   const deltaTone = kpi.deltaTone ?? "neutral";
-  const s = kpiSizeConfig[size];
 
+  const className = cn(
+    "flex min-w-0 flex-col text-left transition-colors",
+    kpiPadding[size],
+    kpi.onClick && "cursor-pointer hover:bg-[color:var(--surface-1)]",
+    emphasize && "bg-[color:var(--bg-accent)]",
+  );
+
+  const content = (
+    <>
+      <div className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-[0.1em] text-[color:var(--text-muted)]">
+        <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" />
+        <span className="truncate" title={kpi.label}>
+          {kpi.label}
+        </span>
+      </div>
+
+      <div
+        className={cn(
+          "font-display-tight mt-2 truncate font-semibold tabular-nums leading-none",
+          kpiValueSize[emphasize ? "lg" : size],
+          toneNumber[tone],
+        )}
+      >
+        <CountUp to={kpi.value} format={kpi.format} />
+      </div>
+
+      {kpi.delta ? (
+        <div className="mt-2 flex min-w-0 items-center gap-1.5 text-[11px]">
+          <DeltaTrendIcon
+            tone={deltaTone}
+            className={cn("h-3 w-3 shrink-0", toneNumber[deltaTone])}
+          />
+          <span
+            className={cn("min-w-0 truncate font-medium", toneNumber[deltaTone])}
+            title={kpi.delta}
+          >
+            {kpi.delta}
+          </span>
+        </div>
+      ) : null}
+    </>
+  );
+
+  if (kpi.onClick) {
+    return (
+      <button type="button" onClick={kpi.onClick} className={className}>
+        {content}
+      </button>
+    );
+  }
+  return <div className={className}>{content}</div>;
+}
+
+/** A row of KpiStats sharing one card surface, divided by hairlines — the
+ *  data-dense alternative to N identical icon-tile cards. */
+function KpiStrip({
+  kpis,
+  gridClass,
+  size = "md",
+  emphasizeFirst = false,
+}: {
+  kpis: Kpi[];
+  gridClass: string;
+  size?: KpiSize;
+  emphasizeFirst?: boolean;
+}) {
   return (
-    <motion.div
-      variants={item}
-      whileHover={{ y: -4, transition: { duration: 0.25 } }}
-      className="relative"
-    >
-      <GlassCard tone={accent ? "accent" : "neutral"} ring ringTone={tone} className="h-full">
+    <motion.div variants={item}>
+      <GlassCard>
         <div
           className={cn(
-            "relative flex h-full min-w-0 flex-col items-center justify-center text-center",
-            s.padding,
-            s.minHeight,
+            "grid divide-y divide-[color:var(--border)] sm:divide-y-0 sm:divide-x",
+            gridClass,
           )}
         >
-          {/* icon chip on top, centered */}
-          <div
-            className={cn(
-              "flex shrink-0 items-center justify-center rounded-2xl",
-              s.iconBox,
-              toneIconWrap[tone],
-            )}
-          >
-            <Icon className={s.iconSize} />
-          </div>
-
-          {/* label */}
-          <div
-            className={cn(
-              "font-display max-w-full truncate font-medium uppercase text-white/55",
-              s.labelSize,
-              s.gapIconToLabel,
-            )}
-            title={kpi.label}
-          >
-            {kpi.label}
-          </div>
-
-          {/* hero value — display font, tabular, centered */}
-          <div
-            className={cn(
-              "font-display-tight max-w-full truncate font-semibold tabular-nums leading-none",
-              s.valueSize,
-              s.gapLabelToValue,
-              toneNumber[tone],
-            )}
-          >
-            <CountUp to={kpi.value} format={kpi.format} />
-          </div>
-
-          {/* delta with trend arrow */}
-          {kpi.delta ? (
-            <div
-              className={cn(
-                "flex max-w-full items-center justify-center gap-1.5",
-                s.deltaSize,
-                s.gapValueToDelta,
-              )}
-            >
-              <DeltaTrendIcon
-                tone={deltaTone}
-                className={cn(
-                  "shrink-0",
-                  s.trendIconSize,
-                  toneNumber[deltaTone],
-                )}
-              />
-              <span
-                className={cn(
-                  "min-w-0 truncate font-medium",
-                  toneNumber[deltaTone],
-                )}
-                title={kpi.delta}
-              >
-                {kpi.delta}
-              </span>
-            </div>
-          ) : null}
+          {kpis.map((kpi, idx) => (
+            <KpiStat
+              key={kpi.label}
+              kpi={kpi}
+              size={size}
+              emphasize={emphasizeFirst && idx === 0}
+            />
+          ))}
         </div>
       </GlassCard>
     </motion.div>
@@ -503,6 +515,9 @@ const emptyDashboard: DashboardResponse = {
   ai_accuracy: 0,
   human_review_queue: 0,
   duplicate_candidates: 0,
+  places_missing_category: 0,
+  places_missing_coordinates: 0,
+  places_needing_refresh: 0,
   ingests_today: 0,
   success_rate: 0,
   alive_workers: 0,
@@ -520,6 +535,7 @@ const emptyDashboard: DashboardResponse = {
 };
 
 export default function OverviewDashboardPage() {
+  const router = useRouter();
   const [data, setData] = useState<DashboardResponse>(emptyDashboard);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<string>("");
@@ -537,6 +553,12 @@ export default function OverviewDashboardPage() {
   }, [load]);
 
   const primaryKpis = buildPrimaryKpis(data);
+  const completenessKpis = buildCompletenessKpis(
+    data,
+    () => router.push("/place/list?missingCategory=true"),
+    () => router.push("/place/list?missingCoordinates=true"),
+    () => router.push("/place/list?stale=true"),
+  );
   const secondaryKpis = buildSecondaryKpis(data);
   const footerKpis = buildFooterKpis(data);
   const trustSegments = buildTrustSegments(data);
@@ -571,14 +593,14 @@ export default function OverviewDashboardPage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="inline-flex h-2 w-2 rounded-full bg-[color:var(--text-success)] pulse-dot" />
-              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">
+              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--text-muted)]">
                 Live · System Overview
               </span>
             </div>
-            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-white">
+            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-[color:var(--text-primary)]">
               Cartographic Intel Dashboard
             </h2>
-            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-white/55">
+            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-[color:var(--text-muted)]">
               Real-time geographical data health and AI analysis metrics.
               {lastSync ? (
                 <span className="ml-1 text-[color:var(--orange-400)]">
@@ -599,7 +621,7 @@ export default function OverviewDashboardPage() {
             <button
               type="button"
               onClick={() => void load()}
-              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-white/85 transition hover:text-white"
+              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-[color:var(--text-primary)] transition hover:text-[color:var(--text-primary)]"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
               Refresh
@@ -607,35 +629,35 @@ export default function OverviewDashboardPage() {
           </div>
         </motion.div>
 
-        {/* Primary KPIs — hero row */}
+        {/* Primary KPIs — one strip, lead metric emphasized in place */}
         <motion.section variants={item} className="flex flex-col gap-3">
           <SectionEyebrow label="Primary Metrics" hint="live snapshot" />
-          <motion.div
-            variants={container}
-            className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4"
-          >
-            {primaryKpis.map((kpi, idx) => (
-              <KpiCard
-                key={kpi.label}
-                kpi={kpi}
-                accent={idx === 0}
-                size="lg"
-              />
-            ))}
-          </motion.div>
+          <KpiStrip
+            kpis={primaryKpis}
+            gridClass="grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
+            size="lg"
+            emphasizeFirst
+          />
+        </motion.section>
+
+        {/* Unfinished places — every completeness gap an operator can click through and fix */}
+        <motion.section variants={item} className="flex flex-col gap-3">
+          <SectionEyebrow label="Unfinished Places" hint="click to fix" />
+          <KpiStrip
+            kpis={completenessKpis}
+            gridClass="grid-cols-1 sm:grid-cols-3"
+            size="md"
+          />
         </motion.section>
 
         {/* Secondary KPIs */}
         <motion.section variants={item} className="flex flex-col gap-3">
           <SectionEyebrow label="Ingest Pipeline" hint="today" />
-          <motion.div
-            variants={container}
-            className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4"
-          >
-            {secondaryKpis.map((kpi) => (
-              <KpiCard key={kpi.label} kpi={kpi} size="md" />
-            ))}
-          </motion.div>
+          <KpiStrip
+            kpis={secondaryKpis}
+            gridClass="grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
+            size="md"
+          />
         </motion.section>
 
         {/* Trust Score + Alerts */}
@@ -644,10 +666,10 @@ export default function OverviewDashboardPage() {
             <GlassCard>
               <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
-                    <Activity className="h-4 w-4 text-white/75" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--surface-2)] ring-1 ring-inset ring-[color:var(--border)]">
+                    <Activity className="h-4 w-4 text-[color:var(--text-secondary)]" />
                   </div>
-                  <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                  <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                     Trust Score Distribution
                   </CardTitle>
                 </div>
@@ -659,7 +681,7 @@ export default function OverviewDashboardPage() {
                 </Badge>
               </CardHeader>
               <CardContent className="px-6 pb-6 pt-5">
-                <div className="shimmer-line flex h-4 overflow-hidden rounded-full ring-1 ring-inset ring-white/10">
+                <div className="shimmer-line flex h-4 overflow-hidden rounded-full ring-1 ring-inset ring-[color:var(--border)]">
                   {trustSegments.map((segment, i) => (
                     <motion.div
                       key={segment.label}
@@ -678,7 +700,7 @@ export default function OverviewDashboardPage() {
                   {trustSegments.map((s) => (
                     <div
                       key={s.label}
-                      className="flex min-w-0 items-center gap-2 text-[11.5px] text-white/75"
+                      className="flex min-w-0 items-center gap-2 text-[11.5px] text-[color:var(--text-secondary)]"
                     >
                       <span
                         className="h-2 w-2 shrink-0 rounded-full"
@@ -686,7 +708,7 @@ export default function OverviewDashboardPage() {
                       />
                       <span className="min-w-0 truncate">
                         {s.label}
-                        <span className="ml-1 text-white/45">
+                        <span className="ml-1 text-[color:var(--text-muted)]">
                           ({s.pct}%)
                         </span>
                       </span>
@@ -704,7 +726,7 @@ export default function OverviewDashboardPage() {
                   <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--text-danger)]/15 text-[color:var(--text-danger)] ring-1 ring-inset ring-[color:var(--text-danger)]/25">
                     <AlertTriangle className="h-4 w-4" />
                   </div>
-                  <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                  <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                     Live AI Alerts
                   </CardTitle>
                 </div>
@@ -717,7 +739,7 @@ export default function OverviewDashboardPage() {
               </CardHeader>
               <CardContent className="flex flex-col gap-3.5 px-6 pb-6 pt-5">
                 {data.live_alerts.length === 0 ? (
-                  <div className="py-4 text-center text-[11.5px] text-white/45">
+                  <div className="py-4 text-center text-[11.5px] text-[color:var(--text-muted)]">
                     No critical flags open.
                   </div>
                 ) : (
@@ -732,7 +754,7 @@ export default function OverviewDashboardPage() {
                         ease: "easeOut",
                       }}
                       whileHover={{ x: 2 }}
-                      className="group flex min-w-0 items-start gap-3.5 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3 transition hover:border-white/10 hover:bg-white/[0.04]"
+                      className="group flex min-w-0 items-start gap-3.5 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-1)] px-4 py-3 transition hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-2)]"
                     >
                       <div
                         className={cn(
@@ -744,12 +766,12 @@ export default function OverviewDashboardPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0 truncate text-[12.5px] font-medium text-white/90">
+                          <div className="min-w-0 truncate text-[12.5px] font-medium text-[color:var(--text-primary)]">
                             {alert.flag_code} · place #{alert.place_id}
                           </div>
                           <ArrowUpRight className="h-3.5 w-3.5 shrink-0 -translate-x-1 opacity-0 transition group-hover:translate-x-0 group-hover:opacity-70" />
                         </div>
-                        <div className="mt-1 truncate text-[11.5px] text-white/55">
+                        <div className="mt-1 truncate text-[11.5px] text-[color:var(--text-muted)]">
                           {alert.message}
                         </div>
                       </div>
@@ -767,14 +789,14 @@ export default function OverviewDashboardPage() {
             <GlassCard>
               <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
-                    <Waves className="h-4 w-4 text-white/75" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--surface-2)] ring-1 ring-inset ring-[color:var(--border)]">
+                    <Waves className="h-4 w-4 text-[color:var(--text-secondary)]" />
                   </div>
-                  <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                  <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                     Ingest Status Breakdown
                   </CardTitle>
                 </div>
-                <span className="font-mono text-[10.5px] uppercase tracking-wider text-white/45">
+                <span className="font-mono text-[10.5px] uppercase tracking-wider text-[color:var(--text-muted)]">
                   all-time
                 </span>
               </CardHeader>
@@ -795,14 +817,14 @@ export default function OverviewDashboardPage() {
                       <StatusBadge tone={row.tone} fixed>
                         {row.status}
                       </StatusBadge>
-                      <span className="font-mono text-[12.5px] text-white/85 tabular-nums">
+                      <span className="font-mono text-[12.5px] text-[color:var(--text-primary)] tabular-nums">
                         {row.count.toLocaleString()}
                       </span>
                       <div className="relative">
                         <Progress
                           value={Math.max(row.share, 1)}
                           className={cn(
-                            "h-2 bg-white/5",
+                            "h-2 bg-[color:var(--surface-2)]",
                             row.tone === "success"
                               ? "[&>[data-slot=progress-indicator]]:bg-[color:var(--text-success)]"
                               : row.tone === "warning"
@@ -811,7 +833,7 @@ export default function OverviewDashboardPage() {
                                   ? "[&>[data-slot=progress-indicator]]:bg-[color:var(--text-danger)]"
                                   : row.tone === "accent"
                                     ? "[&>[data-slot=progress-indicator]]:bg-[color:var(--orange-400)]"
-                                    : "[&>[data-slot=progress-indicator]]:bg-white/45",
+                                    : "[&>[data-slot=progress-indicator]]:bg-[color:var(--text-muted)]",
                           )}
                         />
                       </div>
@@ -826,21 +848,21 @@ export default function OverviewDashboardPage() {
             <GlassCard>
               <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
-                    <Timer className="h-4 w-4 text-white/75" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--surface-2)] ring-1 ring-inset ring-[color:var(--border)]">
+                    <Timer className="h-4 w-4 text-[color:var(--text-secondary)]" />
                   </div>
-                  <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                  <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                     System Activity
                   </CardTitle>
                 </div>
-                <span className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-white/55">
+                <span className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-[color:var(--text-muted)]">
                   <span className="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-[color:var(--text-success)]" />
                   Streaming
                 </span>
               </CardHeader>
               <CardContent className="flex flex-col gap-1.5 px-6 pb-6 pt-5">
                 {data.activity_feed.length === 0 ? (
-                  <div className="py-4 text-center text-[11.5px] text-white/45">
+                  <div className="py-4 text-center text-[11.5px] text-[color:var(--text-muted)]">
                     No completed ingests yet.
                   </div>
                 ) : (
@@ -854,15 +876,15 @@ export default function OverviewDashboardPage() {
                         delay: 0.25 + i * 0.07,
                         ease: "easeOut",
                       }}
-                      className="grid grid-cols-[104px_64px_1fr] items-center gap-3.5 rounded-md px-3 py-2.5 transition hover:bg-white/[0.03]"
+                      className="grid grid-cols-[104px_64px_1fr] items-center gap-3.5 rounded-md px-3 py-2.5 transition hover:bg-[color:var(--surface-2)]"
                     >
                       <StatusBadge tone={statusTone(entry.status)} fixed>
                         {entry.status}
                       </StatusBadge>
-                      <span className="font-mono text-[10.5px] uppercase text-white/45">
+                      <span className="font-mono text-[10.5px] uppercase text-[color:var(--text-muted)]">
                         {timeAgo(entry.at)}
                       </span>
-                      <span className="truncate text-[12.5px] text-white/75">
+                      <span className="truncate text-[12.5px] text-[color:var(--text-secondary)]">
                         {entry.detail}
                       </span>
                     </motion.div>
@@ -876,14 +898,11 @@ export default function OverviewDashboardPage() {
         {/* Footer KPIs */}
         <motion.section variants={item} className="flex flex-col gap-3">
           <SectionEyebrow label="Quality Signals" hint="pending action" />
-          <motion.div
-            variants={container}
-            className="grid grid-cols-2 gap-6 xl:grid-cols-4"
-          >
-            {footerKpis.map((kpi) => (
-              <KpiCard key={kpi.label} kpi={kpi} size="sm" />
-            ))}
-          </motion.div>
+          <KpiStrip
+            kpis={footerKpis}
+            gridClass="grid-cols-2 xl:grid-cols-4"
+            size="sm"
+          />
         </motion.section>
       </motion.div>
     </div>
@@ -900,13 +919,13 @@ function SectionEyebrow({
   return (
     <div className="flex items-baseline justify-between gap-3 px-0.5">
       <div className="flex items-center gap-2.5">
-        <span className="h-px w-6 bg-white/20" />
-        <span className="font-display text-[10.5px] font-semibold uppercase tracking-[0.22em] text-white/50">
+        <span className="h-px w-6 bg-[color:var(--surface-3)]" />
+        <span className="font-display text-[10.5px] font-semibold uppercase tracking-[0.22em] text-[color:var(--text-muted)]">
           {label}
         </span>
       </div>
       {hint ? (
-        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/30">
+        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
           {hint}
         </span>
       ) : null}

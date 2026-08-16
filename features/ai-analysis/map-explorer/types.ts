@@ -1,26 +1,19 @@
-export type MapOverlay = {
-  id: string;
-  label: string;
-  dot_class: string;
-  enabled: boolean;
-};
+export type AIDecision = "VALID" | "INVALID" | "AMBIGUOUS" | "DUPLICATE";
 
-export type MapCluster = {
-  id: string;
-  lat: string;
-  lng: string;
-  trust_score: number;
-};
-
-export type RegionStats = {
-  total_points: number;
-  duplicate_density: number;
+export type MapPoint = {
+  place_id: number;
+  name: string | null;
+  lat: number;
+  lng: number;
+  ai_overall_score: number | null;
+  ai_decision: AIDecision | null;
+  review_status: string;
 };
 
 export type MapExplorerData = {
-  overlays: MapOverlay[];
-  trust_score_range: number;
+  points: MapPoint[];
+  total_points: number;
+  duplicate_density_percent: number;
+  needs_review_count: number;
   data_source: string;
-  active_cluster: MapCluster;
-  region_stats: RegionStats;
 };

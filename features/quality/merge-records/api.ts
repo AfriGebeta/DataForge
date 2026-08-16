@@ -18,7 +18,11 @@ export const API_ENDPOINT = `${API_BASE_URL}/api/v1/merges`;
 type BackendMergeRecord = {
   id: string;
   winner_id: number;
+  winner_name?: string | null;
+  winner_ai_duplicate_score?: number | null;
   loser_id: number;
+  loser_name?: string | null;
+  loser_ai_duplicate_score?: number | null;
   strategy: MergeRecord["strategy"];
   status: MergeRecord["status"];
   merge_reason: string;
@@ -30,7 +34,11 @@ function fromBackend(r: BackendMergeRecord): MergeRecord {
   return {
     id: r.id,
     winner_id: String(r.winner_id),
+    winner_name: r.winner_name ?? null,
+    winner_ai_duplicate_score: r.winner_ai_duplicate_score ?? null,
     loser_id: String(r.loser_id),
+    loser_name: r.loser_name ?? null,
+    loser_ai_duplicate_score: r.loser_ai_duplicate_score ?? null,
     strategy: r.strategy,
     status: r.status,
     reason: r.merge_reason,
@@ -42,6 +50,8 @@ function fromBackend(r: BackendMergeRecord): MergeRecord {
 export async function fetchMergeRecords(params?: MergeRecordsParams): Promise<MergeRecordsResponse> {
   const query = new URLSearchParams();
   if (params?.strategy) query.set("strategy", params.strategy);
+  if (params?.status) query.set("status", params.status);
+  if (params?.limit) query.set("limit", String(params.limit));
 
   const res = await apiFetch(`${API_ENDPOINT}?${query.toString()}`);
   if (!res.ok) throw new Error(`Request failed with status ${res.status}`);

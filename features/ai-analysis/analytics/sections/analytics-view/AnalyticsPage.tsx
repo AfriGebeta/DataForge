@@ -1,22 +1,26 @@
 "use client";
 
-import Toast from "@/components/custom/Toast";
-import { useToast } from "@/hooks/useToast";
-import { fakeData } from "../../api";
+import { useEffect, useState } from "react";
+import { fetchAnalytics } from "../../api";
+import type { AnalyticsData } from "../../types";
 import AnalyticsSection from "./AnalyticsSection";
 
 export default function AnalyticsPage() {
-  const { message, visible, showToast } = useToast();
+  const [data, setData] = useState<AnalyticsData | null>(null);
 
-  return (
-    <div>
-      <AnalyticsSection
-        data={fakeData}
-        onExportCsv={() => showToast("Exporting CSV...")}
-        onReportPdf={() => showToast("Generating PDF report...")}
-        onViewRegistry={() => showToast("Opening full registry…")}
-      />
-      <Toast message={message} visible={visible} />
-    </div>
-  );
+  useEffect(() => {
+    let cancelled = false;
+    fetchAnalytics()
+      .then((res) => {
+        if (!cancelled) setData(res);
+      })
+      .catch((cause) => console.warn("fetchAnalytics failed:", cause));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!data) return null;
+
+  return <AnalyticsSection data={data} />;
 }

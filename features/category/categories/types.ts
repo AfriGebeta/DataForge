@@ -19,6 +19,13 @@ export type Category = {
   parentId: string | null;
   icon: string;
   name: CategoryNameMap;
+  /**
+   * True for categories auto-created by the ingest pipeline from an
+   * AI-extracted free-text category string (e.g. "shop") that didn't match
+   * any existing category — the extraction/slugification may be wrong, so
+   * an admin should confirm or fix it. False for admin-authored categories.
+   */
+  needsReview: boolean;
   deletedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -33,6 +40,7 @@ export type CategoryTreeNode = {
   id: string;
   name: CategoryNameMap;
   slug: string;
+  needsReview: boolean;
   children?: CategoryTreeNode[];
   createdAt?: string;
   updatedAt?: string;
@@ -87,4 +95,5 @@ export type UpdateCategoryRequestBody = {
   icon?: string;
   /** Parent can point to any category id (not only roots). */
   parentId?: string | null;
+  needsReview?: boolean;
 };

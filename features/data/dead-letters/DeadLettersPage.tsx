@@ -83,7 +83,7 @@ export default function DeadLettersPage() {
         header: "ID",
         size: 100,
         cell: ({ row }) => (
-          <span className="font-mono text-[11px] text-white/70">{row.original.id.slice(0, 8)}…</span>
+          <span className="font-mono text-[11px] text-[color:var(--text-secondary)]">{row.original.id.slice(0, 8)}…</span>
         ),
       },
       {
@@ -91,7 +91,7 @@ export default function DeadLettersPage() {
         header: "Queue",
         size: 180,
         cell: ({ row }) => (
-          <Badge variant="outline" className="font-mono tracking-wide text-[10px] px-2 py-0.5 bg-white/5 text-white/70 border-white/10">
+          <Badge variant="outline" className="font-mono tracking-wide text-[10px] px-2 py-0.5 bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] border-[color:var(--border)]">
             {row.original.source_queue}
           </Badge>
         ),
@@ -119,7 +119,7 @@ export default function DeadLettersPage() {
         header: "Failed",
         size: 100,
         cell: ({ row }) => (
-          <span className="text-[11.5px] text-white/55">{timeAgo(row.original.failed_at)}</span>
+          <span className="text-[11.5px] text-[color:var(--text-muted)]">{timeAgo(row.original.failed_at)}</span>
         ),
       },
       {
@@ -132,7 +132,7 @@ export default function DeadLettersPage() {
               Replayed
             </Badge>
           ) : (
-            <span className="text-[11px] text-white/40">—</span>
+            <span className="text-[11px] text-[color:var(--text-muted)]">—</span>
           ),
       },
       {
@@ -148,7 +148,7 @@ export default function DeadLettersPage() {
               e.stopPropagation();
               void handleReplay(row.original);
             }}
-            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10.5px] font-medium text-white/75 transition hover:bg-white/[0.08] hover:text-white disabled:pointer-events-none disabled:opacity-30"
+            className="inline-flex items-center gap-1 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-2 py-1 text-[10.5px] font-medium text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-primary)] disabled:pointer-events-none disabled:opacity-30"
           >
             <RotateCcw className="h-3 w-3" />
             Replay
@@ -178,14 +178,14 @@ export default function DeadLettersPage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="inline-flex h-2 w-2 rounded-full bg-[color:var(--text-danger)] pulse-dot" />
-              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">
+              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--text-muted)]">
                 Live · Data › Failure Queue
               </span>
             </div>
-            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-white">
+            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-[color:var(--text-primary)]">
               Dead Letters
             </h2>
-            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-white/55">
+            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-[color:var(--text-muted)]">
               Messages that failed all retry attempts and are queued for manual review.
               <span className="ml-1 text-[color:var(--text-danger)]">
                 {total} matching filter{total === 1 ? "" : "s"}
@@ -204,7 +204,7 @@ export default function DeadLettersPage() {
             <button
               type="button"
               onClick={() => void load()}
-              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-white/85 transition hover:text-white"
+              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-[color:var(--text-primary)] transition hover:text-[color:var(--text-primary)]"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
               Refresh
@@ -220,7 +220,7 @@ export default function DeadLettersPage() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--text-danger)]/15 text-[color:var(--text-danger)] ring-1 ring-inset ring-[color:var(--text-danger)]/25">
                   <MailWarning className="h-4 w-4" />
                 </div>
-                <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                   Failed Messages
                 </CardTitle>
               </div>
@@ -228,7 +228,7 @@ export default function DeadLettersPage() {
                 <select
                   value={queueFilter}
                   onChange={(e) => setQueueFilter(e.target.value)}
-                  className="appearance-none rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-3 pr-8 text-[11.5px] text-white/80 outline-none transition hover:bg-white/[0.07] focus:border-[color:var(--orange-400)]/40"
+                  className="appearance-none rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] py-1.5 pl-3 pr-8 text-[11.5px] text-[color:var(--text-secondary)] outline-none transition hover:bg-[color:var(--surface-3)] focus:border-[color:var(--orange-400)]/40"
                 >
                   <option value="">All queues</option>
                   {queues.map((q) => (
@@ -240,7 +240,7 @@ export default function DeadLettersPage() {
                 <select
                   value={replayedFilter}
                   onChange={(e) => setReplayedFilter(e.target.value as "" | "true" | "false")}
-                  className="appearance-none rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-3 pr-8 text-[11.5px] text-white/80 outline-none transition hover:bg-white/[0.07] focus:border-[color:var(--orange-400)]/40"
+                  className="appearance-none rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] py-1.5 pl-3 pr-8 text-[11.5px] text-[color:var(--text-secondary)] outline-none transition hover:bg-[color:var(--surface-3)] focus:border-[color:var(--orange-400)]/40"
                 >
                   <option value="false">Not replayed</option>
                   <option value="true">Replayed</option>

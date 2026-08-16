@@ -1,42 +1,23 @@
-import type { AiAnalysisData } from "../../types";
-import {
-  DecisionExplainer,
-  ErrorHotspots,
-  FeatureImportance,
-  MetricCards,
-  RetrainingStatus,
-} from "./components";
+import type { ModelPerformanceData } from "../../types";
+import { DecisionBreakdown, MetricCards, TopReasons } from "./components";
 
 type Props = {
-  data: AiAnalysisData;
-  onForceRetrain: () => void;
+  data: ModelPerformanceData;
 };
 
-export default function AiAnalysisSection({ data, onForceRetrain }: Props) {
+export default function AiAnalysisSection({ data }: Props) {
   return (
     <>
       <div className="page-hd">
         <h2>AI Analysis — System Performance</h2>
-        <p>
-          Model metrics, feature importance, error hotspots, and retraining
-          status.
-        </p>
+        <p>Real AI-validation coverage, decision breakdown, and what actually drives review flags.</p>
       </div>
 
-      <MetricCards metrics={data.metrics} />
-
-      <div className="g2" style={{ marginBottom: 14 }}>
-        <FeatureImportance items={data.feature_importance} />
-        <ErrorHotspots hotspots={data.error_hotspots} />
-      </div>
+      <MetricCards data={data} />
 
       <div className="g2">
-        <DecisionExplainer />
-        <RetrainingStatus
-          retraining={data.retraining}
-          falseNegatives={data.metrics.false_negatives}
-          onForceRetrain={onForceRetrain}
-        />
+        <TopReasons items={data.top_reasons} />
+        <DecisionBreakdown items={data.decision_breakdown} total={data.total_places} />
       </div>
     </>
   );

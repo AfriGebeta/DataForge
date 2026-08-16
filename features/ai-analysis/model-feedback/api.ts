@@ -2,55 +2,11 @@ import { apiFetch } from "@/lib/api-fetch";
 import { API_BASE_URL } from "@/lib/api-config";
 import type { ModelFeedbackData } from "./types";
 
-export const API_ENDPOINT = `${API_BASE_URL}/api/ai/feedback`;
-
-export const fakeData: ModelFeedbackData = {
-  model_version: "v2.4.1-beta",
-  human_corrections: 12408,
-  human_corrections_delta: "+8% vs last epoch",
-  ai_mistakes: 3192,
-  ai_mistakes_delta: "-2.4% false positive rate",
-  retrained_samples: 8045,
-  retrained_percent: 65,
-  review_queue: [
-    {
-      id: "1",
-      geo_id: "GEO-A982-11X",
-      type: "MISCLASSIFIED",
-      prediction: "Industrial",
-      actual: "Residential",
-      time_ago: "10m ago",
-      icon: "ti-photo",
-    },
-    {
-      id: "2",
-      geo_id: "GEO-B441-99Y",
-      type: "LOW_CONFIDENCE",
-      prediction: "Road (42%)",
-      actual: "",
-      time_ago: "45m ago",
-      icon: "ti-mountain",
-    },
-    {
-      id: "3",
-      geo_id: "GEO-C772-22Z",
-      type: "MISCLASSIFIED",
-      prediction: "Water",
-      actual: "Shadow",
-      time_ago: "2h ago",
-      icon: "ti-photo",
-    },
-  ],
-  total_queue: 3192,
-};
+/** Real endpoint: PlaceForge's insights module (place.ai* + audit_log + merge_record). */
+export const API_ENDPOINT = `${API_BASE_URL}/api/v1/insights/model-feedback`;
 
 export async function fetchModelFeedback(): Promise<ModelFeedbackData> {
-  try {
-    const res = await apiFetch(API_ENDPOINT);
-    if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
-    return res.json();
-  } catch (cause) {
-    console.warn("Falling back to mock data for fetchModelFeedback:", cause);
-    return fakeData;
-  }
+  const res = await apiFetch(API_ENDPOINT);
+  if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+  return res.json();
 }

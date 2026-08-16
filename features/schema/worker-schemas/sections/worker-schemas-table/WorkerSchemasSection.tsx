@@ -27,12 +27,12 @@ export default function WorkerSchemasSection({ schemas, loading, onCreate, onEdi
         <div>
           <div className="flex items-center gap-2">
             <span className="inline-flex h-2 w-2 rounded-full bg-[color:var(--text-success)]" style={{ animation: "pulse 2s infinite" }} />
-            <span style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.22em", color: "rgba(255,255,255,0.6)" }}>
+            <span style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.22em", color: "var(--text-muted)" }}>
               Live · Schema Registry
             </span>
           </div>
-          <h2 style={{ fontSize: 28, fontWeight: 600, color: "#fff", letterSpacing: "-0.02em", marginTop: 8 }}>Worker Schemas</h2>
-          <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.55)", marginTop: 6 }}>
+          <h2 style={{ fontSize: 28, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em", marginTop: 8 }}>Worker Schemas</h2>
+          <p style={{ fontSize: 12.5, color: "var(--text-secondary)", marginTop: 6 }}>
             Validation schemas for worker-processed data outputs.{" "}
             <span style={{ color: "var(--text-accent)" }}>{active} active · {inactive} inactive</span>
           </p>
@@ -52,14 +52,14 @@ export default function WorkerSchemasSection({ schemas, loading, onCreate, onEdi
         <Card className="glass-surface glass-glow relative overflow-hidden border-0 py-0">
           <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
-                <FileCode2 className="h-4 w-4 text-white/75" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--surface-2)] ring-1 ring-inset ring-[color:var(--border)]">
+                <FileCode2 className="h-4 w-4 text-[color:var(--text-secondary)]" />
               </div>
-              <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+              <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                 Registered Schemas
               </CardTitle>
             </div>
-            <span className="font-mono text-[10.5px] uppercase tracking-wider text-white/45">versioned</span>
+            <span className="font-mono text-[10.5px] uppercase tracking-wider text-[color:var(--text-muted)]">versioned</span>
           </CardHeader>
           <CardContent className="px-6 pb-6 pt-5">
             {loading ? (
@@ -67,10 +67,10 @@ export default function WorkerSchemasSection({ schemas, loading, onCreate, onEdi
             ) : schemas.length === 0 ? (
               <p style={{ color: "var(--text-muted)", fontSize: 12 }}>No schemas found.</p>
             ) : (
-              <div className="overflow-x-auto rounded-lg ring-1 ring-inset ring-white/10">
+              <div className="overflow-x-auto rounded-lg ring-1 ring-inset ring-[color:var(--border)]">
                 <table className="w-full text-left text-[12px]">
                   <thead>
-                    <tr className="bg-white/[0.02] text-[10px] uppercase tracking-[0.14em] text-white/45">
+                    <tr className="bg-[color:var(--surface-1)] text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
                       <th className="px-5 py-3.5 font-medium">Name</th>
                       <th className="px-5 py-3.5 font-medium">Version</th>
                       <th className="px-5 py-3.5 font-medium">Description</th>
@@ -86,12 +86,12 @@ export default function WorkerSchemasSection({ schemas, loading, onCreate, onEdi
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.32, delay: 0.1 + i * 0.06, ease: "easeOut" }}
                         onClick={() => onEdit(schema)}
-                        className="border-t border-white/[0.06] transition hover:bg-white/[0.03]"
+                        className="border-t border-[color:var(--border)] transition hover:bg-[color:var(--surface-2)]"
                         style={{ cursor: "pointer" }}
                       >
-                        <td className="px-5 py-3.5 font-mono text-[11.5px] font-medium text-white/90">{schema.name}</td>
-                        <td className="px-5 py-3.5 font-mono text-[11.5px] tabular-nums text-white/70">v{schema.version}</td>
-                        <td className="px-5 py-3.5 text-[11.5px] text-white/55">
+                        <td className="px-5 py-3.5 font-mono text-[11.5px] font-medium text-[color:var(--text-primary)]">{schema.name}</td>
+                        <td className="px-5 py-3.5 font-mono text-[11.5px] tabular-nums text-[color:var(--text-secondary)]">v{schema.version}</td>
+                        <td className="px-5 py-3.5 text-[11.5px] text-[color:var(--text-muted)]">
                           {schema.description ?? <span style={{ color: "var(--text-muted)" }}>—</span>}
                         </td>
                         <td className="px-5 py-3.5">
@@ -107,7 +107,7 @@ export default function WorkerSchemasSection({ schemas, loading, onCreate, onEdi
                             {schema.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </td>
-                        <td className="px-5 py-3.5 text-[11.5px] text-white/45">
+                        <td className="px-5 py-3.5 text-[11.5px] text-[color:var(--text-muted)]">
                           {new Date(schema.createdAt).toLocaleDateString()}
                         </td>
                       </motion.tr>

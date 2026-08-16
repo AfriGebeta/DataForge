@@ -1,36 +1,52 @@
-import type { FeedbackItem, FeedbackItemType } from "../../../types";
+import type { AIDecision, ReviewQueueItem } from "../../../types";
 import { GlassCard } from "@/features/shared/GlassCard";
+import { timeAgo } from "@/lib/utils";
 
 type Props = {
-  items: FeedbackItem[];
+  items: ReviewQueueItem[];
   total: number;
+  loading: boolean;
+  selectedId: number | null;
+  onSelect: (item: ReviewQueueItem) => void;
 };
 
-function FeedbackChip({ type }: { type: FeedbackItemType }) {
-  if (type === "MISCLASSIFIED") return <span className="chip hi">MISCLASSIFIED</span>;
-  if (type === "LOW_CONFIDENCE") return <span className="chip md">LOW CONFIDENCE</span>;
-  return <span className="chip lo">CORRECT</span>;
+function DecisionChip({ decision }: { decision: AIDecision | null }) {
+  if (decision === "DUPLICATE") return <span className="chip hi">DUPLICATE</span>;
+  if (decision === "INVALID") return <span className="chip hi">INVALID</span>;
+  if (decision === "AMBIGUOUS") return <span className="chip md">AMBIGUOUS</span>;
+  if (decision === "VALID") return <span className="chip lo">VALID</span>;
+  return <span className="chip">UNSCORED</span>;
 }
 
-export default function ReviewQueue({ items, total }: Props) {
+export default function ReviewQueue({ items, total, loading, selectedId, onSelect }: Props) {
   return (
     <GlassCard flat className="card">
       <div className="ch">
         <span className="ct">Review Queue</span>
-        <button className="btn ghost sm">
-          <i className="ti ti-adjustments" />
-        </button>
       </div>
+
+      {loading && items.length === 0 && (
+        <div style={{ fontSize: 12, color: "var(--text-muted)", padding: 12 }}>Loading…</div>
+      )}
+      {!loading && items.length === 0 && (
+        <div style={{ fontSize: 12, color: "var(--text-muted)", padding: 12 }}>
+          Nothing needs review right now.
+        </div>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {items.map((item) => {
-          const isMisclassified = item.type === "MISCLASSIFIED";
+          const isFlagged = item.ai_decision === "DUPLICATE" || item.ai_decision === "INVALID";
+          const isSelected = item.place_id === selectedId;
           return (
             <div
-              key={item.id}
+              key={item.place_id}
+              onClick={() => onSelect(item)}
               style={{
-                background: isMisclassified ? "var(--bg-danger)" : "var(--surface-2)",
-                border: `1px solid ${isMisclassified ? "rgba(248,113,113,0.2)" : "var(--border)"}`,
+                background: isFlagged ? "var(--bg-danger)" : "var(--surface-2)",
+                border: isSelected
+                  ? "1px solid var(--text-accent)"
+                  : `1px solid ${isFlagged ? "rgba(248,113,113,0.2)" : "var(--border)"}`,
                 borderRadius: 8,
                 padding: 10,
                 display: "flex",
@@ -49,14 +65,14 @@ export default function ReviewQueue({ items, total }: Props) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "var(--text-muted)",
                 }}
               >
-                <i
-                  className={`ti ${item.icon}`}
-                  style={{ fontSize: 14, color: "var(--text-muted)" }}
-                />
+                {item.ai_overall_score != null ? Math.round(item.ai_overall_score) : "—"}
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
                     display: "flex",
@@ -64,18 +80,25 @@ export default function ReviewQueue({ items, total }: Props) {
                     alignItems: "center",
                   }}
                 >
-                  <FeedbackChip type={item.type} />
+                  <DecisionChip decision={item.ai_decision} />
                   <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
-                    {item.time_ago}
+                    {timeAgo(item.ai_validated_at)}
                   </span>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 500, marginTop: 2 }}>
-                  ID: {item.geo_id}
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    marginTop: 2,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {item.name ?? `Place #${item.place_id}`}
                 </div>
                 <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                  {item.actual
-                    ? `Pred: ${item.prediction} → Act: ${item.actual}`
-                    : `Pred: ${item.prediction}`}
+                  #{item.place_id} · {item.place_type}
                 </div>
               </div>
             </div>
@@ -88,20 +111,9 @@ export default function ReviewQueue({ items, total }: Props) {
           fontSize: 11,
           color: "var(--text-muted)",
           marginTop: 8,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
         }}
       >
-        Showing 1-{items.length} of {total.toLocaleString()}
-        <div style={{ display: "flex", gap: 4 }}>
-          <button className="btn ghost sm">
-            <i className="ti ti-chevron-left" />
-          </button>
-          <button className="btn ghost sm">
-            <i className="ti ti-chevron-right" />
-          </button>
-        </div>
+        Showing {items.length} of {total.toLocaleString()}
       </div>
     </GlassCard>
   );

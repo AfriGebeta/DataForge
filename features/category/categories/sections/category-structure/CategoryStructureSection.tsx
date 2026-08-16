@@ -11,11 +11,16 @@ type CategoryStructureSectionProps = {
   offset: number;
   language: CategoryLanguage;
   loading: boolean;
+  needsReviewOnly: boolean;
+  needsReviewCount: number;
+  markingReviewedId: string | null;
   onLanguageChange: (language: CategoryLanguage) => void;
   onLimitChange: (limit: number) => void;
   onOffsetChange: (offset: number) => void;
+  onToggleNeedsReviewOnly: (next: boolean) => void;
   onEdit: (category: Category) => void;
   onDelete: (category: Category) => void;
+  onMarkReviewed: (category: Category) => void;
 };
 
 type FlattenedCategory = {
@@ -94,11 +99,16 @@ export default function CategoryStructureSection({
   offset,
   language,
   loading,
+  needsReviewOnly,
+  needsReviewCount,
+  markingReviewedId,
   onLanguageChange,
   onLimitChange,
   onOffsetChange,
+  onToggleNeedsReviewOnly,
   onEdit,
   onDelete,
+  onMarkReviewed,
 }: CategoryStructureSectionProps) {
   const flattened = flattenCategories(categories);
   const pageStart = total === 0 ? 0 : offset + 1;
@@ -119,6 +129,18 @@ export default function CategoryStructureSection({
           </div>
         </div>
         <div className="category-toolbar">
+          <label
+            className="category-toolbar-label"
+            htmlFor="category-needs-review-only"
+          >
+            <input
+              id="category-needs-review-only"
+              type="checkbox"
+              checked={needsReviewOnly}
+              onChange={(event) => onToggleNeedsReviewOnly(event.target.checked)}
+            />{" "}
+            Needs review only
+          </label>
           <label className="category-toolbar-label" htmlFor="category-language">
             Language
           </label>
@@ -151,6 +173,10 @@ export default function CategoryStructureSection({
         <div className="category-stat">
           <div className="ml">Root Categories (Total)</div>
           <div className="category-stat-value">{total}</div>
+        </div>
+        <div className="category-stat">
+          <div className="ml">Needs Review</div>
+          <div className="category-stat-value">{needsReviewCount}</div>
         </div>
       </div>
 
@@ -208,6 +234,15 @@ export default function CategoryStructureSection({
                           <span className="category-indent-marker">↳</span>
                         ) : null}
                         <strong>{getLocalizedName(category, language)}</strong>
+                        {category.needsReview ? (
+                          <span
+                            className="category-needs-review-badge"
+                            title="Auto-created by the ingest pipeline from an AI-extracted category — confirm this is correct."
+                          >
+                            <i className="ti ti-alert-triangle" />
+                            Needs review
+                          </span>
+                        ) : null}
                       </span>
                       <span className="csub">
                         {language === "en"
@@ -221,6 +256,19 @@ export default function CategoryStructureSection({
                   </td>
                   <td>
                     <div className="row-act">
+                      {category.needsReview ? (
+                        <button
+                          type="button"
+                          className="btn sm"
+                          disabled={markingReviewedId === category.id}
+                          onClick={() => onMarkReviewed(category)}
+                        >
+                          <i className="ti ti-check" />
+                          {markingReviewedId === category.id
+                            ? "Marking…"
+                            : "Mark Reviewed"}
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         className="btn sm"

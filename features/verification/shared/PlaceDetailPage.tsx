@@ -64,13 +64,13 @@ const levelLabels = ["Country", "Region", "Zone", "City", "Kebele", "Neighborhoo
 // ── Small field primitives — every input in this page uses one of these ────
 
 const inputClass =
-  "w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 font-mono text-[12px] text-white/85 outline-none focus:border-[color:var(--orange-400)]/50";
+  "w-full rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-3 py-1.5 font-mono text-[12px] text-[color:var(--text-primary)] outline-none focus:border-[color:var(--orange-400)]/50";
 const selectClass =
-  "w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[12px] text-white/85 outline-none focus:border-[color:var(--orange-400)]/50";
+  "w-full rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-3 py-1.5 text-[12px] text-[color:var(--text-primary)] outline-none focus:border-[color:var(--orange-400)]/50";
 
 function FieldLabel({ children, flagged }: { children: React.ReactNode; flagged?: boolean }) {
   return (
-    <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/50">
+    <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-muted)]">
       {children}
       {flagged ? (
         <Badge
@@ -150,12 +150,12 @@ function CheckboxField({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex items-center gap-2 text-[11.5px] text-white/75">
+    <label className="flex items-center gap-2 text-[11.5px] text-[color:var(--text-secondary)]">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="h-3.5 w-3.5 rounded border-white/20 bg-white/[0.03] accent-[color:var(--orange-400)]"
+        className="h-3.5 w-3.5 rounded border-[color:var(--border-strong)] bg-[color:var(--surface-1)] accent-[color:var(--orange-400)]"
       />
       {label}
     </label>
@@ -181,12 +181,12 @@ function Section({
             "flex h-8 w-8 items-center justify-center rounded-md",
             flagged
               ? "bg-[color:var(--text-danger)]/15 text-[color:var(--text-danger)] ring-1 ring-inset ring-[color:var(--text-danger)]/25"
-              : "bg-white/5 text-white/70 ring-1 ring-inset ring-white/10",
+              : "bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] ring-1 ring-inset ring-[color:var(--border)]",
           )}
         >
           <Icon className="h-4 w-4" />
         </div>
-        <CardTitle className="font-display text-[14px] font-semibold text-white/90">{title}</CardTitle>
+        <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">{title}</CardTitle>
         {flagged ? (
           <Badge
             variant="outline"
@@ -207,7 +207,7 @@ function RemoveButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] text-white/50 transition hover:bg-[color:var(--text-danger)]/12 hover:text-[color:var(--text-danger)]"
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] text-[color:var(--text-muted)] transition hover:bg-[color:var(--text-danger)]/12 hover:text-[color:var(--text-danger)]"
     >
       <Trash2 className="h-3.5 w-3.5" />
     </button>
@@ -219,7 +219,7 @@ function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center justify-center gap-1.5 rounded-md border border-dashed border-white/15 bg-white/[0.02] px-3 py-1.5 text-[11.5px] text-white/60 transition hover:border-[color:var(--orange-400)]/40 hover:text-white/85"
+      className="inline-flex items-center justify-center gap-1.5 rounded-md border border-dashed border-[color:var(--border-strong)] bg-[color:var(--surface-1)] px-3 py-1.5 text-[11.5px] text-[color:var(--text-muted)] transition hover:border-[color:var(--orange-400)]/40 hover:text-[color:var(--text-primary)]"
     >
       <Plus className="h-3.5 w-3.5" />
       {label}
@@ -620,13 +620,13 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
 
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-[13px] text-white/50">Loading…</div>
+      <div className="flex min-h-[50vh] items-center justify-center text-[13px] text-[color:var(--text-muted)]">Loading…</div>
     );
   }
 
   if (!place) {
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-[13px] text-white/50">
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-[13px] text-[color:var(--text-muted)]">
         <p>Place #{placeId} could not be loaded.</p>
         <Link href={backHref} className="text-[color:var(--orange-400)]">
           Back to {backLabel}
@@ -645,14 +645,14 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
         <div>
           <Link
             href={backHref}
-            className="inline-flex items-center gap-1.5 text-[12px] text-white/55 transition hover:text-white"
+            className="inline-flex items-center gap-1.5 text-[12px] text-[color:var(--text-muted)] transition hover:text-[color:var(--text-primary)]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to {backLabel}
           </Link>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <h2 className="font-display-tight text-[26px] font-semibold text-white">{primaryName}</h2>
-            <Badge variant="outline" className="border-white/10 bg-white/5 font-mono text-[10px] text-white/60">
+            <h2 className="font-display-tight text-[26px] font-semibold text-[color:var(--text-primary)]">{primaryName}</h2>
+            <Badge variant="outline" className="border-[color:var(--border)] bg-[color:var(--surface-2)] font-mono text-[10px] text-[color:var(--text-muted)]">
               #{place.id}
             </Badge>
             <Badge
@@ -668,17 +668,17 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
             </Badge>
           </div>
           {place.reviewReason ? (
-            <p className="mt-2 max-w-2xl text-[12.5px] text-white/55">{place.reviewReason}</p>
+            <p className="mt-2 max-w-2xl text-[12.5px] text-[color:var(--text-muted)]">{place.reviewReason}</p>
           ) : null}
-          <div className="mt-3 flex items-center gap-3 text-[12px] text-white/50">
+          <div className="mt-3 flex items-center gap-3 text-[12px] text-[color:var(--text-muted)]">
             <span>
-              Last refreshed: <span className="text-white/75">{formatTimestamp(place.refreshedAt)}</span>
+              Last refreshed: <span className="text-[color:var(--text-secondary)]">{formatTimestamp(place.refreshedAt)}</span>
             </span>
             <button
               type="button"
               onClick={() => void handleRefresh()}
               disabled={saving}
-              className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-white/80 transition hover:bg-white/[0.08] disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-2.5 py-1 text-[11px] font-medium text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)] disabled:opacity-50"
             >
               <RefreshCw className="h-3 w-3" />
               Mark as refreshed
@@ -687,7 +687,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
         </div>
 
         {toast && (
-          <div className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] text-white/80">
+          <div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] px-4 py-2 text-[12px] text-[color:var(--text-secondary)]">
             {toast}
           </div>
         )}
@@ -695,7 +695,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
         {place.aiValues ? (
           <GlassCard tone="accent">
             <CardHeader className="flex flex-row items-center gap-2 px-6 pb-0 pt-6">
-              <CardTitle className="font-display text-[14px] font-semibold text-white/90">AI Validation</CardTitle>
+              <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">AI Validation</CardTitle>
               {place.aiValues.aiDecision ? (
                 <Badge
                   variant="outline"
@@ -705,11 +705,11 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
                 </Badge>
               ) : null}
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-x-6 gap-y-2 px-6 pb-6 pt-5 text-[12px] text-white/70">
+            <CardContent className="flex flex-wrap gap-x-6 gap-y-2 px-6 pb-6 pt-5 text-[12px] text-[color:var(--text-secondary)]">
               <div>
                 Trust:{" "}
                 <span className="font-mono">
-                  {place.aiValues.aiMlConfidence != null ? `${Math.round(place.aiValues.aiMlConfidence * 100)}%` : "—"}
+                  {place.aiValues.aiMlConfidence != null ? `${Math.round(place.aiValues.aiMlConfidence)}%` : "—"}
                 </span>
               </div>
               <div>
@@ -721,9 +721,18 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
                 <span className="font-mono">{place.aiValues.aiNameValid == null ? "—" : String(place.aiValues.aiNameValid)}</span>
               </div>
               <div>
+                Language valid:{" "}
+                <span className="font-mono">
+                  {place.aiValues.aiLanguageValid == null ? "—" : String(place.aiValues.aiLanguageValid)}
+                </span>
+                {place.aiValues.aiLanguageValid === false ? (
+                  <span className="ml-1 text-[color:var(--text-danger,#f87171)]">(out of allowed language)</span>
+                ) : null}
+              </div>
+              <div>
                 Duplicate score:{" "}
                 <span className="font-mono">
-                  {place.aiValues.aiDuplicateScore != null ? `${Math.round(place.aiValues.aiDuplicateScore * 100)}%` : "—"}
+                  {place.aiValues.aiDuplicateScore != null ? `${Math.round(place.aiValues.aiDuplicateScore)}%` : "—"}
                 </span>
               </div>
             </CardContent>
@@ -739,24 +748,24 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
                   className={cn(
                     "flex items-start justify-between gap-3 rounded-lg border px-3 py-2.5",
                     f.is_resolved
-                      ? "border-white/10 bg-white/[0.02] opacity-60"
+                      ? "border-[color:var(--border)] bg-[color:var(--surface-1)] opacity-60"
                       : "border-[color:var(--text-danger)]/20 bg-[color:var(--text-danger)]/[0.04]",
                   )}
                 >
                   <div className="text-[11.5px]">
-                    <span className="mr-2 font-mono text-white/50">{f.category}</span>
-                    <span className="text-white/85">{f.message}</span>
+                    <span className="mr-2 font-mono text-[color:var(--text-muted)]">{f.category}</span>
+                    <span className="text-[color:var(--text-primary)]">{f.message}</span>
                   </div>
                   {!f.is_resolved ? (
                     <button
                       type="button"
                       onClick={() => void handleResolveFlag(f.id)}
-                      className="shrink-0 rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10.5px] font-medium text-white/80 transition hover:bg-white/[0.08]"
+                      className="shrink-0 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-2.5 py-1 text-[10.5px] font-medium text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)]"
                     >
                       Resolve
                     </button>
                   ) : (
-                    <span className="shrink-0 text-[10.5px] text-white/40">resolved</span>
+                    <span className="shrink-0 text-[10.5px] text-[color:var(--text-muted)]">resolved</span>
                   )}
                 </div>
               ))}
@@ -776,7 +785,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
 
           <Section title="Name" icon={MapPin} flagged={nameFlagged}>
             {Object.keys(names).length === 0 ? (
-              <div className="text-[11.5px] text-white/45">No names on record.</div>
+              <div className="text-[11.5px] text-[color:var(--text-muted)]">No names on record.</div>
             ) : (
               Object.entries(names).map(([lang, value]) => (
                 <div key={lang} className="flex items-end gap-2">
@@ -803,7 +812,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
               <button
                 type="button"
                 onClick={addLanguage}
-                className="inline-flex shrink-0 items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11.5px] text-white/80 transition hover:bg-white/[0.08]"
+                className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-3 py-1.5 text-[11.5px] text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)]"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add language
@@ -821,7 +830,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
               <TextField label="Geocode confidence (0–1)" value={form.geocodeConfidence} onChange={(v) => set("geocodeConfidence", v)} type="number" />
             </div>
             <SelectField label="Geocode method" value={form.geocodeMethod} onChange={(v) => set("geocodeMethod", v)} options={GEOCODE_METHODS} />
-            <div className="text-[10.5px] text-white/40">Geometry type: {place.geometryType ?? "Point"} (editing polygon shapes is not supported here)</div>
+            <div className="text-[10.5px] text-[color:var(--text-muted)]">Geometry type: {place.geometryType ?? "Point"} (editing polygon shapes is not supported here)</div>
           </Section>
 
           <Section title="Dates" icon={MapPin}>
@@ -858,7 +867,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
               <div className="flex flex-col gap-2.5">
                 {chainDraft.map((entry, i) => (
                   <div key={entry.level} className="flex items-center gap-2.5">
-                    <span className="w-24 shrink-0 text-[10px] uppercase tracking-wide text-white/45">
+                    <span className="w-24 shrink-0 text-[10px] uppercase tracking-wide text-[color:var(--text-muted)]">
                       {levelLabels[entry.level] ?? `Level ${entry.level}`}
                     </span>
                     <input
@@ -876,13 +885,13 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
                 type="button"
                 onClick={() => void handleSaveChain()}
                 disabled={saving}
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11.5px] font-medium text-white/85 transition hover:bg-white/[0.08] disabled:opacity-40"
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] px-3 py-1.5 text-[11.5px] font-medium text-[color:var(--text-primary)] transition hover:bg-[color:var(--surface-3)] disabled:opacity-40"
               >
                 <Save className="h-3.5 w-3.5" />
                 Save Chain
               </button>
               {chain.length === 0 ? (
-                <div className="text-[10.5px] text-white/40">
+                <div className="text-[10.5px] text-[color:var(--text-muted)]">
                   No chain stored yet — fill in Country/Region/Zone/City above and save (must be
                   continuous starting at level 0).
                 </div>
@@ -1096,7 +1105,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
               options={COMPLETENESS_LEVELS}
               allowEmpty={false}
             />
-            <div className="text-[10.5px] text-white/40">
+            <div className="text-[10.5px] text-[color:var(--text-muted)]">
               Completeness score: {place.completenessScore.toFixed(1)} (computed server-side from completeness
               rules — not directly editable)
             </div>
@@ -1109,7 +1118,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
               type="button"
               onClick={() => void handleSave()}
               disabled={saving}
-              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] font-medium text-white/85 transition hover:bg-white/[0.08] disabled:opacity-40"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] px-4 py-2 text-[12px] font-medium text-[color:var(--text-primary)] transition hover:bg-[color:var(--surface-3)] disabled:opacity-40"
             >
               <Save className="h-3.5 w-3.5" />
               Save Changes
@@ -1137,7 +1146,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
                 </button>
               </>
             ) : (
-              <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-white/40">
+              <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-[color:var(--text-muted)]">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Resolve individual flags above once the data is corrected.
               </span>

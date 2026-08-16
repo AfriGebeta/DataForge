@@ -1,4 +1,5 @@
 import type { AdminRole, SettingsData } from "../../types";
+import AllowedLanguagesCard from "./AllowedLanguagesCard";
 import OutdatedPlacesCard from "./OutdatedPlacesCard";
 import UserRolesCard from "./UserRolesCard";
 
@@ -6,6 +7,7 @@ type Props = {
   data: SettingsData;
   onStaleDaysChange: (value: number) => void;
   onRoleChange: (value: AdminRole) => void;
+  onAllowedLanguagesChange: (value: string[]) => void;
   onSave: () => void;
   onDiscard: () => void;
   saving: boolean;
@@ -16,6 +18,7 @@ export default function SettingsSection({
   data,
   onStaleDaysChange,
   onRoleChange,
+  onAllowedLanguagesChange,
   onSave,
   onDiscard,
   saving,
@@ -39,6 +42,12 @@ export default function SettingsSection({
           <UserRolesCard
             defaultRole={data.defaultAdminRole}
             onRoleChange={onRoleChange}
+          />
+        </div>
+        <div>
+          <AllowedLanguagesCard
+            allowedLanguages={data.allowedLanguages}
+            onChange={onAllowedLanguagesChange}
           />
         </div>
       </div>

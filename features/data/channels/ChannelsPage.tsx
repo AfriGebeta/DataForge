@@ -93,14 +93,14 @@ export default function ChannelsPage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="inline-flex h-2 w-2 rounded-full bg-[color:var(--text-success)] pulse-dot" />
-              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">
+              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--text-muted)]">
                 Live · Data › Ingestion Channels
               </span>
             </div>
-            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-white">
+            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-[color:var(--text-primary)]">
               Channels
             </h2>
-            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-white/55">
+            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-[color:var(--text-muted)]">
               Configure and monitor data ingestion channels.
               <span className="ml-1 text-[color:var(--orange-400)]">
                 {total} channel{total === 1 ? "" : "s"} configured
@@ -119,7 +119,7 @@ export default function ChannelsPage() {
             <button
               type="button"
               onClick={() => void load()}
-              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-white/85 transition hover:text-white"
+              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-[color:var(--text-primary)] transition hover:text-[color:var(--text-primary)]"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
               Refresh
@@ -143,14 +143,14 @@ export default function ChannelsPage() {
           <GlassCard>
             <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
-                  <RadioTower className="h-4 w-4 text-white/75" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--surface-2)] ring-1 ring-inset ring-[color:var(--border)]">
+                  <RadioTower className="h-4 w-4 text-[color:var(--text-secondary)]" />
                 </div>
-                <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                   Configured Channels
                 </CardTitle>
               </div>
-              <span className="font-mono text-[10.5px] uppercase tracking-wider text-white/45">
+              <span className="font-mono text-[10.5px] uppercase tracking-wider text-[color:var(--text-muted)]">
                 live config
               </span>
             </CardHeader>

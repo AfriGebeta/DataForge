@@ -1,51 +1,38 @@
 import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
+  reviewQueueTotal: number;
   humanCorrections: number;
-  humanCorrectionsDelta: string;
   aiMistakes: number;
-  aiMistakesDelta: string;
-  retrainedSamples: number;
-  retrainedPercent: number;
 };
 
-export default function MetricCards({
-  humanCorrections,
-  humanCorrectionsDelta,
-  aiMistakes,
-  aiMistakesDelta,
-  retrainedSamples,
-  retrainedPercent,
-}: Props) {
+export default function MetricCards({ reviewQueueTotal, humanCorrections, aiMistakes }: Props) {
   return (
     <div className="g3">
+      <GlassCard flat className="mc">
+        <i className="ti ti-clipboard-list mc-icon" />
+        <div className="ml">Places Awaiting Review</div>
+        <div className="mv">{reviewQueueTotal.toLocaleString()}</div>
+        <div className="ms" style={{ color: "var(--text-muted)" }}>
+          AI decision is AMBIGUOUS/DUPLICATE/INVALID, no human verdict yet
+        </div>
+      </GlassCard>
       <GlassCard flat className="mc">
         <i className="ti ti-pencil mc-icon" style={{ color: "var(--text-accent)" }} />
         <div className="ml">Human Corrections</div>
         <div className="mv" style={{ color: "var(--text-accent)" }}>
           {humanCorrections.toLocaleString()}
         </div>
-        <div className="ms" style={{ color: "var(--text-success)" }}>
-          ↑ {humanCorrectionsDelta}
+        <div className="ms" style={{ color: "var(--text-muted)" }}>
+          Places an admin rejected outright, all time
         </div>
       </GlassCard>
       <GlassCard flat className="mc">
         <i className="ti ti-alert-triangle mc-icon" style={{ color: "var(--text-warning)" }} />
-        <div className="ml">AI Mistakes Detected</div>
+        <div className="ml">AI Duplicate Mistakes</div>
         <div className="mv">{aiMistakes.toLocaleString()}</div>
-        <div className="ms" style={{ color: "var(--text-success)" }}>
-          ↓ {aiMistakesDelta}
-        </div>
-      </GlassCard>
-      <GlassCard flat className="mc">
-        <i className="ti ti-refresh mc-icon" />
-        <div className="ml">Retrained Samples</div>
-        <div className="mv">{retrainedSamples.toLocaleString()}</div>
-        <div className="ms">
-          {retrainedPercent}% integrated into v2.4.2
-          <div className="pb" style={{ marginTop: 5 }}>
-            <div className="pbf" style={{ width: `${retrainedPercent}%` }} />
-          </div>
+        <div className="ms" style={{ color: "var(--text-muted)" }}>
+          AI-proposed merges an admin rejected, all time
         </div>
       </GlassCard>
     </div>

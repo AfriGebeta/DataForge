@@ -1,35 +1,24 @@
-import type { MapOverlay } from "../../../types";
 import { GlassCard } from "@/features/shared/GlassCard";
+import type { OverlayId } from "../MapExplorerPage";
 
 type Props = {
-  overlays: MapOverlay[];
-  trustScoreRange: number;
-  dataSource: string;
-  onOverlayToggle: (id: string) => void;
+  overlays: { id: OverlayId; label: string; dot_class: string }[];
+  enabledOverlays: Set<OverlayId>;
+  minTrustScore: number;
+  onOverlayToggle: (id: OverlayId) => void;
   onTrustScoreChange: (value: number) => void;
-  onDataSourceChange: (value: string) => void;
 };
 
 export default function MapLayersPanel({
   overlays,
-  trustScoreRange,
-  dataSource,
+  enabledOverlays,
+  minTrustScore,
   onOverlayToggle,
   onTrustScoreChange,
-  onDataSourceChange,
 }: Props) {
   return (
     <GlassCard flat className="card" style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
-        Map Layers
-      </div>
-
-      <div className="fg">
-        <div className="fl">Search Region</div>
-        <input type="text" placeholder="Coordinates or City…" />
-      </div>
-
-      <div className="sep" />
+      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Map Layers</div>
 
       <div
         style={{
@@ -41,7 +30,7 @@ export default function MapLayersPanel({
           marginBottom: 8,
         }}
       >
-        Active Overlays
+        Filter to Overlay
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
@@ -61,11 +50,14 @@ export default function MapLayersPanel({
             </div>
             <input
               type="checkbox"
-              checked={overlay.enabled}
+              checked={enabledOverlays.has(overlay.id)}
               onChange={() => onOverlayToggle(overlay.id)}
             />
           </label>
         ))}
+      </div>
+      <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 12 }}>
+        No overlays checked shows every place.
       </div>
 
       <div
@@ -82,29 +74,21 @@ export default function MapLayersPanel({
       </div>
 
       <div className="fg">
-        <div className="fl">Trust Score Range</div>
+        <div className="fl">Minimum Trust Score</div>
         <input
           type="range"
           min={0}
-          max={1}
-          step={0.1}
-          value={trustScoreRange}
+          max={100}
+          step={5}
+          value={minTrustScore}
           onChange={(e) => onTrustScoreChange(Number(e.target.value))}
           style={{ padding: 0, border: "none", background: "transparent", cursor: "pointer", width: "100%" }}
         />
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--text-muted)" }}>
-          <span>0.0</span>
-          <span>1.0</span>
+          <span>0</span>
+          <span>{minTrustScore}</span>
+          <span>100</span>
         </div>
-      </div>
-
-      <div className="fg">
-        <div className="fl">Data Source</div>
-        <select value={dataSource} onChange={(e) => onDataSourceChange(e.target.value)}>
-          <option>All Verified Sources</option>
-          <option>OSM Only</option>
-          <option>Gov Data Only</option>
-        </select>
       </div>
     </GlassCard>
   );

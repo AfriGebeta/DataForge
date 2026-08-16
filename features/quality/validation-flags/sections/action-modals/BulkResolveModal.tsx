@@ -84,6 +84,7 @@ export default function BulkResolveModal({ isOpen, onClose, onResolved }: Props)
               <option value="GEOMETRY">GEOMETRY</option>
               <option value="ADDRESS">ADDRESS</option>
               <option value="NAME">NAME</option>
+              <option value="LANGUAGE">LANGUAGE</option>
               <option value="CONTACT">CONTACT</option>
               <option value="FRESHNESS">FRESHNESS</option>
             </select>

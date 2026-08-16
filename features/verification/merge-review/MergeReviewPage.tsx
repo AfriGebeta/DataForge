@@ -28,7 +28,7 @@ import type {
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
 
 const toneBadgeVariant: Record<Tone, string> = {
-  neutral: "bg-white/5 text-white/70 border-white/10",
+  neutral: "bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] border-[color:var(--border)]",
   accent: "bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)] border-[color:var(--orange-400)]/30",
   success: "bg-[color:var(--text-success)]/12 text-[color:var(--text-success)] border-[color:var(--text-success)]/25",
   warning: "bg-[color:var(--text-warning)]/12 text-[color:var(--text-warning)] border-[color:var(--text-warning)]/25",
@@ -99,7 +99,7 @@ function ResolveControl({
           const s = e.target.value as FieldChoiceSource;
           onChange(s === "winner" ? { source: "winner" } : { source: s, value: choice.value });
         }}
-        className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11.5px] text-white/80 outline-none"
+        className="rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-2 py-1 text-[11.5px] text-[color:var(--text-secondary)] outline-none"
       >
         <option value="winner">Keep winner</option>
         <option value="loser">Take loser</option>
@@ -108,7 +108,7 @@ function ResolveControl({
       {source === "custom" ? (
         <input
           autoFocus
-          className="w-32 rounded-md border border-[color:var(--orange-400)]/40 bg-white/[0.03] px-2 py-1 font-mono text-[11.5px] text-white/85 outline-none"
+          className="w-32 rounded-md border border-[color:var(--orange-400)]/40 bg-[color:var(--surface-1)] px-2 py-1 font-mono text-[11.5px] text-[color:var(--text-primary)] outline-none"
           placeholder="corrected value"
           value={typeof choice.value === "string" ? choice.value : choice.value != null ? JSON.stringify(choice.value) : ""}
           onChange={(e) => onChange({ source: "custom", value: e.target.value })}
@@ -121,9 +121,9 @@ function ResolveControl({
 function InfoList({ title, items }: { title: string; items: string[] }) {
   if (items.length === 0) return null;
   return (
-    <div className="text-[11.5px] text-white/70">
-      <div className="mb-1 font-medium text-white/85">{title}</div>
-      <ul className="list-inside list-disc space-y-0.5 text-white/60">
+    <div className="text-[11.5px] text-[color:var(--text-secondary)]">
+      <div className="mb-1 font-medium text-[color:var(--text-primary)]">{title}</div>
+      <ul className="list-inside list-disc space-y-0.5 text-[color:var(--text-muted)]">
         {items.map((it, i) => (
           <li key={i}>{it}</li>
         ))}
@@ -132,7 +132,7 @@ function InfoList({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-const tableWrap = "overflow-hidden rounded-lg ring-1 ring-inset ring-white/10";
+const tableWrap = "overflow-hidden rounded-lg ring-1 ring-inset ring-[color:var(--border)]";
 const th = "px-4 py-2.5 font-medium";
 const td = "px-4 py-2.5";
 
@@ -238,13 +238,13 @@ export default function MergeReviewPage({ placeId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-[13px] text-white/50">Loading…</div>
+      <div className="flex min-h-[50vh] items-center justify-center text-[13px] text-[color:var(--text-muted)]">Loading…</div>
     );
   }
 
   if (notFound || !merge) {
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-[13px] text-white/50">
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-[13px] text-[color:var(--text-muted)]">
         <p>No pending merge proposal found for place #{placeId}.</p>
         <Link href="/verification/queue" className="text-[color:var(--orange-400)]">
           Back to Verification Queue
@@ -261,12 +261,12 @@ export default function MergeReviewPage({ placeId }: Props) {
         <div>
           <Link
             href="/verification/queue"
-            className="inline-flex items-center gap-1.5 text-[12px] text-white/55 transition hover:text-white"
+            className="inline-flex items-center gap-1.5 text-[12px] text-[color:var(--text-muted)] transition hover:text-[color:var(--text-primary)]"
           >
             ← Back to Verification Queue
           </Link>
           <div className="mt-3 flex flex-wrap items-center gap-3">
-            <h2 className="font-display-tight text-[26px] font-semibold text-white">
+            <h2 className="font-display-tight text-[26px] font-semibold text-[color:var(--text-primary)]">
               Merge {shortId(merge.id)}
             </h2>
             <StatusBadge tone={statusTone(merge.status)}>{merge.status}</StatusBadge>
@@ -274,7 +274,7 @@ export default function MergeReviewPage({ placeId }: Props) {
         </div>
 
         {toast && (
-          <div className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] text-white/80">
+          <div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] px-4 py-2 text-[12px] text-[color:var(--text-secondary)]">
             {toast}
           </div>
         )}
@@ -283,32 +283,32 @@ export default function MergeReviewPage({ placeId }: Props) {
         <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
           <GlassCard tone="danger" className="flex-1">
             <CardContent className="px-5 py-4">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/45">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[color:var(--text-muted)]">
                 Loser — merged away
               </div>
-              <div className="mt-1 text-[14px] font-semibold text-white/90">{placeName(loser)}</div>
-              <div className="mt-1 font-mono text-[11.5px] text-white/50">#{merge.loser_id}</div>
+              <div className="mt-1 text-[14px] font-semibold text-[color:var(--text-primary)]">{placeName(loser)}</div>
+              <div className="mt-1 font-mono text-[11.5px] text-[color:var(--text-muted)]">#{merge.loser_id}</div>
             </CardContent>
           </GlassCard>
 
-          <ArrowRight className="hidden h-5 w-5 shrink-0 text-white/30 sm:block" />
+          <ArrowRight className="hidden h-5 w-5 shrink-0 text-[color:var(--text-muted)] sm:block" />
 
           <GlassCard tone="success" className="flex-1">
             <CardContent className="px-5 py-4">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/45">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[color:var(--text-muted)]">
                 Winner — survives
               </div>
-              <div className="mt-1 text-[14px] font-semibold text-white/90">{placeName(winner)}</div>
-              <div className="mt-1 font-mono text-[11.5px] text-white/50">#{merge.winner_id}</div>
+              <div className="mt-1 text-[14px] font-semibold text-[color:var(--text-primary)]">{placeName(winner)}</div>
+              <div className="mt-1 font-mono text-[11.5px] text-[color:var(--text-muted)]">#{merge.winner_id}</div>
             </CardContent>
           </GlassCard>
         </div>
 
         <GlassCard>
           <CardHeader className="px-6 pb-0 pt-6">
-            <CardTitle className="font-display text-[13px] font-semibold text-white/80">Reason</CardTitle>
+            <CardTitle className="font-display text-[13px] font-semibold text-[color:var(--text-secondary)]">Reason</CardTitle>
           </CardHeader>
-          <CardContent className="px-6 pb-5 pt-3 text-[12.5px] text-white/70">
+          <CardContent className="px-6 pb-5 pt-3 text-[12.5px] text-[color:var(--text-secondary)]">
             {merge.merge_reason || "(none given)"}
           </CardContent>
         </GlassCard>
@@ -316,21 +316,21 @@ export default function MergeReviewPage({ placeId }: Props) {
         {/* Place field differences */}
         <GlassCard>
           <CardHeader className="px-6 pb-0 pt-6">
-            <CardTitle className="font-display text-[13px] font-semibold text-white/80">
+            <CardTitle className="font-display text-[13px] font-semibold text-[color:var(--text-secondary)]">
               Place field differences
             </CardTitle>
-            <p className="mt-1 text-[11px] text-white/40">
+            <p className="mt-1 text-[11px] text-[color:var(--text-muted)]">
               If neither value is right, pick &quot;Custom…&quot; and type the corrected one.
             </p>
           </CardHeader>
           <CardContent className="px-6 pb-6 pt-4">
             {!diff || Object.keys(diff.place).length === 0 ? (
-              <div className="py-4 text-center text-[12px] text-white/45">No differing core fields.</div>
+              <div className="py-4 text-center text-[12px] text-[color:var(--text-muted)]">No differing core fields.</div>
             ) : (
               <div className={tableWrap}>
                 <table className="w-full text-left text-[12px]">
                   <thead>
-                    <tr className="bg-white/[0.02] text-[10px] uppercase tracking-[0.14em] text-white/45">
+                    <tr className="bg-[color:var(--surface-1)] text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
                       <th className={th}>Field</th>
                       <th className={th}>Winner value</th>
                       <th className={th}>Loser value</th>
@@ -339,12 +339,12 @@ export default function MergeReviewPage({ placeId }: Props) {
                   </thead>
                   <tbody>
                     {Object.entries(diff.place).map(([field, d]) => (
-                      <tr key={field} className="border-t border-white/[0.06]">
-                        <td className={cn(td, "font-mono text-white/60")}>{field}</td>
-                        <td className={cn(td, "bg-[color:var(--text-warning)]/[0.06] font-mono text-white/85")}>
+                      <tr key={field} className="border-t border-[color:var(--border)]">
+                        <td className={cn(td, "font-mono text-[color:var(--text-muted)]")}>{field}</td>
+                        <td className={cn(td, "bg-[color:var(--text-warning)]/[0.06] font-mono text-[color:var(--text-primary)]")}>
                           {stringify(d.winner)}
                         </td>
-                        <td className={cn(td, "bg-[color:var(--text-warning)]/[0.06] font-mono text-white/85")}>
+                        <td className={cn(td, "bg-[color:var(--text-warning)]/[0.06] font-mono text-[color:var(--text-primary)]")}>
                           {stringify(d.loser)}
                         </td>
                         <td className={td}>
@@ -365,14 +365,14 @@ export default function MergeReviewPage({ placeId }: Props) {
         {/* Names */}
         <GlassCard>
           <CardHeader className="px-6 pb-0 pt-6">
-            <CardTitle className="font-display text-[13px] font-semibold text-white/80">Names</CardTitle>
+            <CardTitle className="font-display text-[13px] font-semibold text-[color:var(--text-secondary)]">Names</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4 px-6 pb-6 pt-4">
             {diff && diff.names.conflicts.length > 0 ? (
               <div className={tableWrap}>
                 <table className="w-full text-left text-[12px]">
                   <thead>
-                    <tr className="bg-white/[0.02] text-[10px] uppercase tracking-[0.14em] text-white/45">
+                    <tr className="bg-[color:var(--surface-1)] text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
                       <th className={th}>Language</th>
                       <th className={th}>Winner name</th>
                       <th className={th}>Loser name</th>
@@ -381,10 +381,10 @@ export default function MergeReviewPage({ placeId }: Props) {
                   </thead>
                   <tbody>
                     {diff.names.conflicts.map((c) => (
-                      <tr key={c.language_code} className="border-t border-white/[0.06]">
-                        <td className={cn(td, "font-mono text-white/60")}>{c.language_code}</td>
-                        <td className={cn(td, "bg-[color:var(--text-warning)]/[0.06] text-white/85")}>{c.winner_name}</td>
-                        <td className={cn(td, "bg-[color:var(--text-warning)]/[0.06] text-white/85")}>{c.loser_name}</td>
+                      <tr key={c.language_code} className="border-t border-[color:var(--border)]">
+                        <td className={cn(td, "font-mono text-[color:var(--text-muted)]")}>{c.language_code}</td>
+                        <td className={cn(td, "bg-[color:var(--text-warning)]/[0.06] text-[color:var(--text-primary)]")}>{c.winner_name}</td>
+                        <td className={cn(td, "bg-[color:var(--text-warning)]/[0.06] text-[color:var(--text-primary)]")}>{c.loser_name}</td>
                         <td className={td}>
                           <ResolveControl
                             choice={nameChoices[c.language_code] ?? { source: "winner" }}
@@ -406,7 +406,7 @@ export default function MergeReviewPage({ placeId }: Props) {
               items={(diff?.names.winner_only ?? []).map((n) => `[${n.language_code}] ${n.name}`)}
             />
             {diff && diff.names.conflicts.length === 0 && diff.names.loser_only.length === 0 && diff.names.winner_only.length === 0 ? (
-              <div className="text-[12px] text-white/45">No differences.</div>
+              <div className="text-[12px] text-[color:var(--text-muted)]">No differences.</div>
             ) : null}
           </CardContent>
         </GlassCard>
@@ -414,14 +414,14 @@ export default function MergeReviewPage({ placeId }: Props) {
         {/* Attributes */}
         <GlassCard>
           <CardHeader className="px-6 pb-0 pt-6">
-            <CardTitle className="font-display text-[13px] font-semibold text-white/80">Attributes</CardTitle>
+            <CardTitle className="font-display text-[13px] font-semibold text-[color:var(--text-secondary)]">Attributes</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4 px-6 pb-6 pt-4">
             {diff && diff.attributes.conflicts.length > 0 ? (
               <div className={tableWrap}>
                 <table className="w-full text-left text-[12px]">
                   <thead>
-                    <tr className="bg-white/[0.02] text-[10px] uppercase tracking-[0.14em] text-white/45">
+                    <tr className="bg-[color:var(--surface-1)] text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
                       <th className={th}>Key</th>
                       <th className={th}>Winner value</th>
                       <th className={th}>Loser value</th>
@@ -430,12 +430,12 @@ export default function MergeReviewPage({ placeId }: Props) {
                   </thead>
                   <tbody>
                     {diff.attributes.conflicts.map((c) => (
-                      <tr key={c.key} className="border-t border-white/[0.06]">
-                        <td className={cn(td, "font-mono text-white/60")}>{c.key}</td>
-                        <td className={cn(td, "bg-[color:var(--text-warning)]/[0.06] font-mono text-white/85")}>
+                      <tr key={c.key} className="border-t border-[color:var(--border)]">
+                        <td className={cn(td, "font-mono text-[color:var(--text-muted)]")}>{c.key}</td>
+                        <td className={cn(td, "bg-[color:var(--text-warning)]/[0.06] font-mono text-[color:var(--text-primary)]")}>
                           {stringify(c.winner_value)}
                         </td>
-                        <td className={cn(td, "bg-[color:var(--text-warning)]/[0.06] font-mono text-white/85")}>
+                        <td className={cn(td, "bg-[color:var(--text-warning)]/[0.06] font-mono text-[color:var(--text-primary)]")}>
                           {stringify(c.loser_value)}
                         </td>
                         <td className={td}>
@@ -459,7 +459,7 @@ export default function MergeReviewPage({ placeId }: Props) {
               items={(diff?.attributes.winner_only ?? []).map((a) => `${a.key} = ${stringify(a.value)}`)}
             />
             {diff && diff.attributes.conflicts.length === 0 && diff.attributes.loser_only.length === 0 && diff.attributes.winner_only.length === 0 ? (
-              <div className="text-[12px] text-white/45">No differences.</div>
+              <div className="text-[12px] text-[color:var(--text-muted)]">No differences.</div>
             ) : null}
           </CardContent>
         </GlassCard>
@@ -467,7 +467,7 @@ export default function MergeReviewPage({ placeId }: Props) {
         {/* Contacts */}
         <GlassCard>
           <CardHeader className="px-6 pb-0 pt-6">
-            <CardTitle className="font-display text-[13px] font-semibold text-white/80">Contacts</CardTitle>
+            <CardTitle className="font-display text-[13px] font-semibold text-[color:var(--text-secondary)]">Contacts</CardTitle>
           </CardHeader>
           <CardContent className="px-6 pb-6 pt-4">
             {diff && diff.contacts.loser_only.length > 0 ? (
@@ -476,7 +476,7 @@ export default function MergeReviewPage({ placeId }: Props) {
                 items={diff.contacts.loser_only.map((c) => `${c.type}: ${c.value}`)}
               />
             ) : (
-              <div className="text-[12px] text-white/45">No differences.</div>
+              <div className="text-[12px] text-[color:var(--text-muted)]">No differences.</div>
             )}
           </CardContent>
         </GlassCard>
@@ -485,7 +485,7 @@ export default function MergeReviewPage({ placeId }: Props) {
         <GlassCard tone="accent">
           <CardContent className="flex flex-col gap-3 px-6 py-5">
             {merge.status !== "PENDING" ? (
-              <div className="text-[11.5px] text-white/50">
+              <div className="text-[11.5px] text-[color:var(--text-muted)]">
                 {[
                   merge.reviewed_by ? `reviewed by ${merge.reviewed_by}` : null,
                   merge.reviewed_at ? `at ${fmtDate(merge.reviewed_at)}` : null,
@@ -511,7 +511,7 @@ export default function MergeReviewPage({ placeId }: Props) {
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
                     placeholder="Rejection reason (optional)"
-                    className="min-w-[220px] flex-1 rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[12px] text-white/80 outline-none focus:border-[color:var(--orange-400)]/50"
+                    className="min-w-[220px] flex-1 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-3 py-1.5 text-[12px] text-[color:var(--text-secondary)] outline-none focus:border-[color:var(--orange-400)]/50"
                   />
                   <button
                     type="button"

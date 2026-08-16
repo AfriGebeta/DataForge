@@ -12,7 +12,7 @@ import type { ChannelConfig } from "./types";
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
 
 const toneBadgeVariant: Record<Tone, string> = {
-  neutral: "bg-white/5 text-white/70 border-white/10",
+  neutral: "bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] border-[color:var(--border)]",
   accent:
     "bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)] border-[color:var(--orange-400)]/30",
   success:
@@ -62,10 +62,10 @@ export function ChannelList({ channels, loading, error, onEdit, onToggleActive, 
         size: 220,
         cell: ({ row }) => (
           <div>
-            <div className="font-medium text-white/90">
+            <div className="font-medium text-[color:var(--text-primary)]">
               {row.original.channel_name || row.original.channel_id}
             </div>
-            <div className="font-mono text-[10.5px] text-white/45">
+            <div className="font-mono text-[10.5px] text-[color:var(--text-muted)]">
               {row.original.default_message_type || "—"} · {row.original.default_language || "en"}
             </div>
           </div>
@@ -82,7 +82,7 @@ export function ChannelList({ channels, loading, error, onEdit, onToggleActive, 
         header: "Schedule",
         size: 150,
         cell: ({ row }) => (
-          <span className="font-mono text-[11px] text-white/70">{formatSchedule(row.original)}</span>
+          <span className="font-mono text-[11px] text-[color:var(--text-secondary)]">{formatSchedule(row.original)}</span>
         ),
       },
       {
@@ -103,7 +103,7 @@ export function ChannelList({ channels, loading, error, onEdit, onToggleActive, 
         header: "Last msg",
         size: 140,
         cell: ({ row }) => (
-          <span className="text-[11.5px] text-white/55">
+          <span className="text-[11.5px] text-[color:var(--text-muted)]">
             {row.original.last_message_at
               ? new Date(row.original.last_message_at).toLocaleString()
               : "Never"}
@@ -124,7 +124,7 @@ export function ChannelList({ channels, loading, error, onEdit, onToggleActive, 
                 onEdit(row.original);
               }}
               title="Edit"
-              className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/[0.03] p-1.5 text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+              className="inline-flex items-center justify-center rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] p-1.5 text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-primary)]"
             >
               <Pencil className="h-3.5 w-3.5" />
             </button>
@@ -135,7 +135,7 @@ export function ChannelList({ channels, loading, error, onEdit, onToggleActive, 
                 onToggleActive(row.original);
               }}
               title={row.original.is_active ? "Deactivate" : "Activate"}
-              className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/[0.03] p-1.5 text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+              className="inline-flex items-center justify-center rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] p-1.5 text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-primary)]"
             >
               <Power className="h-3.5 w-3.5" />
             </button>
@@ -159,7 +159,7 @@ export function ChannelList({ channels, loading, error, onEdit, onToggleActive, 
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2.5 py-12 text-[12px] text-white/55">
+      <div className="flex items-center justify-center gap-2.5 py-12 text-[12px] text-[color:var(--text-muted)]">
         <Loader2 className="h-4 w-4 animate-spin text-[color:var(--orange-400)]" />
         Loading channels…
       </div>

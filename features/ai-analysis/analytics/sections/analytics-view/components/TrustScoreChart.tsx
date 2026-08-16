@@ -1,29 +1,31 @@
-import type { TrustScoreBar } from "../../../types";
+import type { TrustTrendPoint } from "../../../types";
 import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
-  bars: TrustScoreBar[];
-  delta: string;
-  duplicateRate: number;
-  duplicateDelta: string;
-  reviewerProductivity: number;
-  peakHours: string;
+  trend: TrustTrendPoint[];
+  duplicateRate: number | null;
+  reviewerProductivity7d: number;
+  peakReviewHour: number | null;
 };
 
+function formatHourRange(hour: number | null): string {
+  if (hour == null) return "—";
+  const next = (hour + 1) % 24;
+  const fmt = (h: number) => `${h.toString().padStart(2, "0")}:00`;
+  return `${fmt(hour)}–${fmt(next)}`;
+}
+
 export default function TrustScoreChart({
-  bars,
-  delta,
+  trend,
   duplicateRate,
-  duplicateDelta,
-  reviewerProductivity,
-  peakHours,
+  reviewerProductivity7d,
+  peakReviewHour,
 }: Props) {
   return (
     <div>
       <GlassCard flat className="card" style={{ marginBottom: 12 }}>
         <div className="ch">
-          <span className="ct">Global Trust Score Trend</span>
-          <span className="chip lo">↑ {delta}</span>
+          <span className="ct">AI Trust Score Trend</span>
         </div>
         <div
           style={{
@@ -32,30 +34,35 @@ export default function TrustScoreChart({
             marginBottom: 10,
           }}
         >
-          Trailing 90 days network reliability
+          Daily average of place.aiOverallScore, trailing 14 days
         </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 3,
-            alignItems: "flex-end",
-            height: 50,
-          }}
-        >
-          {bars.map((bar, i) => (
-            <div
-              key={i}
-              style={{
-                flex: 1,
-                background: bar.is_accent
-                  ? "var(--fill-accent)"
-                  : "var(--surface-3)",
-                borderRadius: "3px 3px 0 0",
-                height: `${bar.height_percent}%`,
-              }}
-            />
-          ))}
-        </div>
+        {trend.length === 0 ? (
+          <div style={{ fontSize: 12, color: "var(--text-muted)", padding: "12px 0" }}>
+            No AI-validated places yet.
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              gap: 3,
+              alignItems: "flex-end",
+              height: 50,
+            }}
+          >
+            {trend.map((point, i) => (
+              <div
+                key={point.day}
+                title={`${point.day}: ${point.avg_score.toFixed(1)}`}
+                style={{
+                  flex: 1,
+                  background: i === trend.length - 1 ? "var(--fill-accent)" : "var(--surface-3)",
+                  borderRadius: "3px 3px 0 0",
+                  height: `${Math.max(point.avg_score, 2)}%`,
+                }}
+              />
+            ))}
+          </div>
+        )}
       </GlassCard>
 
       <div className="g2" style={{ gap: 10, marginBottom: 0 }}>
@@ -78,13 +85,10 @@ export default function TrustScoreChart({
               letterSpacing: "-0.02em",
             }}
           >
-            {duplicateRate.toLocaleString()}
-          </div>
-          <div style={{ fontSize: 11, color: "var(--text-danger)" }}>
-            ↓ {duplicateDelta}
+            {duplicateRate != null ? `${duplicateRate.toFixed(1)}%` : "—"}
           </div>
           <div style={{ fontSize: 10, color: "var(--text-muted)" }}>
-            Nodes flagged per 10k entities
+            Applied vs. rejected AI-proposed merges
           </div>
         </GlassCard>
 
@@ -98,7 +102,7 @@ export default function TrustScoreChart({
               marginBottom: 4,
             }}
           >
-            Reviewer Productivity
+            Reviewer Activity (7d)
           </div>
           <div
             style={{
@@ -107,7 +111,7 @@ export default function TrustScoreChart({
               letterSpacing: "-0.02em",
             }}
           >
-            {reviewerProductivity}{" "}
+            {reviewerProductivity7d}{" "}
             <span
               style={{
                 fontSize: 12,
@@ -115,7 +119,7 @@ export default function TrustScoreChart({
                 color: "var(--text-muted)",
               }}
             >
-              units/hr
+              reviews
             </span>
           </div>
           <div
@@ -125,7 +129,7 @@ export default function TrustScoreChart({
               marginTop: 2,
             }}
           >
-            Human-in-loop throughput
+            Place reviews + merge decisions, last 7 days
           </div>
           <div
             style={{
@@ -140,14 +144,8 @@ export default function TrustScoreChart({
               alignItems: "center",
             }}
           >
-            <span style={{ color: "var(--text-muted)" }}>PEAK HOURS</span>
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <strong>{peakHours}</strong>
-              <i
-                className="ti ti-bolt"
-                style={{ color: "var(--text-warning)", fontSize: 12 }}
-              />
-            </div>
+            <span style={{ color: "var(--text-muted)" }}>PEAK HOUR (ALL TIME)</span>
+            <strong>{formatHourRange(peakReviewHour)}</strong>
           </div>
         </GlassCard>
       </div>

@@ -1,49 +1,53 @@
-import type { RegionStats } from "../../../types";
 import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
-  stats: RegionStats;
-  onRunAnalysis: () => void;
+  totalPoints: number;
+  shownPoints: number;
+  duplicateDensityPercent: number;
+  needsReviewCount: number;
   onExport: () => void;
 };
 
-export default function RegionAnalysis({ stats, onRunAnalysis, onExport }: Props) {
+export default function RegionAnalysis({
+  totalPoints,
+  shownPoints,
+  duplicateDensityPercent,
+  needsReviewCount,
+  onExport,
+}: Props) {
   return (
     <GlassCard flat className="card">
       <div className="ch">
-        <span className="ct">Region Analysis: Selected Area</span>
-        <span className="chip hi">High Risk</span>
+        <span className="ct">Dataset Summary</span>
+        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+          Showing {shownPoints} of {totalPoints}
+        </span>
       </div>
       <div className="g3" style={{ gap: 8, marginBottom: 10 }}>
         <GlassCard flat className="mc">
-          <div className="ml">Total Points</div>
-          <div className="mv">{stats.total_points.toLocaleString()}</div>
-          <div className="ms">nodes</div>
+          <div className="ml">Active Places</div>
+          <div className="mv">{totalPoints.toLocaleString()}</div>
+          <div className="ms">total</div>
         </GlassCard>
         <GlassCard flat className="mc">
           <div className="ml">Duplicate Density</div>
           <div className="mv" style={{ color: "var(--text-danger)" }}>
-            {stats.duplicate_density}%
+            {duplicateDensityPercent.toFixed(1)}%
           </div>
-          <div className="ms">critical</div>
+          <div className="ms">AI-flagged</div>
         </GlassCard>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, justifyContent: "center" }}>
-          <button
-            className="btn p sm"
-            style={{ width: "100%", justifyContent: "center" }}
-            onClick={onRunAnalysis}
-          >
-            Run Deep Analysis
-          </button>
-          <button
-            className="btn sm"
-            style={{ width: "100%", justifyContent: "center" }}
-            onClick={onExport}
-          >
-            Export Data
-          </button>
-        </div>
+        <GlassCard flat className="mc">
+          <div className="ml">Needs Review</div>
+          <div className="mv" style={{ color: "var(--text-warning)" }}>
+            {needsReviewCount.toLocaleString()}
+          </div>
+          <div className="ms">places</div>
+        </GlassCard>
       </div>
+      <button className="btn sm" style={{ width: "100%", justifyContent: "center" }} onClick={onExport}>
+        <i className="ti ti-download" />
+        Export Filtered Points (CSV)
+      </button>
     </GlassCard>
   );
 }

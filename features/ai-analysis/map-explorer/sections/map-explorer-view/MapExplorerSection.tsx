@@ -1,48 +1,55 @@
-import type { MapExplorerData } from "../../types";
+import type { MapExplorerData, MapPoint } from "../../types";
+import type { OverlayId } from "./MapExplorerPage";
 import { MapCanvas, MapLayersPanel, RegionAnalysis } from "./components";
 
 type Props = {
   data: MapExplorerData;
-  onOverlayToggle: (id: string) => void;
+  overlays: { id: OverlayId; label: string; dot_class: string }[];
+  enabledOverlays: Set<OverlayId>;
+  onOverlayToggle: (id: OverlayId) => void;
+  minTrustScore: number;
   onTrustScoreChange: (value: number) => void;
-  onDataSourceChange: (value: string) => void;
-  onRunAnalysis: () => void;
+  points: MapPoint[];
+  selectedId: number | null;
+  onSelect: (id: number) => void;
   onExport: () => void;
 };
 
 export default function MapExplorerSection({
   data,
+  overlays,
+  enabledOverlays,
   onOverlayToggle,
+  minTrustScore,
   onTrustScoreChange,
-  onDataSourceChange,
-  onRunAnalysis,
+  points,
+  selectedId,
+  onSelect,
   onExport,
 }: Props) {
   return (
     <>
-      <div
-        className="page-hd"
-        style={{ display: "flex", alignItems: "center", gap: 10 }}
-      >
-        <h2>Global Map Explorer</h2>
-        <span className="bx s">LIVE SYNC</span>
+      <div className="page-hd" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <h2>Map Explorer</h2>
+        <span className="bx s">{data.data_source}</span>
       </div>
 
       <div className="g1-2">
         <MapLayersPanel
-          overlays={data.overlays}
-          trustScoreRange={data.trust_score_range}
-          dataSource={data.data_source}
+          overlays={overlays}
+          enabledOverlays={enabledOverlays}
+          minTrustScore={minTrustScore}
           onOverlayToggle={onOverlayToggle}
           onTrustScoreChange={onTrustScoreChange}
-          onDataSourceChange={onDataSourceChange}
         />
 
         <div>
-          <MapCanvas cluster={data.active_cluster} />
+          <MapCanvas points={points} selectedId={selectedId} onSelect={onSelect} />
           <RegionAnalysis
-            stats={data.region_stats}
-            onRunAnalysis={onRunAnalysis}
+            totalPoints={data.total_points}
+            shownPoints={points.length}
+            duplicateDensityPercent={data.duplicate_density_percent}
+            needsReviewCount={data.needs_review_count}
             onExport={onExport}
           />
         </div>

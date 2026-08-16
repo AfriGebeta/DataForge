@@ -1,23 +1,18 @@
-export type FeedbackItemType = "MISCLASSIFIED" | "LOW_CONFIDENCE" | "CORRECT";
+export type AIDecision = "VALID" | "INVALID" | "AMBIGUOUS" | "DUPLICATE";
 
-export type FeedbackItem = {
-  id: string;
-  geo_id: string;
-  type: FeedbackItemType;
-  prediction: string;
-  actual: string;
-  time_ago: string;
-  icon: string;
+export type ReviewQueueItem = {
+  place_id: number;
+  name: string | null;
+  place_type: string;
+  ai_decision: AIDecision | null;
+  ai_overall_score: number | null;
+  ai_reasons: string[] | null;
+  ai_validated_at: string | null;
 };
 
 export type ModelFeedbackData = {
-  model_version: string;
-  human_corrections: number;
-  human_corrections_delta: string;
-  ai_mistakes: number;
-  ai_mistakes_delta: string;
-  retrained_samples: number;
-  retrained_percent: number;
-  review_queue: FeedbackItem[];
+  review_queue: ReviewQueueItem[];
   total_queue: number;
+  human_corrections: number;
+  ai_mistakes: number;
 };

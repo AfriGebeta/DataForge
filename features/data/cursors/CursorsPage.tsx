@@ -46,7 +46,7 @@ function GlassInput({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[9.5px] font-semibold uppercase tracking-[0.12em] text-white/40">
+      <label className="text-[9.5px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-muted)]">
         {label}
       </label>
       <input
@@ -54,7 +54,7 @@ function GlassInput({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[11.5px] text-white/85 outline-none transition placeholder:text-white/30 hover:bg-white/[0.06] focus:border-[color:var(--orange-400)]/40"
+        className="w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] px-3 py-2 font-mono text-[11.5px] text-[color:var(--text-primary)] outline-none transition placeholder:text-[color:var(--text-muted)] hover:bg-[color:var(--surface-3)] focus:border-[color:var(--orange-400)]/40"
       />
     </div>
   );
@@ -140,14 +140,14 @@ export default function CursorsPage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="inline-flex h-2 w-2 rounded-full bg-[color:var(--text-success)] pulse-dot" />
-              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">
+              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--text-muted)]">
                 Live · Data › Resume Watermarks
               </span>
             </div>
-            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-white">
+            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-[color:var(--text-primary)]">
               Cursors
             </h2>
-            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-white/55">
+            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-[color:var(--text-muted)]">
               Cursor watermarks — workers resume from these on restart.
               <span className="ml-1 text-[color:var(--orange-400)]">
                 {cursors.length} tracked position{cursors.length === 1 ? "" : "s"}
@@ -160,7 +160,7 @@ export default function CursorsPage() {
             <select
               value={channelId}
               onChange={(e) => setChannelId(e.target.value)}
-              className="appearance-none rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-3 pr-8 text-[11.5px] text-white/80 outline-none transition hover:bg-white/[0.07] focus:border-[color:var(--orange-400)]/40"
+              className="appearance-none rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] py-1.5 pl-3 pr-8 text-[11.5px] text-[color:var(--text-secondary)] outline-none transition hover:bg-[color:var(--surface-3)] focus:border-[color:var(--orange-400)]/40"
             >
               {channels.length === 0 ? <option value="">No channels configured</option> : null}
               {channels.map((c) => (
@@ -172,7 +172,7 @@ export default function CursorsPage() {
             <button
               type="button"
               onClick={() => void loadCursors(channelId)}
-              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-white/85 transition hover:text-white"
+              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-[color:var(--text-primary)] transition hover:text-[color:var(--text-primary)]"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
               Refresh
@@ -185,10 +185,10 @@ export default function CursorsPage() {
           <GlassCard>
             <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
-                  <MousePointer2 className="h-4 w-4 text-white/75" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--surface-2)] ring-1 ring-inset ring-[color:var(--border)]">
+                  <MousePointer2 className="h-4 w-4 text-[color:var(--text-secondary)]" />
                 </div>
-                <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                   Cursor Watermarks
                 </CardTitle>
               </div>
@@ -210,23 +210,23 @@ export default function CursorsPage() {
             </CardHeader>
             <CardContent className="px-6 pb-6 pt-5">
               {loading ? (
-                <div className="flex items-center justify-center gap-2.5 py-12 text-[12px] text-white/55">
+                <div className="flex items-center justify-center gap-2.5 py-12 text-[12px] text-[color:var(--text-muted)]">
                   <Loader2 className="h-4 w-4 animate-spin text-[color:var(--orange-400)]" />
                   Loading cursors…
                 </div>
               ) : !channelId ? (
-                <div className="py-10 text-center text-[12px] text-white/45">
+                <div className="py-10 text-center text-[12px] text-[color:var(--text-muted)]">
                   Create a channel first — cursors are tracked per channel config.
                 </div>
               ) : cursors.length === 0 ? (
-                <div className="py-10 text-center text-[12px] text-white/45">
+                <div className="py-10 text-center text-[12px] text-[color:var(--text-muted)]">
                   No cursors recorded yet for this channel.
                 </div>
               ) : (
-                <div className="overflow-x-auto rounded-lg ring-1 ring-inset ring-white/10">
+                <div className="overflow-x-auto rounded-lg ring-1 ring-inset ring-[color:var(--border)]">
                   <table className="w-full text-left text-[12px]">
                     <thead>
-                      <tr className="bg-white/[0.02] text-[10px] uppercase tracking-[0.14em] text-white/45">
+                      <tr className="bg-[color:var(--surface-1)] text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
                         <th className="px-5 py-3.5 font-medium">Cursor key</th>
                         <th className="px-5 py-3.5 font-medium">Value</th>
                         <th className="px-5 py-3.5 font-medium">Captured</th>
@@ -240,15 +240,15 @@ export default function CursorsPage() {
                           initial={{ opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.32, delay: 0.15 + i * 0.06, ease: "easeOut" }}
-                          className="border-t border-white/[0.06] transition hover:bg-white/[0.03]"
+                          className="border-t border-[color:var(--border)] transition hover:bg-[color:var(--surface-2)]"
                         >
-                          <td className="px-5 py-3.5 font-mono text-[11px] text-white/60">
+                          <td className="px-5 py-3.5 font-mono text-[11px] text-[color:var(--text-muted)]">
                             {row.cursor_key}
                           </td>
                           <td className="px-5 py-3.5 font-mono text-[11.5px] text-[color:var(--orange-400)] tabular-nums">
                             {row.cursor_value}
                           </td>
-                          <td className="px-5 py-3.5 text-[11.5px] text-white/55">
+                          <td className="px-5 py-3.5 text-[11.5px] text-[color:var(--text-muted)]">
                             {new Date(row.captured_at).toLocaleString()}
                           </td>
                           <td className="px-5 py-3.5 text-right">
@@ -279,7 +279,7 @@ export default function CursorsPage() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)] ring-1 ring-inset ring-[color:var(--orange-400)]/25">
                   <ArrowUp className="h-4 w-4" />
                 </div>
-                <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                   Advance Cursor Manually
                 </CardTitle>
               </div>
@@ -293,10 +293,10 @@ export default function CursorsPage() {
             <CardContent className="px-6 pb-6 pt-5">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[9.5px] font-semibold uppercase tracking-[0.12em] text-white/40">
+                  <label className="text-[9.5px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-muted)]">
                     Channel
                   </label>
-                  <div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 font-mono text-[11.5px] text-white/70">
+                  <div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-1)] px-3 py-2 font-mono text-[11.5px] text-[color:var(--text-secondary)]">
                     {selectedChannel ? selectedChannel.channel_name || selectedChannel.channel_id : "Select a channel above"}
                   </div>
                 </div>

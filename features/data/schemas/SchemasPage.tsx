@@ -32,7 +32,7 @@ import type { WorkerSchema } from "./types";
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
 
 const toneIconWrap: Record<Tone, string> = {
-  neutral: "bg-white/5 text-white/70 ring-1 ring-inset ring-white/10",
+  neutral: "bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] ring-1 ring-inset ring-[color:var(--border)]",
   accent:
     "bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)] ring-1 ring-inset ring-[color:var(--orange-400)]/25",
   success:
@@ -44,7 +44,7 @@ const toneIconWrap: Record<Tone, string> = {
 };
 
 const toneText: Record<Tone, string> = {
-  neutral: "text-white",
+  neutral: "text-[color:var(--text-primary)]",
   accent: "text-[color:var(--orange-400)]",
   success: "text-[color:var(--text-success)]",
   warning: "text-[color:var(--text-warning)]",
@@ -52,7 +52,7 @@ const toneText: Record<Tone, string> = {
 };
 
 const toneBadgeVariant: Record<Tone, string> = {
-  neutral: "bg-white/5 text-white/70 border-white/10",
+  neutral: "bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] border-[color:var(--border)]",
   accent:
     "bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)] border-[color:var(--orange-400)]/30",
   success:
@@ -105,13 +105,13 @@ function SectionEyebrow({ label, hint }: { label: string; hint?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 px-0.5">
       <div className="flex items-center gap-2.5">
-        <span className="h-px w-6 bg-white/20" />
-        <span className="font-display text-[10.5px] font-semibold uppercase tracking-[0.22em] text-white/50">
+        <span className="h-px w-6 bg-[color:var(--surface-3)]" />
+        <span className="font-display text-[10.5px] font-semibold uppercase tracking-[0.22em] text-[color:var(--text-muted)]">
           {label}
         </span>
       </div>
       {hint ? (
-        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/30">
+        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
           {hint}
         </span>
       ) : null}
@@ -190,7 +190,7 @@ export default function SchemasPage() {
         header: "Name",
         size: 160,
         cell: ({ row }) => (
-          <span className="font-mono text-[11.5px] font-medium text-white/90">{row.original.name}</span>
+          <span className="font-mono text-[11.5px] font-medium text-[color:var(--text-primary)]">{row.original.name}</span>
         ),
       },
       {
@@ -198,7 +198,7 @@ export default function SchemasPage() {
         header: "Version",
         size: 80,
         cell: ({ row }) => (
-          <span className="font-mono text-[11.5px] tabular-nums text-white/70">v{row.original.version}</span>
+          <span className="font-mono text-[11.5px] tabular-nums text-[color:var(--text-secondary)]">v{row.original.version}</span>
         ),
       },
       {
@@ -216,7 +216,7 @@ export default function SchemasPage() {
         header: "Used by channels",
         size: 220,
         cell: ({ row }) => (
-          <span className="text-[11.5px] text-white/65">
+          <span className="text-[11.5px] text-[color:var(--text-secondary)]">
             {(usedBy[row.original.id] ?? []).join(", ") || "—"}
           </span>
         ),
@@ -236,7 +236,7 @@ export default function SchemasPage() {
                 setModalOpen(true);
               }}
               title="Edit"
-              className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/[0.03] p-1.5 text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+              className="inline-flex items-center justify-center rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] p-1.5 text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-primary)]"
             >
               <Pencil className="h-3.5 w-3.5" />
             </button>
@@ -247,7 +247,7 @@ export default function SchemasPage() {
                 void toggleActive(row.original);
               }}
               title={row.original.is_active ? "Deactivate" : "Activate"}
-              className="inline-flex items-center justify-center rounded-md border border-white/10 bg-white/[0.03] p-1.5 text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+              className="inline-flex items-center justify-center rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] p-1.5 text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-primary)]"
             >
               <Power className="h-3.5 w-3.5" />
             </button>
@@ -290,14 +290,14 @@ export default function SchemasPage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="inline-flex h-2 w-2 rounded-full bg-[color:var(--text-success)] pulse-dot" />
-              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">
+              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--text-muted)]">
                 Live · Data › Validation
               </span>
             </div>
-            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-white">
+            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-[color:var(--text-primary)]">
               Worker Schemas
             </h2>
-            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-white/55">
+            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-[color:var(--text-muted)]">
               Validation schemas for worker-processed data outputs.
               <span className="ml-1 text-[color:var(--orange-400)]">
                 {activeCount} active · {inactiveCount} inactive
@@ -309,7 +309,7 @@ export default function SchemasPage() {
             <button
               type="button"
               onClick={() => void load()}
-              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-white/85 transition hover:text-white"
+              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-[color:var(--text-primary)] transition hover:text-[color:var(--text-primary)]"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
               Refresh
@@ -349,7 +349,7 @@ export default function SchemasPage() {
                       >
                         <Icon className="h-[19px] w-[19px]" />
                       </div>
-                      <div className="font-display mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-white/55">
+                      <div className="font-display mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
                         {k.label}
                       </div>
                       <div
@@ -360,7 +360,7 @@ export default function SchemasPage() {
                       >
                         {k.value}
                       </div>
-                      <div className="mt-2.5 text-[11px] text-white/55">
+                      <div className="mt-2.5 text-[11px] text-[color:var(--text-muted)]">
                         {k.delta}
                       </div>
                     </div>
@@ -376,14 +376,14 @@ export default function SchemasPage() {
           <GlassCard>
             <CardHeader className="flex flex-row items-center justify-between gap-2 px-6 pb-0 pt-6">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
-                  <FileCode2 className="h-4 w-4 text-white/75" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--surface-2)] ring-1 ring-inset ring-[color:var(--border)]">
+                  <FileCode2 className="h-4 w-4 text-[color:var(--text-secondary)]" />
                 </div>
-                <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                   Registered Schemas
                 </CardTitle>
               </div>
-              <span className="font-mono text-[10.5px] uppercase tracking-wider text-white/45">
+              <span className="font-mono text-[10.5px] uppercase tracking-wider text-[color:var(--text-muted)]">
                 versioned
               </span>
             </CardHeader>

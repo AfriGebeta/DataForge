@@ -31,6 +31,10 @@ export async function fetchPlaces(params?: PlaceListParams): Promise<PlaceListRe
   if (params?.reviewStatus) query.set("reviewStatus", params.reviewStatus);
   if (params?.aiDecision) query.set("aiDecision", params.aiDecision);
   if (params?.staleDays !== undefined) query.set("staleDays", String(params.staleDays));
+  if (params?.missingCategory !== undefined) query.set("missingCategory", String(params.missingCategory));
+  if (params?.missingCoordinates !== undefined) query.set("missingCoordinates", String(params.missingCoordinates));
+  if (params?.channel) query.set("channel", params.channel);
+  if (params?.channelId) query.set("channelId", params.channelId);
 
   try {
     const res = await apiFetch(`${API_ENDPOINT}?${query.toString()}`);

@@ -33,7 +33,7 @@ import type { IngestStatus, RawIngest } from "./types";
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
 
 const toneIconWrap: Record<Tone, string> = {
-  neutral: "bg-white/5 text-white/70 ring-1 ring-inset ring-white/10",
+  neutral: "bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] ring-1 ring-inset ring-[color:var(--border)]",
   accent:
     "bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)] ring-1 ring-inset ring-[color:var(--orange-400)]/25",
   success:
@@ -45,7 +45,7 @@ const toneIconWrap: Record<Tone, string> = {
 };
 
 const toneText: Record<Tone, string> = {
-  neutral: "text-white",
+  neutral: "text-[color:var(--text-primary)]",
   accent: "text-[color:var(--orange-400)]",
   success: "text-[color:var(--text-success)]",
   warning: "text-[color:var(--text-warning)]",
@@ -53,7 +53,7 @@ const toneText: Record<Tone, string> = {
 };
 
 const toneBadgeVariant: Record<Tone, string> = {
-  neutral: "bg-white/5 text-white/70 border-white/10",
+  neutral: "bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] border-[color:var(--border)]",
   accent:
     "bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)] border-[color:var(--orange-400)]/30",
   success:
@@ -106,13 +106,13 @@ function SectionEyebrow({ label, hint }: { label: string; hint?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 px-0.5">
       <div className="flex items-center gap-2.5">
-        <span className="h-px w-6 bg-white/20" />
-        <span className="font-display text-[10.5px] font-semibold uppercase tracking-[0.22em] text-white/50">
+        <span className="h-px w-6 bg-[color:var(--surface-3)]" />
+        <span className="font-display text-[10.5px] font-semibold uppercase tracking-[0.22em] text-[color:var(--text-muted)]">
           {label}
         </span>
       </div>
       {hint ? (
-        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/30">
+        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
           {hint}
         </span>
       ) : null}
@@ -241,7 +241,7 @@ export default function RawIngestsPage() {
         header: "ID",
         size: 110,
         cell: ({ row }) => (
-          <span className="font-mono text-[11px] text-white/70">{row.original.id.slice(0, 8)}…</span>
+          <span className="font-mono text-[11px] text-[color:var(--text-secondary)]">{row.original.id.slice(0, 8)}…</span>
         ),
       },
       {
@@ -255,7 +255,7 @@ export default function RawIngestsPage() {
         header: "Type",
         size: 110,
         cell: ({ row }) => (
-          <span className="text-[11.5px] text-white/75">{row.original.message_type ?? "—"}</span>
+          <span className="text-[11.5px] text-[color:var(--text-secondary)]">{row.original.message_type ?? "—"}</span>
         ),
       },
       {
@@ -273,7 +273,7 @@ export default function RawIngestsPage() {
         header: "Received",
         size: 110,
         cell: ({ row }) => (
-          <span className="text-[11.5px] text-white/55">{timeAgo(row.original.received_at)}</span>
+          <span className="text-[11.5px] text-[color:var(--text-muted)]">{timeAgo(row.original.received_at)}</span>
         ),
       },
       {
@@ -284,7 +284,7 @@ export default function RawIngestsPage() {
           <span
             className={cn(
               "font-mono text-[11.5px] tabular-nums",
-              row.original.retry_count > 0 ? "text-[color:var(--text-warning)]" : "text-white/55",
+              row.original.retry_count > 0 ? "text-[color:var(--text-warning)]" : "text-[color:var(--text-muted)]",
             )}
           >
             {row.original.retry_count}
@@ -304,7 +304,7 @@ export default function RawIngestsPage() {
                 e.stopPropagation();
                 void handleRetry(row.original);
               }}
-              className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10.5px] font-medium text-white/75 transition hover:bg-white/[0.08] hover:text-white"
+              className="inline-flex items-center gap-1 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-2 py-1 text-[10.5px] font-medium text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-primary)]"
             >
               <RotateCcw className="h-3 w-3" />
               Retry
@@ -315,7 +315,7 @@ export default function RawIngestsPage() {
                 e.stopPropagation();
                 void handleSkip(row.original);
               }}
-              className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10.5px] font-medium text-white/60 transition hover:bg-white/[0.08] hover:text-white/85"
+              className="inline-flex items-center gap-1 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-2 py-1 text-[10.5px] font-medium text-[color:var(--text-muted)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-primary)]"
             >
               <SkipForward className="h-3 w-3" />
               Skip
@@ -346,14 +346,14 @@ export default function RawIngestsPage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="inline-flex h-2 w-2 rounded-full bg-[color:var(--text-success)] pulse-dot" />
-              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60">
+              <span className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--text-muted)]">
                 Live · Data › Ingestion Pipeline
               </span>
             </div>
-            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-white">
+            <h2 className="font-display-tight mt-2 text-[32px] font-semibold text-[color:var(--text-primary)]">
               Raw Ingests
             </h2>
-            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-white/55">
+            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-[color:var(--text-muted)]">
               Monitor and manage incoming raw data ingestion records.
               <span className="ml-1 text-[color:var(--orange-400)]">
                 {total} record{total === 1 ? "" : "s"} matching filters
@@ -365,7 +365,7 @@ export default function RawIngestsPage() {
             <button
               type="button"
               onClick={() => void load()}
-              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-white/85 transition hover:text-white"
+              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-[color:var(--text-primary)] transition hover:text-[color:var(--text-primary)]"
             >
               <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
               Refresh
@@ -373,7 +373,7 @@ export default function RawIngestsPage() {
             <button
               type="button"
               onClick={() => setBulkOpen(true)}
-              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-white/85 transition hover:text-white"
+              className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-[color:var(--text-primary)] transition hover:text-[color:var(--text-primary)]"
             >
               <Edit3 className="h-3.5 w-3.5" />
               Bulk update
@@ -410,7 +410,7 @@ export default function RawIngestsPage() {
                       >
                         <Icon className="h-[19px] w-[19px]" />
                       </div>
-                      <div className="font-display mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-white/55">
+                      <div className="font-display mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
                         {k.label}
                       </div>
                       <div
@@ -421,7 +421,7 @@ export default function RawIngestsPage() {
                       >
                         {k.value}
                       </div>
-                      <div className="mt-2.5 text-[11px] text-white/55">
+                      <div className="mt-2.5 text-[11px] text-[color:var(--text-muted)]">
                         {k.delta}
                       </div>
                     </div>
@@ -437,10 +437,10 @@ export default function RawIngestsPage() {
           <GlassCard>
             <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 px-6 pb-0 pt-6">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5 ring-1 ring-inset ring-white/10">
-                  <Inbox className="h-4 w-4 text-white/75" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[color:var(--surface-2)] ring-1 ring-inset ring-[color:var(--border)]">
+                  <Inbox className="h-4 w-4 text-[color:var(--text-secondary)]" />
                 </div>
-                <CardTitle className="font-display text-[14px] font-semibold text-white/90">
+                <CardTitle className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
                   Ingest Records
                 </CardTitle>
               </div>
@@ -448,7 +448,7 @@ export default function RawIngestsPage() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as IngestStatus | "")}
-                  className="appearance-none rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-3 pr-8 text-[11.5px] text-white/80 outline-none transition hover:bg-white/[0.07] focus:border-[color:var(--orange-400)]/40"
+                  className="appearance-none rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] py-1.5 pl-3 pr-8 text-[11.5px] text-[color:var(--text-secondary)] outline-none transition hover:bg-[color:var(--surface-3)] focus:border-[color:var(--orange-400)]/40"
                 >
                   <option value="">All statuses</option>
                   {STATUS_OPTIONS.map((s) => (
@@ -460,7 +460,7 @@ export default function RawIngestsPage() {
                 <select
                   value={channelFilter}
                   onChange={(e) => setChannelFilter(e.target.value)}
-                  className="appearance-none rounded-lg border border-white/10 bg-white/[0.04] py-1.5 pl-3 pr-8 text-[11.5px] text-white/80 outline-none transition hover:bg-white/[0.07] focus:border-[color:var(--orange-400)]/40"
+                  className="appearance-none rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] py-1.5 pl-3 pr-8 text-[11.5px] text-[color:var(--text-secondary)] outline-none transition hover:bg-[color:var(--surface-3)] focus:border-[color:var(--orange-400)]/40"
                 >
                   <option value="">All channels</option>
                   {CHANNEL_OPTIONS.map((c) => (

@@ -52,23 +52,23 @@ export default function DataTable<T>({
   return (
     <div className="w-full">
       {loading ? (
-        <div className="flex flex-col items-center justify-center gap-3 py-16 text-[12px] text-white/50">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10 border-t-[color:var(--orange-400)]"></div>
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-[12px] text-[color:var(--text-muted)]">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[color:var(--border)] border-t-[color:var(--orange-400)]"></div>
           <p>Loading data...</p>
         </div>
       ) : data.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 py-16 text-[12px] text-white/50">
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-[12px] text-[color:var(--text-muted)]">
           <p>{emptyMessage}</p>
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-lg ring-1 ring-inset ring-white/10">
+          <div className="overflow-x-auto rounded-lg ring-1 ring-inset ring-[color:var(--border)]">
             <table className="w-full text-left text-[12px]">
               <thead>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr
                     key={headerGroup.id}
-                    className="bg-white/[0.02] text-[10px] uppercase tracking-[0.14em] text-white/45"
+                    className="bg-[color:var(--surface-1)] text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-muted)]"
                   >
                     {headerGroup.headers.map((header) => (
                       <th
@@ -100,12 +100,12 @@ export default function DataTable<T>({
                     key={row.id}
                     onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                     className={cn(
-                      "border-t border-white/[0.06] transition hover:bg-white/[0.03]",
+                      "border-t border-[color:var(--border)] transition hover:bg-[color:var(--surface-2)]",
                       onRowClick && "cursor-pointer",
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-5 py-3.5 text-white/75">
+                      <td key={cell.id} className="px-5 py-3.5 text-[color:var(--text-secondary)]">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
@@ -115,20 +115,20 @@ export default function DataTable<T>({
             </table>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/[0.06] px-5 py-4 text-[12px] text-white/55">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[color:var(--border)] px-5 py-4 text-[12px] text-[color:var(--text-muted)]">
             <div>
               Showing {table.getFilteredRowModel().rows.length} rows
             </div>
 
             <div className="flex flex-wrap items-center gap-6 lg:gap-8">
               <div className="flex items-center gap-2">
-                <p className="whitespace-nowrap font-medium text-white/75">Rows per page</p>
+                <p className="whitespace-nowrap font-medium text-[color:var(--text-secondary)]">Rows per page</p>
                 <select
                   value={table.getState().pagination.pageSize}
                   onChange={(e) => {
                     table.setPageSize(Number(e.target.value));
                   }}
-                  className="rounded border border-white/10 bg-white/[0.02] px-2 py-1 text-white/80 outline-none transition hover:bg-white/[0.06] focus:border-[color:var(--orange-400)]/50"
+                  className="rounded border border-[color:var(--border)] bg-[color:var(--surface-1)] px-2 py-1 text-[color:var(--text-secondary)] outline-none transition hover:bg-[color:var(--surface-3)] focus:border-[color:var(--orange-400)]/50"
                 >
                   {[2, 5, 10].map((pageSize) => (
                     <option key={pageSize} value={pageSize} className="bg-[color:var(--surface-2)]">
@@ -138,7 +138,7 @@ export default function DataTable<T>({
                 </select>
               </div>
 
-              <div className="flex items-center justify-center font-medium text-white/75">
+              <div className="flex items-center justify-center font-medium text-[color:var(--text-secondary)]">
                 {table.getState().pagination.pageIndex + 1} / {table.getPageCount() || 1}
               </div>
 
@@ -147,7 +147,7 @@ export default function DataTable<T>({
                   type="button"
                   onClick={() => table.setPageIndex(0)}
                   disabled={!table.getCanPreviousPage()}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded border border-white/10 bg-white/[0.02] transition hover:bg-white/[0.08] hover:text-white disabled:pointer-events-none disabled:opacity-30"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded border border-[color:var(--border)] bg-[color:var(--surface-1)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-primary)] disabled:pointer-events-none disabled:opacity-30"
                 >
                   <ChevronsLeft className="h-4 w-4" />
                 </button>
@@ -155,7 +155,7 @@ export default function DataTable<T>({
                   type="button"
                   onClick={() => table.previousPage()}
                   disabled={!table.getCanPreviousPage()}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded border border-white/10 bg-white/[0.02] transition hover:bg-white/[0.08] hover:text-white disabled:pointer-events-none disabled:opacity-30"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded border border-[color:var(--border)] bg-[color:var(--surface-1)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-primary)] disabled:pointer-events-none disabled:opacity-30"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -163,7 +163,7 @@ export default function DataTable<T>({
                   type="button"
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded border border-white/10 bg-white/[0.02] transition hover:bg-white/[0.08] hover:text-white disabled:pointer-events-none disabled:opacity-30"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded border border-[color:var(--border)] bg-[color:var(--surface-1)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-primary)] disabled:pointer-events-none disabled:opacity-30"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -171,7 +171,7 @@ export default function DataTable<T>({
                   type="button"
                   onClick={() => table.setPageIndex(table.getPageCount() - 1)}
                   disabled={!table.getCanNextPage()}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded border border-white/10 bg-white/[0.02] transition hover:bg-white/[0.08] hover:text-white disabled:pointer-events-none disabled:opacity-30"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded border border-[color:var(--border)] bg-[color:var(--surface-1)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-primary)] disabled:pointer-events-none disabled:opacity-30"
                 >
                   <ChevronsRight className="h-4 w-4" />
                 </button>

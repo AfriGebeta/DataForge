@@ -1,52 +1,55 @@
-import type { ModelFeedbackData } from "../../types";
+import type { ModelFeedbackData, ReviewQueueItem } from "../../types";
 import { FeedbackDetailPanel, MetricCards, ReviewQueue } from "./components";
 
 type Props = {
   data: ModelFeedbackData;
-  onDiscard: (id: string) => void;
-  onApprove: (id: string) => void;
+  loading: boolean;
+  selected: ReviewQueueItem | null;
+  onSelect: (item: ReviewQueueItem) => void;
+  actingOn: number | null;
+  onReject: (placeId: number) => void;
+  onApprove: (placeId: number) => void;
 };
 
-export default function ModelFeedbackSection({ data, onDiscard, onApprove }: Props) {
-  const selectedItem = data.review_queue[0];
-
+export default function ModelFeedbackSection({
+  data,
+  loading,
+  selected,
+  onSelect,
+  actingOn,
+  onReject,
+  onApprove,
+}: Props) {
   return (
     <>
-      <div
-        className="page-hd"
-        style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}
-      >
-        <div>
-          <h2>Model Feedback</h2>
-          <p>
-            Human-in-the-loop oversight — review misclassifications, validate
-            corrections, monitor retraining pipeline.
-          </p>
-        </div>
-        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-          MODEL VERSION{" "}
-          <span className="bx s" style={{ marginLeft: 4 }}>
-            {data.model_version}
-          </span>
-        </span>
+      <div className="page-hd">
+        <h2>Model Feedback</h2>
+        <p>
+          Human-in-the-loop oversight — places the AI flagged for review, and
+          how often humans have had to override its decisions.
+        </p>
       </div>
 
       <MetricCards
+        reviewQueueTotal={data.total_queue}
         humanCorrections={data.human_corrections}
-        humanCorrectionsDelta={data.human_corrections_delta}
         aiMistakes={data.ai_mistakes}
-        aiMistakesDelta={data.ai_mistakes_delta}
-        retrainedSamples={data.retrained_samples}
-        retrainedPercent={data.retrained_percent}
       />
 
       <div className="g2">
-        <ReviewQueue items={data.review_queue} total={data.total_queue} />
-        {selectedItem && (
+        <ReviewQueue
+          items={data.review_queue}
+          total={data.total_queue}
+          loading={loading}
+          selectedId={selected?.place_id ?? null}
+          onSelect={onSelect}
+        />
+        {selected && (
           <FeedbackDetailPanel
-            item={selectedItem}
-            onDiscard={onDiscard}
-            onApprove={onApprove}
+            item={selected}
+            busy={actingOn === selected.place_id}
+            onReject={() => onReject(selected.place_id)}
+            onApprove={() => onApprove(selected.place_id)}
           />
         )}
       </div>

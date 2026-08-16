@@ -1,10 +1,15 @@
-import type { RiskLevel, RiskZone } from "../../../types";
+import type { RiskLevel, RiskSegment } from "../../../types";
 import { GlassCard } from "@/features/shared/GlassCard";
 
 type Props = {
-  zones: RiskZone[];
-  onViewRegistry: () => void;
+  segments: RiskSegment[];
 };
+
+function levelFor(riskPercent: number): RiskLevel {
+  if (riskPercent >= 50) return "HIGH_ALERT";
+  if (riskPercent >= 20) return "ELEVATED";
+  return "STABLE";
+}
 
 function RiskChip({ level }: { level: RiskLevel }) {
   if (level === "HIGH_ALERT") return <span className="chip hi">High Alert</span>;
@@ -18,14 +23,11 @@ function riskBarColor(level: RiskLevel): string {
   return "var(--text-success)";
 }
 
-export default function RiskRanking({ zones, onViewRegistry }: Props) {
+export default function RiskRanking({ segments }: Props) {
   return (
     <GlassCard flat className="card">
       <div className="ch">
         <span className="ct">Risk Ranking</span>
-        <button className="btn ghost sm">
-          <i className="ti ti-dots" />
-        </button>
       </div>
       <div
         style={{
@@ -34,41 +36,45 @@ export default function RiskRanking({ zones, onViewRegistry }: Props) {
           marginBottom: 10,
         }}
       >
-        Geographic anomaly zones
+        Share of each category still stuck in NEEDS_REVIEW
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {zones.map((zone) => (
-          <div key={zone.name}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                fontSize: 12,
-                marginBottom: 4,
-              }}
-            >
-              <span>{zone.name}</span>
-              <RiskChip level={zone.level} />
-            </div>
-            <div
-              className="risk-bar"
-              style={{
-                background: riskBarColor(zone.level),
-                width: `${zone.width_percent}%`,
-              }}
-            />
-          </div>
-        ))}
-      </div>
-
-      <button
-        className="btn"
-        style={{ width: "100%", justifyContent: "center", marginTop: 12 }}
-        onClick={onViewRegistry}
-      >
-        View Full Registry
-      </button>
+      {segments.length === 0 ? (
+        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>No places yet.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {segments.map((segment) => {
+            const level = levelFor(segment.risk_percent);
+            return (
+              <div key={segment.name}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 12,
+                    marginBottom: 4,
+                  }}
+                >
+                  <span>
+                    {segment.name}{" "}
+                    <span style={{ color: "var(--text-muted)" }}>
+                      ({segment.needs_review}/{segment.total})
+                    </span>
+                  </span>
+                  <RiskChip level={level} />
+                </div>
+                <div
+                  className="risk-bar"
+                  style={{
+                    background: riskBarColor(level),
+                    width: `${segment.risk_percent}%`,
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
     </GlassCard>
   );
 }

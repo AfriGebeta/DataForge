@@ -47,6 +47,7 @@ let categoryStore: Category[] = [
     parentId: null,
     icon: "tools-kitchen-2",
     name: { en: "Restaurants", am: "ምግብ ቤቶች" },
+    needsReview: false,
     deletedAt: null,
     createdAt: "2024-01-05T09:00:00.000Z",
     updatedAt: "2024-01-05T09:00:00.000Z",
@@ -58,6 +59,7 @@ let categoryStore: Category[] = [
     icon: "coffee",
     name: { en: "Cafes", am: "ካፌዎች" },
     deletedAt: null,
+    needsReview: false,
     createdAt: "2024-01-05T09:05:00.000Z",
     updatedAt: "2024-01-05T09:05:00.000Z",
   },
@@ -68,6 +70,7 @@ let categoryStore: Category[] = [
     icon: "burger",
     name: { en: "Fast Food", am: "ፈጣን ምግብ" },
     deletedAt: null,
+    needsReview: false,
     createdAt: "2024-01-05T09:06:00.000Z",
     updatedAt: "2024-01-05T09:06:00.000Z",
   },
@@ -78,6 +81,7 @@ let categoryStore: Category[] = [
     icon: "building-skyscraper",
     name: { en: "Hotels", am: "ሆቴሎች" },
     deletedAt: null,
+    needsReview: false,
     createdAt: "2024-01-05T09:10:00.000Z",
     updatedAt: "2024-01-05T09:10:00.000Z",
   },
@@ -88,6 +92,7 @@ let categoryStore: Category[] = [
     icon: "shopping-cart",
     name: { en: "Shopping", am: "ገበያ" },
     deletedAt: null,
+    needsReview: false,
     createdAt: "2024-01-05T09:15:00.000Z",
     updatedAt: "2024-01-05T09:15:00.000Z",
   },
@@ -98,6 +103,7 @@ let categoryStore: Category[] = [
     icon: "building-store",
     name: { en: "Malls", am: "ገበያ ማዕከላት" },
     deletedAt: null,
+    needsReview: false,
     createdAt: "2024-01-05T09:16:00.000Z",
     updatedAt: "2024-01-05T09:16:00.000Z",
   },
@@ -108,6 +114,7 @@ let categoryStore: Category[] = [
     icon: "basket",
     name: { en: "Markets", am: "ገበያዎች" },
     deletedAt: null,
+    needsReview: false,
     createdAt: "2024-01-05T09:17:00.000Z",
     updatedAt: "2024-01-05T09:17:00.000Z",
   },
@@ -118,6 +125,7 @@ let categoryStore: Category[] = [
     icon: "briefcase",
     name: { en: "Services", am: "አገልግሎቶች" },
     deletedAt: null,
+    needsReview: false,
     createdAt: "2024-01-05T09:20:00.000Z",
     updatedAt: "2024-01-05T09:20:00.000Z",
   },
@@ -128,6 +136,7 @@ let categoryStore: Category[] = [
     icon: "coffee",
     name: { en: "Specialty Coffee", am: "ልዩ ቡና" },
     deletedAt: null,
+    needsReview: false,
     createdAt: "2024-01-05T09:21:00.000Z",
     updatedAt: "2024-01-05T09:21:00.000Z",
   },
@@ -138,6 +147,7 @@ let categoryStore: Category[] = [
     icon: "coffee",
     name: { en: "Espresso Bars", am: "ኤስፕሬሶ" },
     deletedAt: null,
+    needsReview: false,
     createdAt: "2024-01-05T09:22:00.000Z",
     updatedAt: "2024-01-05T09:22:00.000Z",
   },
@@ -148,6 +158,7 @@ let categoryStore: Category[] = [
     icon: "coffee",
     name: { en: "Single Origin", am: "ነጠላ ምንጭ" },
     deletedAt: null,
+    needsReview: false,
     createdAt: "2024-01-05T09:23:00.000Z",
     updatedAt: "2024-01-05T09:23:00.000Z",
   },
@@ -192,6 +203,7 @@ function buildCategoryTree(
       id: category.id,
       name: category.name,
       slug: category.slug,
+      needsReview: category.needsReview,
     };
 
     const children = (byParent.get(category.id) ?? []).map(buildNode);
@@ -235,6 +247,7 @@ export function flattenCategoryTree(
       icon: "",
       name: node.name,
       deletedAt: null,
+      needsReview: node.needsReview,
       createdAt: node.createdAt,
       updatedAt: node.updatedAt,
     });
@@ -485,6 +498,36 @@ export async function fetchCategories(
 }
 
 /**
+ * GET /api/v1/categories?flat=true&needsReview=true — every category
+ * (root or nested) still flagged `needsReview`, regardless of pagination,
+ * for the "categories awaiting review" count/list.
+ */
+export async function fetchCategoriesNeedingReview(): Promise<Category[]> {
+  try {
+    const response = await requestJson<CategoryListResponse>(
+      "?flat=true&needsReview=true&limit=250&offset=0",
+    );
+    return response.data.map((node) => ({
+      id: node.id,
+      slug: node.slug,
+      parentId: null,
+      icon: "",
+      name: node.name,
+      needsReview: node.needsReview,
+      createdAt: node.createdAt,
+      updatedAt: node.updatedAt,
+      deletedAt: null,
+    }));
+  } catch (cause) {
+    console.warn(
+      "Falling back to local mock data for fetchCategoriesNeedingReview:",
+      cause,
+    );
+    return activeCategories().filter((category) => category.needsReview);
+  }
+}
+
+/**
  * Fetches all active categories in hierarchy order for parent dropdowns.
  * The wire response is a nested tree; we flatten it into pre-ordered
  * `Category[]` so existing consumers can keep using `parentId` traversal.
@@ -527,6 +570,7 @@ function createCategoryInMock(
     icon: body.icon ?? "",
     name: body.name,
     deletedAt: null,
+    needsReview: false,
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -577,6 +621,7 @@ function updateCategoryInMock(
     ...(body.slug !== undefined ? { slug: body.slug } : {}),
     ...(body.icon !== undefined ? { icon: body.icon } : {}),
     ...(body.parentId !== undefined ? { parentId: body.parentId } : {}),
+    ...(body.needsReview !== undefined ? { needsReview: body.needsReview } : {}),
     updatedAt: nowIso(),
   };
 
@@ -607,6 +652,29 @@ export async function updateCategory(
     });
   } catch (cause) {
     console.warn("Falling back to local mock data for updateCategory:", cause);
+    return updateCategoryInMock(id, body);
+  }
+}
+
+/**
+ * PUT /api/v1/categories/{id} with just `{needsReview: false}` — clears the
+ * auto-created review flag without touching name/slug/icon/parent, for the
+ * "looks correct, dismiss the flag" action distinct from a full edit.
+ */
+export async function markCategoryReviewed(id: string): Promise<Category> {
+  const body: UpdateCategoryRequestBody = { needsReview: false };
+
+  try {
+    return await requestJson<Category>(`/${id}`, {
+      method: "PUT",
+      headers: JSON_CONTENT_TYPE_HEADERS,
+      body: JSON.stringify(body),
+    });
+  } catch (cause) {
+    console.warn(
+      "Falling back to local mock data for markCategoryReviewed:",
+      cause,
+    );
     return updateCategoryInMock(id, body);
   }
 }

@@ -23,6 +23,15 @@ export type ContactType =
   | "FACEBOOK" | "INSTAGRAM" | "TWITTER" | "TIKTOK" | "LINKEDIN" | "YOUTUBE" | "SNAPCHAT";
 export type AttributeValueType = "STRING" | "NUMBER" | "BOOLEAN" | "JSON" | "URL" | "DATETIME" | "ARRAY";
 
+// Mirrors features/data/channels/types.ts's IngestChannelType - duplicated
+// rather than imported, same cross-feature convention as ContactType above.
+// A place has no source/channel column of its own; PlaceForge resolves this
+// by tracing back through the commit chain (place <- parsed_entity.committedPlaceId
+// <- parsed_entity.rawIngestId -> raw_ingest.channel/channelId) - see
+// PlaceForge's place/repository/main.go ListPlaces for the full comment.
+export type IngestChannelType =
+  | "TELEGRAM_BOT" | "TELEGRAM_WEBHOOK" | "WHATSAPP_WEBHOOK" | "REST_API" | "BATCH_IMPORT" | "MANUAL";
+
 /* ── List item — GET /places returns this lean shape, not the full record ── */
 
 export type PlaceNameItem = { languageCode: string; name: string; nameType: string; isPrimary: boolean };
@@ -32,11 +41,12 @@ export type PlaceListAiValues = {
   aiGeoScore?: number | null;
   aiNameValid?: boolean | null;
   aiNameScore?: number | null;
+  aiLanguageValid?: boolean | null;
   aiDuplicateScore?: number | null;
   aiMlConfidence?: number | null;
   aiOverallScore?: number | null;
   aiDecision?: AIDecision | null;
-  aiReasons?: Record<string, unknown> | null;
+  aiReasons?: string[] | null;
   aiValidatedAt?: string | null;
 };
 
@@ -68,6 +78,14 @@ export type PlaceListParams = {
   aiDecision?: AIDecision;
   /** Restricts to places never refreshed, or not refreshed within this many days. */
   staleDays?: number;
+  /** Restricts to places with no categoryId set. */
+  missingCategory?: boolean;
+  /** Restricts to places whose coordinates were never really set ("Null Island" 0,0). */
+  missingCoordinates?: boolean;
+  /** Restricts to places committed from a raw_ingest of this channel kind (e.g. Telegram vs REST API). */
+  channel?: IngestChannelType;
+  /** Restricts to places committed from one specific configured channel instance (raw_ingest.channelId). */
+  channelId?: string;
   /** Client-side only — PlaceForge has no server-side name search on GET /places. */
   search?: string;
 };

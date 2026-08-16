@@ -1,4 +1,4 @@
-export type FlagCategory = "GEOMETRY" | "ADDRESS" | "NAME" | "HIERARCHY" | "CONTACT" | "FRESHNESS" | "CONSISTENCY";
+export type FlagCategory = "GEOMETRY" | "ADDRESS" | "NAME" | "LANGUAGE" | "HIERARCHY" | "CONTACT" | "FRESHNESS" | "CONSISTENCY";
 export type FlagSeverity = "CRITICAL" | "ERROR" | "WARNING" | "INFO";
 export type FlagStatusFilter = "unresolved" | "all" | "resolved";
 

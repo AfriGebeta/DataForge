@@ -8,17 +8,36 @@ const columns: ColumnDef<MergeRecord>[] = [
   {
     accessorKey: "winner_id",
     header: "Winner",
-    size: 160,
+    size: 200,
     cell: ({ row }) => (
-      <span className="mono">{row.original.winner_id}…</span>
+      <div>
+        <div>{row.original.winner_name ?? `Place #${row.original.winner_id}`}</div>
+        <span className="mono" style={{ color: "var(--text-muted)", fontSize: 12 }}>
+          #{row.original.winner_id}
+          {row.original.winner_ai_duplicate_score != null &&
+            ` · ${row.original.winner_ai_duplicate_score}% dup`}
+        </span>
+      </div>
     ),
   },
   {
     accessorKey: "loser_id",
     header: "Loser",
-    size: 160,
+    size: 200,
     cell: ({ row }) => (
-      <span className="mono">{row.original.loser_id}…</span>
+      <div>
+        <div>
+          {row.original.loser_name ??
+            (row.original.status === "APPLIED"
+              ? `Place #${row.original.loser_id} (merged away)`
+              : `Place #${row.original.loser_id}`)}
+        </div>
+        <span className="mono" style={{ color: "var(--text-muted)", fontSize: 12 }}>
+          #{row.original.loser_id}
+          {row.original.loser_ai_duplicate_score != null &&
+            ` · ${row.original.loser_ai_duplicate_score}% dup`}
+        </span>
+      </div>
     ),
   },
   {

@@ -20,4 +20,8 @@ export type SettingsData = {
   staleDaysThreshold: number;
   // Role pre-selected on System → Users' Invite form.
   defaultAdminRole: AdminRole;
+  // ISO 639-1 codes GeoValidate treats a place name's script as allowed
+  // (see GeoValidate/geovalidator/validation/language.py) — empty means no
+  // restriction is enforced, every place passes the language check.
+  allowedLanguages: string[];
 };

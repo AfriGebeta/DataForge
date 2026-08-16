@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { fetchPlaces } from "../../api";
-import type { AIDecision, PlaceListItem, PlaceType as TPlaceType, ReviewStatus } from "../../types";
+import type { AIDecision, IngestChannelType, PlaceListItem, PlaceType as TPlaceType, ReviewStatus } from "../../types";
 import { PLACE_TYPES } from "@/features/verification/shared/types";
 import { fetchParentCategories, getLocalizedName } from "@/features/category/categories/api";
 import type { Category } from "@/features/category/categories/types";
 import { fetchSettings } from "@/features/system/settings/api";
+import { fetchChannels } from "@/features/data/channels/api";
+import type { ChannelConfig } from "@/features/data/channels/types";
 import { GlassCard } from "@/features/shared/GlassCard";
 
 const PAGE_SIZE = 10;
@@ -27,8 +29,22 @@ const TRI_STATE_OPTIONS = [
   { value: "false", label: "No" },
 ] as const;
 
+// Friendlier labels than the raw IngestChannel enum for the "kind of
+// channel" filter - the specific-instance filter (which of possibly
+// several Telegram channels, say) is a second dropdown populated from
+// GET /channels instead, since that set is dynamic/per-deployment.
+const CHANNEL_TYPE_LABELS: Record<IngestChannelType, string> = {
+  TELEGRAM_BOT: "Telegram (bot)",
+  TELEGRAM_WEBHOOK: "Telegram (webhook)",
+  WHATSAPP_WEBHOOK: "WhatsApp",
+  REST_API: "REST API (your own service)",
+  BATCH_IMPORT: "Batch import",
+  MANUAL: "Manual entry",
+};
+
 export default function PlaceListPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [places, setPlaces] = useState<PlaceListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -41,14 +57,35 @@ export default function PlaceListPage() {
   const [filterActive, setFilterActive] = useState<"" | "true" | "false">("");
   const [filterVisible, setFilterVisible] = useState<"" | "true" | "false">("");
   const [filterAiDecision, setFilterAiDecision] = useState<AIDecision | "">("");
-  const [staleOnly, setStaleOnly] = useState(false);
+  const [filterChannel, setFilterChannel] = useState<IngestChannelType | "">("");
+  const [filterChannelId, setFilterChannelId] = useState("");
+  const [channels, setChannels] = useState<ChannelConfig[]>([]);
+  // Preset from `?stale=true` so the Overview Dashboard's "needing refresh"
+  // KPI can deep-link straight into this filter.
+  const [staleOnly, setStaleOnly] = useState(() => searchParams.get("stale") === "true");
   const [staleCount, setStaleCount] = useState<number | null>(null);
   const [staleDays, setStaleDays] = useState(DEFAULT_STALE_DAYS);
+  // Preset from `?missingCategory=true` so the Overview Dashboard's
+  // "unfinished places" KPI can deep-link straight into this filter.
+  const [missingCategoryOnly, setMissingCategoryOnly] = useState(
+    () => searchParams.get("missingCategory") === "true",
+  );
+  const [missingCategoryCount, setMissingCategoryCount] = useState<number | null>(null);
+  // Preset from `?missingCoordinates=true` — same pattern, for places whose
+  // coordinates were never really set ("Null Island" 0,0).
+  const [missingCoordinatesOnly, setMissingCoordinatesOnly] = useState(
+    () => searchParams.get("missingCoordinates") === "true",
+  );
+  const [missingCoordinatesCount, setMissingCoordinatesCount] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
     void fetchParentCategories().then(setCategories);
+  }, []);
+
+  useEffect(() => {
+    void fetchChannels({ limit: 200 }).then((res) => setChannels(res.data));
   }, []);
 
   useEffect(() => {
@@ -64,6 +101,18 @@ export default function PlaceListPage() {
     void fetchPlaces({ limit: 1, staleDays }).then((res) => setStaleCount(res.total));
   }, [staleDays]);
 
+  // Total count of places with no category, independent of current filters —
+  // same "fetch 1 row, read total" pattern as staleCount above.
+  useEffect(() => {
+    void fetchPlaces({ limit: 1, missingCategory: true }).then((res) => setMissingCategoryCount(res.total));
+  }, []);
+
+  // Total count of places with no real coordinates, independent of current
+  // filters — same "fetch 1 row, read total" pattern as the two above.
+  useEffect(() => {
+    void fetchPlaces({ limit: 1, missingCoordinates: true }).then((res) => setMissingCoordinatesCount(res.total));
+  }, []);
+
   const categoryName = useMemo(() => {
     const map = new Map(categories.map((c) => [c.id, getLocalizedName(c, "en")]));
     return (id?: string) => (id ? map.get(id) ?? id : "—");
@@ -72,7 +121,7 @@ export default function PlaceListPage() {
   // Reset to page 1 whenever a filter changes.
   useEffect(() => {
     setPage(1);
-  }, [filterType, filterStatus, filterCategoryId, filterActive, filterVisible, filterAiDecision, staleOnly, searchQuery]);
+  }, [filterType, filterStatus, filterCategoryId, filterActive, filterVisible, filterAiDecision, filterChannel, filterChannelId, staleOnly, missingCategoryOnly, missingCoordinatesOnly, searchQuery]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -87,7 +136,11 @@ export default function PlaceListPage() {
         isActive: filterActive === "" ? undefined : filterActive === "true",
         isVisible: filterVisible === "" ? undefined : filterVisible === "true",
         aiDecision: filterAiDecision || undefined,
+        channel: filterChannel || undefined,
+        channelId: filterChannelId || undefined,
         staleDays: staleOnly ? staleDays : undefined,
+        missingCategory: missingCategoryOnly ? true : undefined,
+        missingCoordinates: missingCoordinatesOnly ? true : undefined,
         search: searchQuery || undefined,
       });
       setPlaces(res.data);
@@ -97,7 +150,7 @@ export default function PlaceListPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterType, filterStatus, filterCategoryId, filterActive, filterVisible, filterAiDecision, staleOnly, staleDays, searchQuery, page]);
+  }, [filterType, filterStatus, filterCategoryId, filterActive, filterVisible, filterAiDecision, filterChannel, filterChannelId, staleOnly, staleDays, missingCategoryOnly, missingCoordinatesOnly, searchQuery, page]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -141,6 +194,42 @@ export default function PlaceListPage() {
         </label>
       </GlassCard>
 
+      <GlassCard flat className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <i className="ti ti-category-2" style={{ color: "var(--text-danger)", fontSize: 18 }} />
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>
+              {missingCategoryCount == null ? "…" : missingCategoryCount} unfinished {missingCategoryCount === 1 ? "place" : "places"} — no category
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+              These places have never had a category assigned. Counts toward completeness scoring.
+            </div>
+          </div>
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+          <input type="checkbox" checked={missingCategoryOnly} onChange={(e) => setMissingCategoryOnly(e.target.checked)} />
+          Show missing category only
+        </label>
+      </GlassCard>
+
+      <GlassCard flat className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <i className="ti ti-map-pin-off" style={{ color: "var(--text-danger)", fontSize: 18 }} />
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>
+              {missingCoordinatesCount == null ? "…" : missingCoordinatesCount} unfinished {missingCoordinatesCount === 1 ? "place" : "places"} — no coordinates
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+              These places still have placeholder (0, 0) coordinates — never geocoded.
+            </div>
+          </div>
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+          <input type="checkbox" checked={missingCoordinatesOnly} onChange={(e) => setMissingCoordinatesOnly(e.target.checked)} />
+          Show missing coordinates only
+        </label>
+      </GlassCard>
+
       {error ? <div className="category-inline-error">{error}</div> : null}
 
       <div className="toolbar" style={{ flexWrap: "wrap" }}>
@@ -171,6 +260,40 @@ export default function PlaceListPage() {
           <option value="AMBIGUOUS">AMBIGUOUS</option>
           <option value="DUPLICATE">DUPLICATE</option>
         </select>
+        <select
+          className="glass-select"
+          style={{ width: 180 }}
+          value={filterChannel}
+          onChange={(e) => {
+            // A specific channel implies a channel kind - clear it rather
+            // than leave a stale combination that can never match anything
+            // (e.g. "REST API" + a Telegram channel's id).
+            setFilterChannel(e.target.value as IngestChannelType | "");
+            setFilterChannelId("");
+          }}
+        >
+          <option value="">Any source</option>
+          {(Object.entries(CHANNEL_TYPE_LABELS) as [IngestChannelType, string][]).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
+        {channels.length > 0 ? (
+          <select
+            className="glass-select"
+            style={{ width: 180 }}
+            value={filterChannelId}
+            onChange={(e) => setFilterChannelId(e.target.value)}
+          >
+            <option value="">Any specific channel</option>
+            {channels
+              .filter((c) => !filterChannel || c.channel === filterChannel)
+              .map((c) => (
+                <option key={c.id} value={c.channel_id}>
+                  {c.channel_name ?? c.channel_id}
+                </option>
+              ))}
+          </select>
+        ) : null}
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}>
           Active
           <select className="glass-select" style={{ width: 80 }} value={filterActive} onChange={(e) => setFilterActive(e.target.value as "" | "true" | "false")}>
@@ -249,8 +372,8 @@ export default function PlaceListPage() {
           </table>
         )}
         {total > 0 && !loading && (
-          <div className="flex items-center justify-between border-t border-white/5 px-6 py-4">
-            <div className="text-[11px] text-white/50">
+          <div className="flex items-center justify-between border-t border-[color:var(--border)] px-6 py-4">
+            <div className="text-[11px] text-[color:var(--text-muted)]">
               Showing {(page - 1) * PAGE_SIZE + 1} to {Math.min(page * PAGE_SIZE, total)} of {total} places
             </div>
             <div className="flex gap-2">

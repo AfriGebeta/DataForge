@@ -7,6 +7,7 @@ import { navGroup as categoryNav } from "@/features/category/nav";
 import { navGroup as workersNav } from "@/features/workers/nav";
 import { navGroup as qualityNav } from "@/features/quality/nav";
 import { navGroup as placeNav } from "@/features/place/nav";
+import { navGroup as addressNav } from "@/features/address/nav";
 import { navGroup as systemNav } from "@/features/system/nav";
 import { navGroup as schemaNav } from "@/features/schema/nav";
 import { navGroup as businessNav } from "@/features/business/nav";
@@ -23,6 +24,7 @@ export const navGroups: FeatureNavGroup[] = [
   dataNav,
   categoryNav,
   placeNav,
+  addressNav,
   workersNav,
   qualityNav,
   systemNav,

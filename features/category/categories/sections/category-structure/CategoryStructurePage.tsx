@@ -4,8 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import {
   deleteCategory,
   fetchCategories,
+  fetchCategoriesNeedingReview,
   fetchParentCategories,
   flattenCategoryTree,
+  markCategoryReviewed,
   updateCategory,
 } from "../../api";
 import type {
@@ -33,20 +35,32 @@ export default function CategoryStructurePage() {
   );
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [needsReviewOnly, setNeedsReviewOnly] = useState(false);
+  const [needsReviewCount, setNeedsReviewCount] = useState(0);
+  const [markingReviewedId, setMarkingReviewedId] = useState<string | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const [paged, parents] = await Promise.all([
-        fetchCategories(limit, offset),
+      const [flagged, parents] = await Promise.all([
+        fetchCategoriesNeedingReview(),
         fetchParentCategories(),
       ]);
-
-      setCategories(flattenCategoryTree(paged.data));
-      setTotal(paged.total);
+      setNeedsReviewCount(flagged.length);
       setParentCategories(parents);
+
+      if (needsReviewOnly) {
+        setCategories(flagged);
+        setTotal(flagged.length);
+      } else {
+        const paged = await fetchCategories(limit, offset);
+        setCategories(flattenCategoryTree(paged.data));
+        setTotal(paged.total);
+      }
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -56,7 +70,7 @@ export default function CategoryStructurePage() {
     } finally {
       setLoading(false);
     }
-  }, [limit, offset]);
+  }, [limit, offset, needsReviewOnly]);
 
   useEffect(() => {
     const run = async () => {
@@ -65,6 +79,28 @@ export default function CategoryStructurePage() {
 
     void run();
   }, [load]);
+
+  const handleMarkReviewed = useCallback(
+    async (category: Category) => {
+      setMarkingReviewedId(category.id);
+      setError(null);
+
+      try {
+        await markCategoryReviewed(category.id);
+        setFeedback(`"${category.slug}" marked as reviewed.`);
+        await load();
+      } catch (cause) {
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "Failed to mark category as reviewed.",
+        );
+      } finally {
+        setMarkingReviewedId(null);
+      }
+    },
+    [load],
+  );
 
   const handleSave = useCallback(
     async (id: string, values: CategoryFormValues) => {
@@ -143,6 +179,23 @@ export default function CategoryStructurePage() {
         </button>
       </div>
 
+      {needsReviewCount > 0 ? (
+        <div className="category-feedback category-review-banner">
+          <i className="ti ti-alert-triangle" />
+          {needsReviewCount} categor{needsReviewCount === 1 ? "y" : "ies"} auto-created by
+          the ingest pipeline {needsReviewCount === 1 ? "needs" : "need"} review — the
+          AI-extracted name/slug may not be correct.
+          <button
+            type="button"
+            className="btn sm"
+            onClick={() => setNeedsReviewOnly(true)}
+            disabled={needsReviewOnly}
+          >
+            Show only these
+          </button>
+        </div>
+      ) : null}
+
       {feedback ? <div className="category-feedback">{feedback}</div> : null}
       {error ? <div className="category-inline-error">{error}</div> : null}
 
@@ -154,14 +207,22 @@ export default function CategoryStructurePage() {
           offset={offset}
           language={language}
           loading={loading}
+          needsReviewOnly={needsReviewOnly}
+          needsReviewCount={needsReviewCount}
+          markingReviewedId={markingReviewedId}
           onLanguageChange={setLanguage}
           onLimitChange={(nextLimit) => {
             setLimit(nextLimit);
             setOffset(0);
           }}
           onOffsetChange={setOffset}
+          onToggleNeedsReviewOnly={(next) => {
+            setNeedsReviewOnly(next);
+            setOffset(0);
+          }}
           onEdit={setEditingCategory}
           onDelete={setDeletingCategory}
+          onMarkReviewed={handleMarkReviewed}
         />
       </GlassCard>
 

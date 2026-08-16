@@ -32,7 +32,7 @@ const surfaceByTone: Record<GlassTone, string> = {
 
 /** Ring colour — mirrors the `toneRing` map the pages used inline. */
 const ringByTone: Record<GlassTone, string> = {
-  neutral: "ring-white/5",
+  neutral: "ring-[color:var(--border)]",
   accent: "ring-[color:var(--orange-400)]/30",
   success: "ring-[color:var(--text-success)]/25",
   warning: "ring-[color:var(--text-warning)]/25",
@@ -68,7 +68,7 @@ export function GlassCard({
   ...props
 }: GlassCardProps) {
   const classes = cn(
-    "glass-glow relative overflow-hidden border-0 py-0",
+    "glass-glow relative overflow-hidden border py-0",
     surfaceByTone[tone],
     ring && cn("ring-1", ringByTone[ringTone ?? tone]),
     className,

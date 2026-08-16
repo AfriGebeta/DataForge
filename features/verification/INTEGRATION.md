@@ -90,9 +90,9 @@ lands in `NEEDS_REVIEW` whenever GeoValidator's decision was anything but
 |---|---|---|
 | Place ID | `id` | int64 |
 | Place Name / Coordinates | `names[].name`, `latitude`/`longitude` | |
-| Trust | `aiValues.aiMlConfidence` | 0–1, not a %; multiply by 100 to render |
+| Trust | `aiValues.aiMlConfidence` | 0–100, already a %; render as-is, don't multiply (bug-042: the whole page rendered/thresholded this as 0–1 for who knows how long — showed e.g. "9700%") |
 | Status ("Pending") | `reviewStatus` | only `COMPLETED`/`NEEDS_REVIEW` exist — no `PENDING` enum value |
-| Dup Risk | `aiValues.aiDuplicateScore` | 0–1 |
+| Dup Risk | `aiValues.aiDuplicateScore` | 0–100, already a % — same as Trust above |
 | "Reject & Delete" button | **not implemented** | `Place` has no `DELETE` endpoint anywhere in this API — deactivation (`isActive`/`isVisible`) is the only removal path by design |
 
 `fetchVerificationQueue()` in `verification-queue/api.ts` calls this today.

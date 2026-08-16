@@ -1,40 +1,43 @@
-import type { ModelMetrics } from "../../../types";
+import type { ModelPerformanceData } from "../../../types";
 import { GlassCard } from "@/features/shared/GlassCard";
+import { timeAgo } from "@/lib/utils";
 
 type Props = {
-  metrics: ModelMetrics;
+  data: ModelPerformanceData;
 };
 
-export default function MetricCards({ metrics }: Props) {
+export default function MetricCards({ data }: Props) {
   return (
     <div className="g4" style={{ marginBottom: 14 }}>
       <GlassCard flat className="mc">
-        <div className="ml">Global F1-Score</div>
+        <div className="ml">AI Validation Coverage</div>
         <div className="mv" style={{ color: "var(--text-success)" }}>
-          {metrics.f1_score}
+          {data.coverage_percent.toFixed(1)}%
         </div>
-        <div className="ms" style={{ color: "var(--text-success)" }}>
-          ↑ +{metrics.f1_delta} from last epoch
+        <div className="ms" style={{ color: "var(--text-muted)" }}>
+          {data.validated_count} of {data.total_places} places validated
         </div>
       </GlassCard>
       <GlassCard flat className="mc">
-        <div className="ml">Precision</div>
-        <div className="mv">{metrics.precision}</div>
-        <div className="ms">High confidence threshold</div>
+        <div className="ml">Avg. Overall Trust Score</div>
+        <div className="mv">
+          {data.avg_overall_score != null ? data.avg_overall_score.toFixed(1) : "—"}
+        </div>
+        <div className="ms">Across validated places</div>
       </GlassCard>
       <GlassCard flat className="mc">
-        <div className="ml">Recall</div>
-        <div className="mv">{metrics.recall}</div>
-        <div className="ms">Capture rate maintained</div>
+        <div className="ml">Unvalidated Places</div>
+        <div className="mv" style={{ color: "var(--text-warning)" }}>
+          {(data.total_places - data.validated_count).toLocaleString()}
+        </div>
+        <div className="ms">No AI opinion submitted yet</div>
       </GlassCard>
-      <GlassCard flat className="mc" style={{ borderColor: "rgba(248,113,113,0.25)" }}>
-        <div className="ml">False Positives</div>
-        <div className="mv" style={{ color: "var(--text-danger)" }}>
-          {metrics.false_positives.toLocaleString()}
+      <GlassCard flat className="mc">
+        <div className="ml">Last Validated</div>
+        <div className="mv" style={{ fontSize: 16 }}>
+          {timeAgo(data.last_validated_at)}
         </div>
-        <div className="ms" style={{ color: "var(--text-danger)" }}>
-          ↑ Requires review
-        </div>
+        <div className="ms">Most recent AI decision received</div>
       </GlassCard>
     </div>
   );

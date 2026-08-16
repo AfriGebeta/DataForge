@@ -107,7 +107,7 @@ function toForm(ch: ChannelConfig): FormState {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[9.5px] font-semibold uppercase tracking-[0.12em] text-white/40">
+      <label className="text-[9.5px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-muted)]">
         {label}
       </label>
       {children}
@@ -116,7 +116,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const inputClass =
-  "w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-[12px] text-white/85 outline-none transition placeholder:text-white/30 hover:bg-white/[0.06] focus:border-[color:var(--orange-400)]/40";
+  "w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] px-3 py-2 text-[12px] text-[color:var(--text-primary)] outline-none transition placeholder:text-[color:var(--text-muted)] hover:bg-[color:var(--surface-3)] focus:border-[color:var(--orange-400)]/40";
 
 type Props = {
   isOpen: boolean;
@@ -191,15 +191,15 @@ export default function ChannelFormModal({ isOpen, onClose, onSaved, editing }: 
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-lg overflow-hidden rounded-xl border border-white/10 bg-[color:var(--surface-2)] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <span className="font-display text-[14px] font-semibold text-white/90">
+      <div className="w-full max-w-lg overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-2)] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[color:var(--border)] px-5 py-4">
+          <span className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
             {editing ? "Edit channel config" : "Create channel config"}
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-white/50 transition hover:bg-white/[0.06] hover:text-white"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-[color:var(--text-muted)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-primary)]"
           >
             <X className="h-4 w-4" />
           </button>
@@ -360,7 +360,7 @@ export default function ChannelFormModal({ isOpen, onClose, onSaved, editing }: 
           ) : null}
 
           <div className="flex items-center gap-5">
-            <label className="flex items-center gap-2 text-[12px] text-white/75">
+            <label className="flex items-center gap-2 text-[12px] text-[color:var(--text-secondary)]">
               <input
                 type="checkbox"
                 checked={form.is_active}
@@ -369,7 +369,7 @@ export default function ChannelFormModal({ isOpen, onClose, onSaved, editing }: 
               />
               Active
             </label>
-            <label className="flex items-center gap-2 text-[12px] text-white/75">
+            <label className="flex items-center gap-2 text-[12px] text-[color:var(--text-secondary)]">
               <input
                 type="checkbox"
                 checked={form.is_trusted}
@@ -387,11 +387,11 @@ export default function ChannelFormModal({ isOpen, onClose, onSaved, editing }: 
           ) : null}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-4">
+        <div className="flex justify-end gap-2 border-t border-[color:var(--border)] px-5 py-4">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[12px] text-white/70 transition hover:bg-white/[0.06]"
+            className="rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-3 py-1.5 text-[12px] text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)]"
           >
             Cancel
           </button>
