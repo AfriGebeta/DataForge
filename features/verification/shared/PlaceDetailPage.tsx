@@ -670,7 +670,21 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
           {place.reviewReason ? (
             <p className="mt-2 max-w-2xl text-[12.5px] text-[color:var(--text-muted)]">{place.reviewReason}</p>
           ) : null}
-          <div className="mt-3 flex items-center gap-3 text-[12px] text-[color:var(--text-muted)]">
+          <div className="mt-2 flex items-center gap-2 text-[12px] text-[color:var(--text-muted)]">
+            <span>Source:</span>
+            {place.sourceChannelId ? (
+              <Badge
+                variant="outline"
+                title={place.sourceChannel ?? undefined}
+                className="border-[color:var(--border)] bg-[color:var(--surface-2)] text-[10.5px] text-[color:var(--text-secondary)]"
+              >
+                {place.sourceChannelName ?? place.sourceChannelId}
+              </Badge>
+            ) : (
+              <span className="text-[color:var(--text-secondary)]">manual / unknown</span>
+            )}
+          </div>
+          <div className="mt-2 flex items-center gap-3 text-[12px] text-[color:var(--text-muted)]">
             <span>
               Last refreshed: <span className="text-[color:var(--text-secondary)]">{formatTimestamp(place.refreshedAt)}</span>
             </span>

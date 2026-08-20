@@ -90,12 +90,9 @@ export function ChannelList({ channels, loading, error, onEdit, onToggleActive, 
         header: "Status",
         size: 110,
         cell: ({ row }) => (
-          <div className="flex items-center gap-1.5">
-            <StatusBadge tone={row.original.is_active ? "success" : "warning"}>
-              {row.original.is_active ? "Active" : "Inactive"}
-            </StatusBadge>
-            {row.original.is_trusted ? <StatusBadge tone="accent">Trusted</StatusBadge> : null}
-          </div>
+          <StatusBadge tone={row.original.is_active ? "success" : "warning"}>
+            {row.original.is_active ? "Active" : "Inactive"}
+          </StatusBadge>
         ),
       },
       {

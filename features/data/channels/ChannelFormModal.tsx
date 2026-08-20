@@ -57,7 +57,6 @@ type FormState = {
   default_source_type: ExternalSourceType;
   price_bracket: string;
   is_active: boolean;
-  is_trusted: boolean;
   expected_frequency_hours: string;
   webhook_url: string;
   schedule_type: ScheduleType;
@@ -75,7 +74,6 @@ const emptyForm: FormState = {
   default_source_type: "USER_SUBMISSION",
   price_bracket: "",
   is_active: true,
-  is_trusted: false,
   expected_frequency_hours: "",
   webhook_url: "",
   schedule_type: "MANUAL",
@@ -94,7 +92,6 @@ function toForm(ch: ChannelConfig): FormState {
     default_source_type: ch.default_source_type,
     price_bracket: ch.price_bracket ?? "",
     is_active: ch.is_active,
-    is_trusted: ch.is_trusted,
     expected_frequency_hours: ch.expected_frequency_hours?.toString() ?? "",
     webhook_url: ch.webhook_url ?? "",
     schedule_type: ch.schedule_type,
@@ -156,7 +153,6 @@ export default function ChannelFormModal({ isOpen, onClose, onSaved, editing }: 
         default_source_type: form.default_source_type,
         price_bracket: form.price_bracket.trim() || null,
         is_active: form.is_active,
-        is_trusted: form.is_trusted,
         expected_frequency_hours: form.expected_frequency_hours
           ? Number(form.expected_frequency_hours)
           : null,
@@ -359,26 +355,15 @@ export default function ChannelFormModal({ isOpen, onClose, onSaved, editing }: 
             </Field>
           ) : null}
 
-          <div className="flex items-center gap-5">
-            <label className="flex items-center gap-2 text-[12px] text-[color:var(--text-secondary)]">
-              <input
-                type="checkbox"
-                checked={form.is_active}
-                onChange={(e) => set("is_active", e.target.checked)}
-                className="h-3.5 w-3.5 accent-[color:var(--orange-400)]"
-              />
-              Active
-            </label>
-            <label className="flex items-center gap-2 text-[12px] text-[color:var(--text-secondary)]">
-              <input
-                type="checkbox"
-                checked={form.is_trusted}
-                onChange={(e) => set("is_trusted", e.target.checked)}
-                className="h-3.5 w-3.5 accent-[color:var(--orange-400)]"
-              />
-              Trusted (skips human review)
-            </label>
-          </div>
+          <label className="flex items-center gap-2 text-[12px] text-[color:var(--text-secondary)]">
+            <input
+              type="checkbox"
+              checked={form.is_active}
+              onChange={(e) => set("is_active", e.target.checked)}
+              className="h-3.5 w-3.5 accent-[color:var(--orange-400)]"
+            />
+            Active
+          </label>
 
           {error ? (
             <div className="rounded-md border border-[color:var(--text-danger)]/30 bg-[color:var(--text-danger)]/10 px-3 py-2 text-[11.5px] text-[color:var(--text-danger)]">

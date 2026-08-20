@@ -43,7 +43,6 @@ export type ChannelConfig = {
   default_source_type: ExternalSourceType;
   price_bracket?: string | null;
   is_active: boolean;
-  is_trusted: boolean;
   expected_frequency_hours?: number | null;
   last_message_at?: string | null;
   webhook_url?: string | null;

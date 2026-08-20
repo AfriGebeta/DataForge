@@ -317,12 +317,13 @@ export default function PlaceListPage() {
           <table>
             <colgroup>
               <col style={{ width: "6%" }} />
-              <col style={{ width: "19%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "12%" }} />
               <col style={{ width: "10%" }} />
-              <col style={{ width: "13%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "11%" }} />
-              <col style={{ width: "7%" }} />
+              <col style={{ width: "6%" }} />
               <col style={{ width: "10%" }} />
               <col style={{ width: "10%" }} />
             </colgroup>
@@ -332,6 +333,7 @@ export default function PlaceListPage() {
                 <th>Name</th>
                 <th>Type</th>
                 <th>Category</th>
+                <th>Source</th>
                 <th>Coordinates</th>
                 <th>Status</th>
                 <th>Active</th>
@@ -357,6 +359,11 @@ export default function PlaceListPage() {
                   </td>
                   <td><span className="tag">{place.placeType}</span></td>
                   <td style={{ fontSize: 11, color: "var(--text-secondary)" }}>{categoryName(place.categoryId)}</td>
+                  <td style={{ fontSize: 11, color: "var(--text-secondary)" }} title={place.sourceChannel}>
+                    {place.sourceChannelName ?? place.sourceChannelId ?? (
+                      <span style={{ color: "var(--text-muted)" }}>—</span>
+                    )}
+                  </td>
                   <td className="mono" style={{ fontSize: 11 }}>{place.latitude.toFixed(4)}, {place.longitude.toFixed(4)}</td>
                   <td><span className={REVIEW_TONE[place.reviewStatus] ?? "bx"}>{place.reviewStatus}</span></td>
                   <td><span className={place.isActive ? "bx s" : "bx d"}>{place.isActive ? "Yes" : "No"}</span></td>

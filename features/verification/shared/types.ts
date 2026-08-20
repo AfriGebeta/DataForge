@@ -151,6 +151,14 @@ export type PlaceDetail = {
   attributes?: Attribute[];
   images?: PlaceImage[];
   aiValues?: AIValues;
+  /** Where this place's data actually came from — the ChannelConfig it was
+   * first ingested through (a Telegram channel, an internal service like
+   * the traffic app, a trusted partner company, etc.). All undefined for a
+   * place with no ingest history (hand-created via the dashboard). See
+   * PlaceForge/docs/TRUSTED_INGESTION.md. */
+  sourceChannel?: string;
+  sourceChannelId?: string;
+  sourceChannelName?: string;
 };
 
 export type UpdateAddressPayload = {

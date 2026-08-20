@@ -65,6 +65,11 @@ export type PlaceListItem = {
   aiValues?: PlaceListAiValues | null;
   createdAt: string;
   refreshedAt?: string;
+  /** The channel this place was actually ingested through — see the doc
+   * comment above IngestChannelType. Undefined for a hand-created place. */
+  sourceChannel?: IngestChannelType;
+  sourceChannelId?: string;
+  sourceChannelName?: string;
 };
 
 export type PlaceListParams = {
