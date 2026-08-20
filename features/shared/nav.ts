@@ -11,6 +11,7 @@ import { navGroup as addressNav } from "@/features/address/nav";
 import { navGroup as systemNav } from "@/features/system/nav";
 import { navGroup as schemaNav } from "@/features/schema/nav";
 import { navGroup as businessNav } from "@/features/business/nav";
+import { navGroup as docsNav } from "@/features/docs/nav";
 
 export type {
   PageConfig as NavItem,
@@ -30,4 +31,5 @@ export const navGroups: FeatureNavGroup[] = [
   systemNav,
   schemaNav,
   businessNav,
+  docsNav,
 ];
