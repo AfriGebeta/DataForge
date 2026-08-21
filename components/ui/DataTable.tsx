@@ -8,6 +8,7 @@ import {
   flexRender,
   type ColumnDef,
   type SortingState,
+  type RowSelectionState,
 } from "@tanstack/react-table";
 import {
   ChevronLeft,
@@ -15,7 +16,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export type { ColumnDef };
@@ -26,6 +27,11 @@ type Props<T> = {
   loading?: boolean;
   emptyMessage?: string;
   onRowClick?: (row: T) => void;
+  /** Opt-in checkbox column. Requires getRowId. */
+  enableSelection?: boolean;
+  getRowId?: (row: T) => string;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (ids: Set<string>) => void;
 };
 
 export default function DataTable<T>({
@@ -34,16 +40,43 @@ export default function DataTable<T>({
   loading = false,
   emptyMessage = "No results found.",
   onRowClick,
+  enableSelection = false,
+  getRowId,
+  selectedIds,
+  onSelectionChange,
 }: Props<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+  // Controlled from outside via selectedIds — keeps the checkbox state in
+  // sync when the caller clears selection after a bulk action.
+  useEffect(() => {
+    if (!selectedIds) return;
+    const next: RowSelectionState = {};
+    selectedIds.forEach((id) => {
+      next[id] = true;
+    });
+    setRowSelection(next);
+  }, [selectedIds]);
+
+  const tableColumns = enableSelection
+    ? [selectionColumn<T>(), ...columns]
+    : columns;
 
   const table = useReactTable({
     data,
-    columns,
-    state: { sorting, pagination },
+    columns: tableColumns,
+    state: { sorting, pagination, rowSelection },
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
+    onRowSelectionChange: (updater) => {
+      const next = typeof updater === "function" ? updater(rowSelection) : updater;
+      setRowSelection(next);
+      onSelectionChange?.(new Set(Object.keys(next).filter((id) => next[id])));
+    },
+    getRowId: getRowId ? (row) => getRowId(row) : undefined,
+    enableRowSelection: enableSelection,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -130,7 +163,7 @@ export default function DataTable<T>({
                   }}
                   className="rounded border border-[color:var(--border)] bg-[color:var(--surface-1)] px-2 py-1 text-[color:var(--text-secondary)] outline-none transition hover:bg-[color:var(--surface-3)] focus:border-[color:var(--orange-400)]/50"
                 >
-                  {[2, 5, 10].map((pageSize) => (
+                  {[10, 25, 50].map((pageSize) => (
                     <option key={pageSize} value={pageSize} className="bg-[color:var(--surface-2)]">
                       {pageSize}
                     </option>
@@ -182,4 +215,36 @@ export default function DataTable<T>({
       )}
     </div>
   );
+}
+
+function selectionColumn<T>(): ColumnDef<T> {
+  return {
+    id: "__select__",
+    size: 40,
+    // Selects across every loaded row (all pages), not just the current
+    // page — a "select all" that only grabbed the visible page was
+    // confusing when the table paginates client-side but the data behind
+    // it can be much larger than one page.
+    header: ({ table }) => (
+      <input
+        type="checkbox"
+        checked={table.getIsAllRowsSelected()}
+        ref={(el) => {
+          if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected();
+        }}
+        onChange={table.getToggleAllRowsSelectedHandler()}
+        onClick={(e) => e.stopPropagation()}
+        className="h-3.5 w-3.5 cursor-pointer accent-[color:var(--orange-400)]"
+      />
+    ),
+    cell: ({ row }) => (
+      <input
+        type="checkbox"
+        checked={row.getIsSelected()}
+        onChange={row.getToggleSelectedHandler()}
+        onClick={(e) => e.stopPropagation()}
+        className="h-3.5 w-3.5 cursor-pointer accent-[color:var(--orange-400)]"
+      />
+    ),
+  };
 }

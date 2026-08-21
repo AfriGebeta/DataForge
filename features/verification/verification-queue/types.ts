@@ -40,6 +40,8 @@ export type QueuedPlace = {
   isVisible: boolean;
   reviewStatus: ReviewStatus;
   reviewReason?: string;
+  assignedToId?: string;
+  assignedAt?: string;
   completenessLevel: string;
   names: PlaceName[];
   aiValues?: AIValues;
@@ -49,6 +51,9 @@ export type QueuedPlace = {
 export type VerificationQueueParams = {
   page?: number;
   pageSize?: number;
+  // Mutually exclusive: set one or neither, never both.
+  assignedToId?: string;
+  unassigned?: boolean;
 };
 
 export type VerificationQueueResponse = {

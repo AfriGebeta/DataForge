@@ -12,7 +12,10 @@ import {
   RefreshCw,
   Search,
   ShieldAlert,
+  Shuffle,
   SlidersHorizontal,
+  UserCircle2,
+  Users,
   X,
 } from "lucide-react";
 
@@ -25,10 +28,16 @@ import {
 import DataTable, { type ColumnDef } from "@/components/ui/DataTable";
 import { GlassCard } from "@/features/shared/GlassCard";
 import { cn } from "@/lib/utils";
-import { fetchVerificationQueue } from "./api";
+import { bulkAssignPlaces, fetchCurrentAdmin, fetchVerificationQueue } from "./api";
 import { fetchPlace } from "../shared/api";
 import { fetchMergeRecords } from "@/features/quality/merge-records/api";
+import { fetchUsers } from "@/features/system/users/api";
+import type { AdminUser } from "@/features/system/users/types";
 import type { AIDecision, QueuedPlace } from "./types";
+
+// "" = all, "me" = assignedToId=<current admin>, "unassigned" = assignedToId
+// is null, any other value = that admin_user's id.
+type AssignmentFilter = "" | "me" | "unassigned" | string;
 
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
 
@@ -150,6 +159,11 @@ export default function VerificationQueuePage() {
   const router = useRouter();
   const [rows, setRows] = useState<QueuedPlace[]>([]);
   const [total, setTotal] = useState(0);
+  // Just res.total from fetchVerificationQueue — unlike `total`, doesn't
+  // include the orphaned pending-merge places `load()` also appends, so
+  // it's the true count of NEEDS_REVIEW places matching the current
+  // assignment filter, i.e. what "Split Queue" actually operates on.
+  const [matchingTotal, setMatchingTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   // Places whose aiDecision=DUPLICATE tag still has a live PENDING merge —
   // aiDecision itself never changes once set, so after a merge is applied or
@@ -162,12 +176,75 @@ export default function VerificationQueuePage() {
   const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>("");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
 
+  const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>("");
+  const [currentAdminId, setCurrentAdminId] = useState<string | null>(null);
+  // Assigning/splitting work is ADMIN-role-only on the backend (see
+  // place/api/v1/routes.go's adminOnly gate on PATCH /places/bulk-assign) —
+  // hide the write-side controls for anyone else so they don't hit a 403
+  // clicking Assign, while still letting everyone view/filter by assignee.
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [adminUsersError, setAdminUsersError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [assignTarget, setAssignTarget] = useState("");
+  const [assigning, setAssigning] = useState(false);
+  const [splitModalOpen, setSplitModalOpen] = useState(false);
+  const [splitScope, setSplitScope] = useState<"selected" | "all">("selected");
+  const [myAssignedCount, setMyAssignedCount] = useState(0);
+
+  useEffect(() => {
+    void fetchCurrentAdmin().then((me) => {
+      setCurrentAdminId(me?.adminId ?? null);
+      setIsAdmin(me?.permissionLevel === "ADMIN");
+    });
+    void fetchUsers({ pageSize: 100 })
+      .then((res) => setAdminUsers(res.data))
+      .catch((cause) => {
+        // GET /admin/users is ADMIN-role-only on the backend — a
+        // DATA_EDITOR/DATA_REVIEWER logged-in account gets a 403 here.
+        // Surface that instead of silently leaving the assign/split
+        // pickers looking empty with no explanation.
+        console.warn("fetchUsers failed:", cause);
+        setAdminUsersError(
+          cause instanceof Error ? cause.message : "Failed to load admin users",
+        );
+      });
+  }, []);
+
+  const adminNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    adminUsers.forEach((u) => map.set(u.id, u.fullName || u.email));
+    return map;
+  }, [adminUsers]);
+
+  // Translates the "assigned to me / unassigned / <person>" UI filter into
+  // the two real backend query params — shared by load() and "Split Queue"
+  // (which needs the exact same matching set, just unpaginated).
+  const assignmentQueryParams = useCallback(() => {
+    const assignedToId =
+      assignmentFilter === "me"
+        ? currentAdminId ?? undefined
+        : assignmentFilter && assignmentFilter !== "unassigned"
+          ? assignmentFilter
+          : undefined;
+    const unassigned = assignmentFilter === "unassigned";
+    return { assignedToId, unassigned };
+  }, [assignmentFilter, currentAdminId]);
+
   const load = useCallback(async () => {
     setLoading(true);
-    const [res, pendingMerges] = await Promise.all([
-      fetchVerificationQueue({ pageSize: 50 }),
+    const { assignedToId, unassigned } = assignmentQueryParams();
+
+    const [res, pendingMerges, myAssigned] = await Promise.all([
+      fetchVerificationQueue({ pageSize: 50, assignedToId, unassigned }),
       fetchMergeRecords({ status: "PENDING", limit: 100 }),
+      // Independent of the page's own assignment filter — this is always
+      // "how much of the queue is mine right now", for the KPI card below.
+      currentAdminId
+        ? fetchVerificationQueue({ pageSize: 1, assignedToId: currentAdminId })
+        : Promise.resolve(null),
     ]);
+    setMyAssignedCount(myAssigned?.total ?? 0);
 
     // A PENDING merge_record is an unresolved duplicate-candidate regardless
     // of whether the two places it references have since been individually
@@ -195,13 +272,89 @@ export default function VerificationQueuePage() {
 
     setRows([...res.data, ...orphans]);
     setTotal(res.total + orphans.length);
+    setMatchingTotal(res.total);
     setPendingMergeIds(nextPendingMergeIds);
     setLoading(false);
-  }, []);
+  }, [assignmentQueryParams, currentAdminId]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function handleBulkAssign(assignedToId: string | null) {
+    setAssigning(true);
+    try {
+      await bulkAssignPlaces(Array.from(selectedIds).map(Number), assignedToId);
+      setSelectedIds(new Set());
+      setAssignTarget("");
+      await load();
+    } catch (cause) {
+      console.warn("bulkAssignPlaces failed:", cause);
+    } finally {
+      setAssigning(false);
+    }
+  }
+
+  // PATCH /places/bulk-assign caps a single call at 500 ids (see
+  // BulkAssignPlacesRequest's validate tag on the backend) — anything
+  // splitting the whole queue must chunk each person's share into batches
+  // this small, not just fire one call per person.
+  const MAX_IDS_PER_CALL = 500;
+
+  function chunk<T>(arr: T[], size: number): T[][] {
+    const out: T[][] = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+  }
+
+  async function assignChunked(placeIds: number[], assignedToId: string) {
+    for (const part of chunk(placeIds, MAX_IDS_PER_CALL)) {
+      await bulkAssignPlaces(part, assignedToId);
+    }
+  }
+
+  // Splits either the current checkbox selection or every place currently
+  // matching the queue's assignment filter (scope: "all" — fetched fresh,
+  // unpaginated, since the table itself only ever loads 50 rows at a time)
+  // round-robin across the chosen people, so counts differ by at most 1
+  // (e.g. 5000 places / 3 people -> 1667/1667/1666) rather than everyone
+  // getting the exact same place.
+  async function handleSplitAssign(targetIds: string[], scope: "selected" | "all") {
+    if (targetIds.length === 0) return;
+    setAssigning(true);
+    try {
+      let ids: number[];
+      if (scope === "all") {
+        const { assignedToId, unassigned } = assignmentQueryParams();
+        const res = await fetchVerificationQueue({
+          pageSize: Math.max(matchingTotal, 1),
+          assignedToId,
+          unassigned,
+        });
+        ids = res.data.map((p) => p.id);
+      } else {
+        ids = Array.from(selectedIds).map(Number);
+      }
+
+      const buckets: number[][] = targetIds.map(() => []);
+      ids.forEach((id, i) => buckets[i % targetIds.length].push(id));
+
+      await Promise.all(
+        buckets
+          .map((bucket, i) => ({ bucket, adminId: targetIds[i] }))
+          .filter(({ bucket }) => bucket.length > 0)
+          .map(({ bucket, adminId }) => assignChunked(bucket, adminId)),
+      );
+
+      setSelectedIds(new Set());
+      setSplitModalOpen(false);
+      await load();
+    } catch (cause) {
+      console.warn("split assign failed:", cause);
+    } finally {
+      setAssigning(false);
+    }
+  }
 
   const columns: ColumnDef<QueuedPlace>[] = useMemo(
     () => [
@@ -277,8 +430,26 @@ export default function VerificationQueuePage() {
           </div>
         ),
       },
+      {
+        id: "assignedTo",
+        accessorFn: (r) => (r.assignedToId ? adminNameById.get(r.assignedToId) ?? r.assignedToId : ""),
+        header: "Assigned To",
+        size: 140,
+        cell: ({ row }) => {
+          const id = row.original.assignedToId;
+          if (!id) {
+            return <span className="text-[11px] text-[color:var(--text-muted)]">Unassigned</span>;
+          }
+          return (
+            <span className="inline-flex items-center gap-1.5 text-[11.5px] text-[color:var(--text-secondary)]">
+              <UserCircle2 className="h-3.5 w-3.5 text-[color:var(--text-muted)]" />
+              {adminNameById.get(id) ?? id}
+            </span>
+          );
+        },
+      },
     ],
-    [pendingMergeIds],
+    [pendingMergeIds, adminNameById],
   );
 
   const highPriorityCount = rows.filter(
@@ -313,7 +484,9 @@ export default function VerificationQueuePage() {
     });
   }, [rows, search, aiDecisionFilter, trustFilter, visibilityFilter]);
 
-  const activeFilterCount = [aiDecisionFilter, trustFilter, visibilityFilter].filter(Boolean).length;
+  const activeFilterCount = [aiDecisionFilter, trustFilter, visibilityFilter, assignmentFilter].filter(
+    Boolean,
+  ).length;
   const filtersActive = Boolean(search || activeFilterCount > 0);
 
   function clearFilters() {
@@ -321,6 +494,7 @@ export default function VerificationQueuePage() {
     setAiDecisionFilter("");
     setTrustFilter("");
     setVisibilityFilter("");
+    setAssignmentFilter("");
   }
 
   function goToPlace(row: QueuedPlace) {
@@ -376,6 +550,20 @@ export default function VerificationQueuePage() {
               <ShieldAlert className="h-3 w-3" />
               {highPriorityCount} High Priority
             </Badge>
+            {isAdmin ? (
+              <button
+                type="button"
+                disabled={matchingTotal < 2}
+                onClick={() => {
+                  setSplitScope("all");
+                  setSplitModalOpen(true);
+                }}
+                className="glass-surface glass-glow relative inline-flex items-center gap-1.5 rounded-lg border-0 px-3 py-1.5 text-[12px] font-medium text-[color:var(--text-primary)] transition hover:text-[color:var(--text-primary)] disabled:pointer-events-none disabled:opacity-40"
+              >
+                <Shuffle className="h-3.5 w-3.5" />
+                Split Queue…
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => void load()}
@@ -426,6 +614,14 @@ export default function VerificationQueuePage() {
                 tone: "neutral" as Tone,
                 delta: "no AI validation submitted",
                 onClick: () => setAiDecisionFilter("NONE"),
+              },
+              {
+                label: "Assigned to Me",
+                value: myAssignedCount,
+                icon: UserCircle2,
+                tone: "accent" as Tone,
+                delta: "assignedToId = me, real total",
+                onClick: () => setAssignmentFilter("me"),
               },
             ].map((k) => {
               const Icon = k.icon;
@@ -484,9 +680,9 @@ export default function VerificationQueuePage() {
               </div>
             </CardHeader>
 
-            {/* Toolbar: search and filter side by side */}
-            <CardContent className="flex items-center gap-3 px-6 pb-0 pt-5">
-              <div className="relative flex-1">
+            {/* Toolbar: search on the left, all filtering (incl. assignment) lives behind the Filters modal on the right */}
+            <CardContent className="flex items-center justify-between gap-3 px-6 pb-0 pt-5">
+              <div className="relative w-full max-w-sm">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[color:var(--text-muted)]" />
                 <input
                   value={search}
@@ -497,36 +693,99 @@ export default function VerificationQueuePage() {
                 />
               </div>
 
-              <button
-                type="button"
-                onClick={() => setFilterModalOpen(true)}
-                className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-[12px] font-medium transition",
-                  activeFilterCount > 0
-                    ? "border-[color:var(--orange-400)]/40 bg-[color:var(--orange-500)]/12 text-[color:var(--orange-400)] hover:bg-[color:var(--orange-500)]/20"
-                    : "border-[color:var(--border)] bg-[color:var(--surface-1)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-3)]",
-                )}
-              >
-                <SlidersHorizontal className="h-3.5 w-3.5" />
-                Filters
-                {activeFilterCount > 0 ? (
-                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[color:var(--orange-400)] px-1 text-[10px] font-semibold text-black">
-                    {activeFilterCount}
-                  </span>
+              <div className="flex shrink-0 items-center gap-2">
+                {filtersActive ? (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-2.5 py-1.5 text-[11.5px] text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)]"
+                  >
+                    <X className="h-3 w-3" />
+                    Clear
+                  </button>
                 ) : null}
-              </button>
 
-              {filtersActive ? (
                 <button
                   type="button"
-                  onClick={clearFilters}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-2.5 py-1.5 text-[11.5px] text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)]"
+                  onClick={() => setFilterModalOpen(true)}
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-[12px] font-medium transition",
+                    activeFilterCount > 0
+                      ? "border-[color:var(--orange-400)]/40 bg-[color:var(--orange-500)]/12 text-[color:var(--orange-400)] hover:bg-[color:var(--orange-500)]/20"
+                      : "border-[color:var(--border)] bg-[color:var(--surface-1)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-3)]",
+                  )}
                 >
-                  <X className="h-3 w-3" />
-                  Clear
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  Filters
+                  {activeFilterCount > 0 ? (
+                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[color:var(--orange-400)] px-1 text-[10px] font-semibold text-black">
+                      {activeFilterCount}
+                    </span>
+                  ) : null}
                 </button>
-              ) : null}
+              </div>
             </CardContent>
+
+            {isAdmin && selectedIds.size > 0 ? (
+              <CardContent className="px-6 pb-0 pt-4">
+                <div className="flex flex-wrap items-center gap-2.5 rounded-md border border-[color:var(--orange-400)]/30 bg-[color:var(--orange-500)]/10 px-3.5 py-2.5">
+                  <Users className="h-3.5 w-3.5 text-[color:var(--orange-400)]" />
+                  <span className="text-[12px] font-medium text-[color:var(--text-primary)]">
+                    {selectedIds.size} selected
+                  </span>
+                  <select
+                    value={assignTarget}
+                    onChange={(e) => setAssignTarget(e.target.value)}
+                    className="rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-2.5 py-1.5 text-[12px] text-[color:var(--text-secondary)] outline-none focus:border-[color:var(--orange-400)]/50"
+                  >
+                    <option value="">Assign to…</option>
+                    {adminUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.fullName || u.email}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={!assignTarget || assigning}
+                    onClick={() => void handleBulkAssign(assignTarget)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[color:var(--orange-400)]/40 bg-[color:var(--orange-500)]/15 px-3 py-1.5 text-[12px] font-medium text-[color:var(--orange-400)] transition hover:bg-[color:var(--orange-500)]/25 disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    Assign
+                  </button>
+                  <button
+                    type="button"
+                    disabled={assigning}
+                    onClick={() => void handleBulkAssign(null)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-3 py-1.5 text-[12px] text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)] disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    Unassign
+                  </button>
+                  <span className="h-4 w-px bg-[color:var(--border)]" />
+                  <button
+                    type="button"
+                    disabled={selectedIds.size < 2 || assigning}
+                    onClick={() => {
+                      setSplitScope("selected");
+                      setSplitModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-3 py-1.5 text-[12px] text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)] disabled:pointer-events-none disabled:opacity-40"
+                  >
+                    <Shuffle className="h-3.5 w-3.5" />
+                    Split evenly…
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedIds(new Set())}
+                    className="ml-auto inline-flex items-center gap-1 text-[11.5px] text-[color:var(--text-muted)] transition hover:text-[color:var(--text-primary)]"
+                  >
+                    <X className="h-3 w-3" />
+                    Clear selection
+                  </button>
+                </div>
+              </CardContent>
+            ) : null}
 
             <CardContent className="px-6 pb-6 pt-4">
               {rows.length === 0 && !loading ? (
@@ -540,6 +799,10 @@ export default function VerificationQueuePage() {
                   loading={loading}
                   emptyMessage="No records match these filters."
                   onRowClick={goToPlace}
+                  enableSelection={isAdmin}
+                  getRowId={(r) => String(r.id)}
+                  selectedIds={selectedIds}
+                  onSelectionChange={setSelectedIds}
                 />
               )}
             </CardContent>
@@ -553,13 +816,28 @@ export default function VerificationQueuePage() {
         aiDecisionFilter={aiDecisionFilter}
         trustFilter={trustFilter}
         visibilityFilter={visibilityFilter}
-        onApply={(ai, trust, visibility) => {
+        assignmentFilter={assignmentFilter}
+        adminUsers={adminUsers}
+        onApply={(ai, trust, visibility, assignment) => {
           setAiDecisionFilter(ai);
           setTrustFilter(trust);
           setVisibilityFilter(visibility);
+          setAssignmentFilter(assignment);
           setFilterModalOpen(false);
         }}
       />
+
+      {splitModalOpen ? (
+        <SplitAssignModal
+          onClose={() => setSplitModalOpen(false)}
+          adminUsers={adminUsers}
+          adminUsersError={adminUsersError}
+          scope={splitScope}
+          placeCount={splitScope === "all" ? matchingTotal : selectedIds.size}
+          assigning={assigning}
+          onDivide={(targetIds) => void handleSplitAssign(targetIds, splitScope)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -570,7 +848,14 @@ type FilterModalProps = {
   aiDecisionFilter: AIDecisionFilter;
   trustFilter: TrustFilter;
   visibilityFilter: VisibilityFilter;
-  onApply: (ai: AIDecisionFilter, trust: TrustFilter, visibility: VisibilityFilter) => void;
+  assignmentFilter: AssignmentFilter;
+  adminUsers: AdminUser[];
+  onApply: (
+    ai: AIDecisionFilter,
+    trust: TrustFilter,
+    visibility: VisibilityFilter,
+    assignment: AssignmentFilter,
+  ) => void;
 };
 
 function FilterModal({
@@ -579,19 +864,23 @@ function FilterModal({
   aiDecisionFilter,
   trustFilter,
   visibilityFilter,
+  assignmentFilter,
+  adminUsers,
   onApply,
 }: FilterModalProps) {
   const [draftAi, setDraftAi] = useState<AIDecisionFilter>(aiDecisionFilter);
   const [draftTrust, setDraftTrust] = useState<TrustFilter>(trustFilter);
   const [draftVisibility, setDraftVisibility] = useState<VisibilityFilter>(visibilityFilter);
+  const [draftAssignment, setDraftAssignment] = useState<AssignmentFilter>(assignmentFilter);
 
   useEffect(() => {
     if (isOpen) {
       setDraftAi(aiDecisionFilter);
       setDraftTrust(trustFilter);
       setDraftVisibility(visibilityFilter);
+      setDraftAssignment(assignmentFilter);
     }
-  }, [isOpen, aiDecisionFilter, trustFilter, visibilityFilter]);
+  }, [isOpen, aiDecisionFilter, trustFilter, visibilityFilter, assignmentFilter]);
 
   if (!isOpen) return null;
 
@@ -666,6 +955,26 @@ function FilterModal({
               <option value="hidden">Hidden</option>
             </select>
           </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[color:var(--text-muted)]">
+              Assigned to
+            </label>
+            <select
+              value={draftAssignment}
+              onChange={(e) => setDraftAssignment(e.target.value)}
+              className="w-full rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-3 py-2 text-[12.5px] text-[color:var(--text-primary)] outline-none focus:border-[color:var(--orange-400)]/50"
+            >
+              <option value="">All assignees</option>
+              <option value="me">Assigned to me</option>
+              <option value="unassigned">Unassigned</option>
+              {adminUsers.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.fullName || u.email}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-[color:var(--border)] px-5 py-4">
@@ -675,6 +984,7 @@ function FilterModal({
               setDraftAi("");
               setDraftTrust("");
               setDraftVisibility("");
+              setDraftAssignment("");
             }}
             className="rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-3 py-1.5 text-[12px] text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)]"
           >
@@ -682,11 +992,149 @@ function FilterModal({
           </button>
           <button
             type="button"
-            onClick={() => onApply(draftAi, draftTrust, draftVisibility)}
+            onClick={() => onApply(draftAi, draftTrust, draftVisibility, draftAssignment)}
             className="inline-flex items-center gap-1.5 rounded-md border border-[color:var(--orange-400)]/40 bg-[color:var(--orange-500)]/15 px-4 py-1.5 text-[12px] font-medium text-[color:var(--orange-400)] transition hover:bg-[color:var(--orange-500)]/25"
           >
             <Check className="h-3.5 w-3.5" />
             Apply filters
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type SplitAssignModalProps = {
+  onClose: () => void;
+  adminUsers: AdminUser[];
+  adminUsersError: string | null;
+  scope: "selected" | "all";
+  placeCount: number;
+  assigning: boolean;
+  onDivide: (targetIds: string[]) => void;
+};
+
+// Divides either the checkbox selection or the entire matching queue
+// round-robin across every checked person here — see handleSplitAssign for
+// the actual chunking logic. Only ever mounted while open (see the call
+// site), so `checked` starts fresh each time without needing a reset effect.
+function SplitAssignModal({
+  onClose,
+  adminUsers,
+  adminUsersError,
+  scope,
+  placeCount,
+  assigning,
+  onDivide,
+}: SplitAssignModalProps) {
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+
+  function toggle(id: string) {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const n = checked.size;
+  const per = n > 0 ? Math.floor(placeCount / n) : 0;
+  const remainder = n > 0 ? placeCount % n : 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-sm overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-2)] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[color:var(--border)] px-5 py-4">
+          <div className="flex items-center gap-2">
+            <Shuffle className="h-4 w-4 text-[color:var(--text-secondary)]" />
+            <span className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
+              Split evenly
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-[color:var(--text-muted)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-primary)]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-3 px-5 py-5">
+          <p className="text-[11.5px] text-[color:var(--text-muted)]">
+            {scope === "all" ? (
+              <>
+                Divide all <strong className="text-[color:var(--text-secondary)]">{placeCount}</strong>{" "}
+                place{placeCount === 1 ? "" : "s"} currently matching the queue&rsquo;s assignment
+                filter equally between the people you check below — not just what&rsquo;s loaded on
+                screen.
+              </>
+            ) : (
+              <>
+                Divide the {placeCount} selected place{placeCount === 1 ? "" : "s"} equally between the
+                people you check below.
+              </>
+            )}
+          </p>
+
+          <div className="flex max-h-56 flex-col gap-1 overflow-y-auto rounded-md border border-[color:var(--border)] p-1.5">
+            {adminUsersError ? (
+              <div className="px-2 py-3 text-center text-[11.5px] text-[color:var(--text-danger)]">
+                Couldn&rsquo;t load admin users ({adminUsersError}). Your account may not have
+                permission to list other users — an ADMIN-role account is needed.
+              </div>
+            ) : adminUsers.length === 0 ? (
+              <div className="px-2 py-3 text-center text-[11.5px] text-[color:var(--text-muted)]">
+                No other admin users exist yet — add some under System → Users first.
+              </div>
+            ) : (
+              adminUsers.map((u) => (
+                <label
+                  key={u.id}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[12px] text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)]"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked.has(u.id)}
+                    onChange={() => toggle(u.id)}
+                    className="h-3.5 w-3.5 cursor-pointer accent-[color:var(--orange-400)]"
+                  />
+                  {u.fullName || u.email}
+                </label>
+              ))
+            )}
+          </div>
+
+          {n > 0 ? (
+            <p className="text-[11px] text-[color:var(--text-muted)]">
+              {n} people selected — {per}
+              {remainder > 0 ? `–${per + 1}` : ""} places each.
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-[color:var(--border)] px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-3 py-1.5 text-[12px] text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={n < 2 || assigning}
+            onClick={() => onDivide(Array.from(checked))}
+            className="inline-flex items-center gap-1.5 rounded-md border border-[color:var(--orange-400)]/40 bg-[color:var(--orange-500)]/15 px-4 py-1.5 text-[12px] font-medium text-[color:var(--orange-400)] transition hover:bg-[color:var(--orange-500)]/25 disabled:pointer-events-none disabled:opacity-40"
+          >
+            <Shuffle className="h-3.5 w-3.5" />
+            Divide
           </button>
         </div>
       </div>
