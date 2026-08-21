@@ -8,11 +8,15 @@ import {
   ArrowLeft,
   Check,
   CheckCircle2,
+  Loader2,
   MapPin,
+  Pencil,
   Plus,
   RefreshCw,
   Save,
+  Search,
   ShieldAlert,
+  Tag,
   Trash2,
   X,
 } from "lucide-react";
@@ -21,6 +25,8 @@ import { Badge } from "@/components/ui/badge";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/features/shared/GlassCard";
 import { cn } from "@/lib/utils";
+import { createCategory, createSlug, fetchParentCategories, getLocalizedName } from "@/features/category/categories/api";
+import type { Category } from "@/features/category/categories/types";
 import {
   fetchAdminLevelChain,
   fetchPlace,
@@ -136,6 +142,234 @@ function SelectField({
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+function CategoryField({
+  categoryId,
+  categories,
+  onChange,
+  onCategoryCreated,
+}: {
+  categoryId: string;
+  categories: Category[];
+  onChange: (id: string) => void;
+  onCategoryCreated: (category: Category) => void;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const selected = categories.find((c) => c.id === categoryId);
+  const label = !categoryId
+    ? "— none —"
+    : selected
+      ? getLocalizedName(selected, "en")
+      : `Unknown category (${categoryId})`;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <FieldLabel>Category</FieldLabel>
+      <div className="flex items-center gap-2">
+        <div
+          className={cn(
+            inputClass,
+            "flex-1 truncate font-sans",
+            !categoryId && "text-[color:var(--text-muted)]",
+          )}
+        >
+          {label}
+        </div>
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-3 py-1.5 text-[11.5px] text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)]"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          Change
+        </button>
+      </div>
+      <CategoryPickerModal
+        isOpen={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        categories={categories}
+        currentId={categoryId}
+        onSelect={(id) => {
+          onChange(id);
+          setPickerOpen(false);
+        }}
+        onCategoryCreated={onCategoryCreated}
+      />
+    </div>
+  );
+}
+
+function CategoryPickerModal({
+  isOpen,
+  onClose,
+  categories,
+  currentId,
+  onSelect,
+  onCategoryCreated,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  categories: Category[];
+  currentId: string;
+  onSelect: (id: string) => void;
+  onCategoryCreated: (category: Category) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setQuery("");
+      setCreateError(null);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const trimmedQuery = query.trim();
+  const q = trimmedQuery.toLowerCase();
+  const results = q
+    ? categories.filter(
+        (c) =>
+          getLocalizedName(c, "en").toLowerCase().includes(q) ||
+          (c.name.am ?? "").toLowerCase().includes(q) ||
+          c.slug.toLowerCase().includes(q),
+      )
+    : categories;
+
+  // Only offer "create" once there's a query with no exact name match —
+  // a partial match (e.g. "Cafe" matching "Cafes") should still just filter,
+  // not tempt the admin into creating a near-duplicate category.
+  const exactMatch = q ? categories.some((c) => getLocalizedName(c, "en").toLowerCase() === q) : false;
+  const offerCreate = trimmedQuery.length > 0 && !exactMatch;
+
+  async function handleCreate() {
+    if (!trimmedQuery || creating) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const created = await createCategory({
+        nameEn: trimmedQuery,
+        nameAm: "",
+        slug: createSlug(trimmedQuery),
+        parentId: "",
+        icon: "",
+      });
+      onCategoryCreated(created);
+      onSelect(created.id);
+    } catch (cause) {
+      setCreateError(cause instanceof Error ? cause.message : "Failed to create category.");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="flex w-full max-w-md flex-col overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-2)] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[color:var(--border)] px-5 py-4">
+          <div className="flex items-center gap-2">
+            <Tag className="h-4 w-4 text-[color:var(--text-secondary)]" />
+            <span className="font-display text-[14px] font-semibold text-[color:var(--text-primary)]">
+              Select Category
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-[color:var(--text-muted)] transition hover:bg-[color:var(--surface-3)] hover:text-[color:var(--text-primary)]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="border-b border-[color:var(--border)] px-5 py-3">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[color:var(--text-muted)]" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search categories by name or slug…"
+              className="w-full rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] py-1.5 text-[12px] text-[color:var(--text-primary)] outline-none focus:border-[color:var(--orange-400)]/50"
+              style={{ paddingLeft: 32, paddingRight: 12 }}
+            />
+          </div>
+        </div>
+
+        <div className="max-h-80 overflow-y-auto px-2 py-2">
+          <button
+            type="button"
+            onClick={() => onSelect("")}
+            className={cn(
+              "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-[12px] transition hover:bg-[color:var(--surface-3)]",
+              !currentId
+                ? "bg-[color:var(--orange-500)]/12 text-[color:var(--orange-400)]"
+                : "text-[color:var(--text-secondary)]",
+            )}
+          >
+            — none —
+            {!currentId ? <Check className="h-3.5 w-3.5" /> : null}
+          </button>
+
+          {results.length === 0 && !offerCreate ? (
+            <div className="px-3 py-6 text-center text-[11.5px] text-[color:var(--text-muted)]">
+              No categories match.
+            </div>
+          ) : (
+            results.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onSelect(c.id)}
+                className={cn(
+                  "flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-[12px] transition hover:bg-[color:var(--surface-3)]",
+                  c.id === currentId
+                    ? "bg-[color:var(--orange-500)]/12 text-[color:var(--orange-400)]"
+                    : "text-[color:var(--text-primary)]",
+                )}
+              >
+                <span className="truncate">
+                  {getLocalizedName(c, "en")}
+                  <span className="ml-1.5 text-[10.5px] text-[color:var(--text-muted)]">{c.slug}</span>
+                </span>
+                {c.id === currentId ? <Check className="h-3.5 w-3.5 shrink-0" /> : null}
+              </button>
+            ))
+          )}
+
+          {offerCreate ? (
+            <button
+              type="button"
+              onClick={() => void handleCreate()}
+              disabled={creating}
+              className="mt-1 flex w-full items-center gap-2 rounded-md border border-dashed border-[color:var(--border-strong)] px-3 py-2 text-left text-[12px] text-[color:var(--orange-400)] transition hover:bg-[color:var(--orange-500)]/10 disabled:opacity-60"
+            >
+              {creating ? <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" /> : <Plus className="h-3.5 w-3.5 shrink-0" />}
+              <span className="truncate">
+                {creating ? "Creating…" : (
+                  <>
+                    Create category <span className="font-semibold">&ldquo;{trimmedQuery}&rdquo;</span>
+                  </>
+                )}
+              </span>
+            </button>
+          ) : null}
+
+          {createError ? (
+            <div className="mt-2 px-3 text-[11px] text-[color:var(--text-danger)]">{createError}</div>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
@@ -377,6 +611,11 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
   const [attributes, setAttributes] = useState<AttributeDraft[]>([]);
   const [images, setImages] = useState<ImageDraft[]>([]);
   const [chainDraft, setChainDraft] = useState<{ level: number; name: string }[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    void fetchParentCategories().then(setCategories);
+  }, []);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -793,7 +1032,12 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
               <SelectField label="Place type" value={form.placeType} onChange={(v) => set("placeType", v)} options={PLACE_TYPES} allowEmpty={false} />
               <SelectField label="Access type" value={form.accessType} onChange={(v) => set("accessType", v)} options={ACCESS_TYPES} />
             </div>
-            <TextField label="Category ID (UUID, optional)" value={form.categoryId} onChange={(v) => set("categoryId", v)} placeholder="00000000-0000-0000-0000-000000000000" />
+            <CategoryField
+              categoryId={form.categoryId}
+              categories={categories}
+              onChange={(v) => set("categoryId", v)}
+              onCategoryCreated={(c) => setCategories((prev) => [...prev, c])}
+            />
             <CheckboxField label="Active (business is open)" checked={form.isActive} onChange={(v) => set("isActive", v)} />
           </Section>
 
@@ -820,6 +1064,12 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
                 className={inputClass}
                 value={newLangCode}
                 onChange={(e) => setNewLangCode(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addLanguage();
+                  }
+                }}
                 placeholder="language code, e.g. am"
                 maxLength={5}
               />

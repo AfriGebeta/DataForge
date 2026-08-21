@@ -232,14 +232,53 @@ export default function PlaceListPage() {
 
       {error ? <div className="category-inline-error">{error}</div> : null}
 
-      <div className="toolbar" style={{ flexWrap: "wrap" }}>
+      <div style={{ position: "relative", maxWidth: 420 }}>
+        <i
+          className="ti ti-search"
+          style={{
+            position: "absolute",
+            left: 12,
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "var(--text-muted)",
+            fontSize: 15,
+            pointerEvents: "none",
+          }}
+        />
         <input
           type="text"
           placeholder="Search by name or ID…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          style={{ width: 200 }}
+          style={{ width: "100%", paddingLeft: 34, paddingRight: searchQuery ? 34 : 10 }}
         />
+        {searchQuery ? (
+          <button
+            type="button"
+            onClick={() => setSearchQuery("")}
+            aria-label="Clear search"
+            style={{
+              position: "absolute",
+              right: 8,
+              top: "50%",
+              transform: "translateY(-50%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 20,
+              height: 20,
+              border: "none",
+              background: "transparent",
+              color: "var(--text-muted)",
+              cursor: "pointer",
+            }}
+          >
+            <i className="ti ti-x" style={{ fontSize: 13 }} />
+          </button>
+        ) : null}
+      </div>
+
+      <div className="toolbar" style={{ flexWrap: "wrap" }}>
         <select className="glass-select" style={{ width: 150 }} value={filterType} onChange={(e) => setFilterType(e.target.value as TPlaceType | "")}>
           <option value="">All types</option>
           {PLACE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}

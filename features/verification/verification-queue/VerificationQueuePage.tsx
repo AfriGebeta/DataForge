@@ -492,7 +492,8 @@ export default function VerificationQueuePage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search by name or place ID…"
-                  className="w-full rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] py-1.5 pl-8 pr-3 text-[12px] text-[color:var(--text-primary)] outline-none focus:border-[color:var(--orange-400)]/50"
+                  className="w-full rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] py-1.5 text-[12px] text-[color:var(--text-primary)] outline-none focus:border-[color:var(--orange-400)]/50"
+                  style={{ paddingLeft: 32, paddingRight: 12 }}
                 />
               </div>
 
