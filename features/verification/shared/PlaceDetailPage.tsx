@@ -594,6 +594,19 @@ function intOrUndef(s: string): number | undefined {
   return Number.isNaN(n) ? undefined : n;
 }
 
+/** Serializes the editable form state for cheap dirty-checking against a baseline. */
+function snapshotOf(
+  form: FormState,
+  names: Record<string, string>,
+  contacts: ContactDraft[],
+  hours: HourDraft[],
+  attributes: AttributeDraft[],
+  images: ImageDraft[],
+  chainDraft: { level: number; name: string }[],
+): string {
+  return JSON.stringify({ form, names, contacts, hours, attributes, images, chainDraft });
+}
+
 export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: Props) {
   const router = useRouter();
   const [place, setPlace] = useState<PlaceDetail | null>(null);
@@ -613,6 +626,12 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
   const [chainDraft, setChainDraft] = useState<{ level: number; name: string }[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
 
+  // Snapshot of form/names/contacts/hours/attributes/images/chainDraft as of
+  // the last successful load or save. Compared (during render, see isDirty
+  // below) against a live snapshot to tell whether there are pending edits,
+  // so Approve/Reject can save them first instead of silently discarding them.
+  const [baseline, setBaseline] = useState<string>("");
+
   useEffect(() => {
     void fetchParentCategories().then(setCategories);
   }, []);
@@ -630,9 +649,8 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
       p.names.forEach((n) => {
         nameMap[n.languageCode] = n.name;
       });
-      setNames(nameMap);
 
-      setForm({
+      const nextForm: FormState = {
         placeType: p.placeType ?? "",
         accessType: p.accessType ?? "",
         categoryId: p.categoryId ?? "",
@@ -667,42 +685,50 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
         woredaNumber: p.address?.woredaNumber ?? "",
         kebeleNumber: p.address?.kebeleNumber ?? "",
         isVerified: p.address?.isVerified ?? false,
-      });
+      };
 
-      setContacts((p.contacts ?? []).map((c) => ({ type: c.type, value: c.value, label: c.label })));
-      setHours(
-        (p.openingHours ?? []).map((h) => ({
-          weekday: h.weekday,
-          opensAt: h.opensAt,
-          closesAt: h.closesAt,
-          isClosed: h.isClosed,
-          label: h.label,
-        })),
-      );
-      setAttributes(
-        (p.attributes ?? []).map((a) => ({
-          key: a.key,
-          value: typeof a.value === "string" ? a.value : JSON.stringify(a.value),
-          valueType: a.valueType,
-        })),
-      );
-      setImages((p.images ?? []).map((i) => ({ url: i.url, isPrimary: i.isPrimary, blurhash: i.blurhash })));
+      const nextContacts = (p.contacts ?? []).map((c) => ({ type: c.type, value: c.value, label: c.label }));
+      const nextHours = (p.openingHours ?? []).map((h) => ({
+        weekday: h.weekday,
+        opensAt: h.opensAt,
+        closesAt: h.closesAt,
+        isClosed: h.isClosed,
+        label: h.label,
+      }));
+      const nextAttributes = (p.attributes ?? []).map((a) => ({
+        key: a.key,
+        value: typeof a.value === "string" ? a.value : JSON.stringify(a.value),
+        valueType: a.valueType,
+      }));
+      const nextImages = (p.images ?? []).map((i) => ({ url: i.url, isPrimary: i.isPrimary, blurhash: i.blurhash }));
+
+      setNames(nameMap);
+      setForm(nextForm);
+      setContacts(nextContacts);
+      setHours(nextHours);
+      setAttributes(nextAttributes);
+      setImages(nextImages);
 
       const f = await fetchPlaceFlags(placeId);
       setFlags(f);
 
+      let nextChainDraft: { level: number; name: string }[];
       if (p.address?.id) {
         const rows = await fetchAdminLevelChain(p.address.id);
         setChain(rows);
-        setChainDraft(
+        nextChainDraft =
           rows.length > 0
             ? rows.map((r) => ({ level: r.level, name: r.name.en ?? Object.values(r.name)[0] ?? "" }))
-            : [0, 1, 2, 3].map((level) => ({ level, name: "" })),
-        );
+            : [0, 1, 2, 3].map((level) => ({ level, name: "" }));
       } else {
         setChain([]);
-        setChainDraft([]);
+        nextChainDraft = [];
       }
+      setChainDraft(nextChainDraft);
+
+      setBaseline(snapshotOf(nextForm, nameMap, nextContacts, nextHours, nextAttributes, nextImages, nextChainDraft));
+    } else {
+      setBaseline("");
     }
     setLoading(false);
   }, [placeId]);
@@ -710,6 +736,9 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const isDirty =
+    baseline !== "" && baseline !== snapshotOf(form, names, contacts, hours, attributes, images, chainDraft);
 
   const geoFlagged =
     place?.aiValues?.aiGeoValid === false ||
@@ -721,13 +750,16 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
     (f) => (f.category === "HIERARCHY" || f.category === "ADDRESS") && !f.is_resolved,
   );
 
-  async function handleSave() {
-    if (!place) return;
+  // Builds the update payload from current form state and PUTs it. Shared by
+  // handleSave and handleDecision (the latter uses it to persist pending
+  // edits before approving/rejecting, instead of silently discarding them).
+  async function saveChanges(): Promise<boolean> {
+    if (!place) return false;
     const lat = Number(form.latitude);
     const lng = Number(form.longitude);
     if (Number.isNaN(lat) || Number.isNaN(lng)) {
       setToast("Latitude/longitude must be numbers.");
-      return;
+      return false;
     }
     setSaving(true);
 
@@ -784,10 +816,18 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
     setSaving(false);
     if (updated) {
       setPlace(updated);
+      setBaseline(snapshotOf(form, names, contacts, hours, attributes, images, chainDraft));
+      return true;
+    }
+    setToast("Save failed — check the backend is reachable.");
+    return false;
+  }
+
+  async function handleSave() {
+    const ok = await saveChanges();
+    if (ok) {
       setToast("Changes saved.");
       void load();
-    } else {
-      setToast("Save failed — check the backend is reachable.");
     }
   }
 
@@ -809,6 +849,10 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
 
   async function handleDecision(decision: "approve" | "reject") {
     if (!place) return;
+    if (isDirty) {
+      const saved = await saveChanges();
+      if (!saved) return; // saveChanges already surfaced why via toast
+    }
     setSaving(true);
     const result = await reviewPlace(place.id, decision);
     setSaving(false);
@@ -1387,6 +1431,11 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
               <Save className="h-3.5 w-3.5" />
               Save Changes
             </button>
+            {isDirty ? (
+              <span className="text-[11px] text-[color:var(--text-muted)]">
+                Unsaved changes — will be saved automatically before Approve/Reject.
+              </span>
+            ) : null}
 
             {mode === "queue" ? (
               <>
