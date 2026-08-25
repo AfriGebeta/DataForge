@@ -772,6 +772,28 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
       setToast("Latitude/longitude must be numbers.");
       return false;
     }
+    const hasOtherAddressInput = [
+      form.countryIso3,
+      form.streetName,
+      form.streetNumber,
+      form.blockNumber,
+      form.buildingNumber,
+      form.buildingName,
+      form.unitNumber,
+      form.floorNumber,
+      form.postcode,
+      form.postBox,
+      form.formattedFull,
+      form.formattedShort,
+      form.landmarkDescription,
+      form.neighborhood,
+      form.woredaNumber,
+      form.kebeleNumber,
+    ].some((v) => v.trim());
+    if (!form.countryIso2.trim() && hasOtherAddressInput) {
+      setToast("Country (ISO2) is required to save any Address field (e.g. Neighborhood) — the whole Address section is otherwise dropped.");
+      return false;
+    }
     setSaving(true);
 
     const payload: UpdatePlacePayload = {
