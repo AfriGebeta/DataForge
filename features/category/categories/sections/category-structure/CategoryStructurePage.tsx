@@ -12,6 +12,7 @@ import {
   flattenCategoryTree,
   mapSearchResults,
   markCategoryReviewed,
+  mergeCategories,
   updateCategory,
 } from "../../api";
 import type {
@@ -59,6 +60,11 @@ function CategoryStructurePageInner() {
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
+  const [mergingCategory, setMergingCategory] = useState<Category | null>(null);
+  const [mergeDefaultTargetId, setMergeDefaultTargetId] = useState<
+    string | undefined
+  >(undefined);
+  const [merging, setMerging] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -282,6 +288,65 @@ function CategoryStructurePageInner() {
     [visibleSelectedIds, load],
   );
 
+  const handleOpenMerge = useCallback((category: Category) => {
+    setMergeDefaultTargetId(undefined);
+    setMergingCategory(category);
+  }, []);
+
+  // Only meaningful with exactly 2 rows checked — the bulk-action bar only
+  // renders this button in that case. Picks one as the modal's `source`
+  // (deleted) and pre-selects the other as the default merge target
+  // (survivor); the admin can still flip the target dropdown to any other
+  // category before confirming.
+  const handleOpenBulkMerge = useCallback(() => {
+    const ids = Array.from(visibleSelectedIds);
+    if (ids.length !== 2) return;
+
+    const [sourceId, defaultTargetId] = ids;
+    const sourceCategory = categories.find((c) => c.id === sourceId);
+    if (!sourceCategory) return;
+
+    setMergeDefaultTargetId(defaultTargetId);
+    setMergingCategory(sourceCategory);
+  }, [visibleSelectedIds, categories]);
+
+  const handleCloseMerge = useCallback(() => {
+    setMergingCategory(null);
+    setMergeDefaultTargetId(undefined);
+  }, []);
+
+  const handleMergeConfirm = useCallback(
+    async (targetId: string) => {
+      if (!mergingCategory) return;
+
+      setMerging(true);
+      setError(null);
+
+      try {
+        const result = await mergeCategories(mergingCategory.id, targetId);
+        const mergedSlug = mergingCategory.slug;
+        setMergingCategory(null);
+        setMergeDefaultTargetId(undefined);
+        setSelectedIds(new Set());
+        setFeedback(
+          `Merged "${mergedSlug}" — moved ${result.movedPlaces} place${
+            result.movedPlaces === 1 ? "" : "s"
+          } and ${result.movedChildren} sub-categor${
+            result.movedChildren === 1 ? "y" : "ies"
+          } into the surviving category.`,
+        );
+        await load();
+      } catch (cause) {
+        setError(
+          cause instanceof Error ? cause.message : "Failed to merge categories.",
+        );
+      } finally {
+        setMerging(false);
+      }
+    },
+    [mergingCategory, load],
+  );
+
   return (
     <div>
       <div
@@ -353,11 +418,13 @@ function CategoryStructurePageInner() {
           onEdit={setEditingCategory}
           onDelete={setDeletingCategory}
           onMarkReviewed={handleMarkReviewed}
+          onMerge={handleOpenMerge}
           selectedIds={visibleSelectedIds}
           onToggleSelect={handleToggleSelect}
           onToggleSelectAll={handleToggleSelectAll}
           onBulkEdit={() => setBulkEditOpen(true)}
           onBulkDelete={() => setBulkDeleteOpen(true)}
+          onBulkMerge={handleOpenBulkMerge}
         />
       </GlassCard>
 
@@ -378,6 +445,11 @@ function CategoryStructurePageInner() {
         onCloseBulkDelete={() => setBulkDeleteOpen(false)}
         onBulkSave={handleBulkSave}
         onBulkDelete={handleBulkDelete}
+        mergingCategory={mergingCategory}
+        mergeDefaultTargetId={mergeDefaultTargetId}
+        merging={merging}
+        onCloseMerge={handleCloseMerge}
+        onMerge={handleMergeConfirm}
       />
     </div>
   );

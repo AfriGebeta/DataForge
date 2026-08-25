@@ -10,6 +10,8 @@ import type {
   CategoryNameMap,
   CategoryTreeNode,
   CreateCategoryRequestBody,
+  MergeCategoryRequestBody,
+  MergeCategoryResponseBody,
   UpdateCategoryRequestBody,
 } from "./types";
 
@@ -403,4 +405,32 @@ export async function bulkUpdateCategories(
     headers: JSON_CONTENT_TYPE_HEADERS,
     body: JSON.stringify(body),
   });
+}
+
+/**
+ * POST /api/v1/categories/{sourceId}/merge — folds `sourceId` (the
+ * duplicate) into `targetId` (the survivor): every place and child category
+ * filed under the duplicate moves to the survivor, then the duplicate is
+ * deleted. Throws on failure (including the backend's self-merge and
+ * "cannot merge into its own descendant" 400s).
+ */
+export async function mergeCategories(
+  sourceId: string,
+  targetId: string,
+): Promise<{ movedPlaces: number; movedChildren: number }> {
+  const body: MergeCategoryRequestBody = { targetId };
+
+  const response = await requestJson<MergeCategoryResponseBody>(
+    `/${sourceId}/merge`,
+    {
+      method: "POST",
+      headers: JSON_CONTENT_TYPE_HEADERS,
+      body: JSON.stringify(body),
+    },
+  );
+
+  return {
+    movedPlaces: response.movedPlaces,
+    movedChildren: response.movedChildren,
+  };
 }

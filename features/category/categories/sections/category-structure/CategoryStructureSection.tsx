@@ -54,11 +54,13 @@ type CategoryStructureSectionProps = {
   onEdit: (category: Category) => void;
   onDelete: (category: Category) => void;
   onMarkReviewed: (category: Category) => void;
+  onMerge: (category: Category) => void;
   selectedIds: Set<string>;
   onToggleSelect: (id: string) => void;
   onToggleSelectAll: (ids: string[]) => void;
   onBulkEdit: () => void;
   onBulkDelete: () => void;
+  onBulkMerge: () => void;
 };
 
 type FlattenedCategory = {
@@ -150,11 +152,13 @@ export default function CategoryStructureSection({
   onEdit,
   onDelete,
   onMarkReviewed,
+  onMerge,
   selectedIds,
   onToggleSelect,
   onToggleSelectAll,
   onBulkEdit,
   onBulkDelete,
+  onBulkMerge,
 }: CategoryStructureSectionProps) {
   const flattened = flattenCategories(categories);
   const pageStart = total === 0 ? 0 : offset + 1;
@@ -259,6 +263,17 @@ export default function CategoryStructureSection({
               {selectedIds.size} categor{selectedIds.size === 1 ? "y" : "ies"} selected
             </div>
             <div className="category-action-buttons">
+              {selectedIds.size === 2 ? (
+                <button
+                  type="button"
+                  className="btn sm"
+                  onClick={onBulkMerge}
+                  title="Combine the 2 selected categories into one — pick which survives."
+                >
+                  <i className="ti ti-git-merge" />
+                  Merge selected
+                </button>
+              ) : null}
               <button type="button" className="btn sm" onClick={onBulkEdit}>
                 <i className="ti ti-edit" />
                 Update selected
@@ -400,6 +415,15 @@ export default function CategoryStructureSection({
                       >
                         <i className="ti ti-edit" />
                         Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn sm"
+                        onClick={() => onMerge(category)}
+                        title="Merge this category into another (duplicate cleanup)."
+                      >
+                        <i className="ti ti-git-merge" />
+                        Merge
                       </button>
                       <button
                         type="button"

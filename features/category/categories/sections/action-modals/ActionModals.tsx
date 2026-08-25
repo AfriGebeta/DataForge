@@ -4,6 +4,7 @@ import EditCategoryModal from "./EditCategoryModal";
 import DeleteCategoryModal from "./DeleteCategoryModal";
 import BulkEditCategoryModal from "./BulkEditCategoryModal";
 import BulkDeleteCategoriesModal from "./BulkDeleteCategoriesModal";
+import MergeCategoryModal from "./MergeCategoryModal";
 import type { Category, CategoryFormValues } from "../../types";
 
 type ActionModalsProps = {
@@ -23,6 +24,11 @@ type ActionModalsProps = {
   onCloseBulkDelete: () => void;
   onBulkSave: (patch: { parentId?: string | null; needsReview?: boolean }) => Promise<void>;
   onBulkDelete: () => Promise<void>;
+  mergingCategory: Category | null;
+  mergeDefaultTargetId?: string;
+  merging: boolean;
+  onCloseMerge: () => void;
+  onMerge: (targetId: string) => Promise<void>;
 };
 
 export default function ActionModals({
@@ -42,6 +48,11 @@ export default function ActionModals({
   onCloseBulkDelete,
   onBulkSave,
   onBulkDelete,
+  mergingCategory,
+  mergeDefaultTargetId,
+  merging,
+  onCloseMerge,
+  onMerge,
 }: ActionModalsProps) {
   return (
     <>
@@ -82,6 +93,18 @@ export default function ActionModals({
           submitting={bulkSubmitting}
           onClose={onCloseBulkDelete}
           onConfirm={onBulkDelete}
+        />
+      ) : null}
+
+      {mergingCategory ? (
+        <MergeCategoryModal
+          key={mergingCategory.id}
+          source={mergingCategory}
+          categories={parentCategories}
+          defaultTargetId={mergeDefaultTargetId}
+          submitting={merging}
+          onClose={onCloseMerge}
+          onConfirm={onMerge}
         />
       ) : null}
     </>

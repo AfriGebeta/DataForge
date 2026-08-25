@@ -120,3 +120,19 @@ export type BulkUpdateCategoriesRequestBody = {
   parentId?: string | null;
   needsReview?: boolean;
 };
+
+/**
+ * Exact wire payload for POST /api/v1/categories/{id}/merge. The path id is
+ * the duplicate being folded away; `targetId` is the survivor that absorbs
+ * its places and child categories.
+ */
+export type MergeCategoryRequestBody = {
+  targetId: string;
+};
+
+/** Exact wire response for POST /api/v1/categories/{id}/merge. */
+export type MergeCategoryResponseBody = {
+  target: CategoryTreeNode;
+  movedPlaces: number;
+  movedChildren: number;
+};
