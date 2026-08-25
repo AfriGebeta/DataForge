@@ -680,7 +680,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
         maxZoom: String(p.maxZoom),
         osmRank: p.osmRank != null ? String(p.osmRank) : "",
         completenessLevel: p.completenessLevel ?? "",
-        countryIso2: p.address?.countryIso2 ?? "",
+        countryIso2: p.address?.countryIso2 ?? "ET",
         countryIso3: p.address?.countryIso3 ?? "",
         streetName: p.address?.streetName?.en ?? "",
         streetNumber: p.address?.streetNumber ?? "",
