@@ -27,7 +27,16 @@ import { GlassCard } from "@/features/shared/GlassCard";
 import ToastNotification from "@/components/custom/Toast";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
-import { createCategory, createSlug, fetchParentCategories, getLocalizedName } from "@/features/category/categories/api";
+import {
+  CategoryApiError,
+  createCategory,
+  createSlug,
+  fetchCategories,
+  fetchCategoryBySlug,
+  fetchParentCategories,
+  getLocalizedName,
+  mapSearchResults,
+} from "@/features/category/categories/api";
 import type { Category } from "@/features/category/categories/types";
 import { fetchAddressLevels } from "@/features/address/nodes/api";
 import { addressLevelName, type AddressLevelDef } from "@/features/address/nodes/types";
@@ -222,32 +231,47 @@ function CategoryPickerModal({
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  // Tagged with the query it was fetched for, so staleness/loading can be
+  // derived instead of tracked as separate state (see `results`/`searching`
+  // below) — avoids a second setState call on every keystroke.
+  const [searchResults, setSearchResults] = useState<{ query: string; items: Category[] } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setQuery("");
       setCreateError(null);
+      setSearchResults(null);
     }
   }, [isOpen]);
 
+  const trimmedQuery = query.trim();
+
+  // Debounced server-side search — the `categories` prop is only the first
+  // ~250 root categories (with their subtrees), so filtering it locally
+  // misses anything outside that slice or nested under a root it didn't
+  // load. A real query goes to GET /categories?search= instead, which
+  // matches at any depth against the full table.
+  useEffect(() => {
+    if (!isOpen || !trimmedQuery) return;
+    const handle = setTimeout(() => {
+      void fetchCategories(50, 0, trimmedQuery).then((res) => {
+        setSearchResults({ query: trimmedQuery, items: mapSearchResults(res.data) });
+      });
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [trimmedQuery, isOpen]);
+
   if (!isOpen) return null;
 
-  const trimmedQuery = query.trim();
+  const searching = Boolean(trimmedQuery) && searchResults?.query !== trimmedQuery;
+  const results = trimmedQuery ? (searching ? [] : (searchResults?.items ?? [])) : categories;
   const q = trimmedQuery.toLowerCase();
-  const results = q
-    ? categories.filter(
-        (c) =>
-          getLocalizedName(c, "en").toLowerCase().includes(q) ||
-          (c.name.am ?? "").toLowerCase().includes(q) ||
-          c.slug.toLowerCase().includes(q),
-      )
-    : categories;
 
   // Only offer "create" once there's a query with no exact name match —
   // a partial match (e.g. "Cafe" matching "Cafes") should still just filter,
   // not tempt the admin into creating a near-duplicate category.
-  const exactMatch = q ? categories.some((c) => getLocalizedName(c, "en").toLowerCase() === q) : false;
-  const offerCreate = trimmedQuery.length > 0 && !exactMatch;
+  const exactMatch = q ? results.some((c) => getLocalizedName(c, "en").toLowerCase() === q) : false;
+  const offerCreate = trimmedQuery.length > 0 && !exactMatch && !searching;
 
   async function handleCreate() {
     if (!trimmedQuery || creating) return;
@@ -264,7 +288,20 @@ function CategoryPickerModal({
       onCategoryCreated(created);
       onSelect(created.id);
     } catch (cause) {
-      setCreateError(cause instanceof Error ? cause.message : "Failed to create category.");
+      if (cause instanceof CategoryApiError && cause.status === 409) {
+        // Someone already created this slug (maybe not visible in this
+        // modal's search yet) — look it up and select it directly instead
+        // of dead-ending on an error the admin has no way to act on.
+        const existing = await fetchCategoryBySlug(createSlug(trimmedQuery));
+        if (existing) {
+          onCategoryCreated(existing);
+          onSelect(existing.id);
+        } else {
+          setCreateError(cause.message);
+        }
+      } else {
+        setCreateError(cause instanceof Error ? cause.message : "Failed to create category.");
+      }
     } finally {
       setCreating(false);
     }
@@ -323,7 +360,12 @@ function CategoryPickerModal({
             {!currentId ? <Check className="h-3.5 w-3.5" /> : null}
           </button>
 
-          {results.length === 0 && !offerCreate ? (
+          {searching ? (
+            <div className="flex items-center justify-center gap-2 px-3 py-6 text-[11.5px] text-[color:var(--text-muted)]">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Searching…
+            </div>
+          ) : results.length === 0 && !offerCreate ? (
             <div className="px-3 py-6 text-center text-[11.5px] text-[color:var(--text-muted)]">
               No categories match.
             </div>
