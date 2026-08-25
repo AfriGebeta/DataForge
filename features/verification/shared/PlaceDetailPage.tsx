@@ -24,6 +24,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/features/shared/GlassCard";
+import ToastNotification from "@/components/custom/Toast";
+import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 import { createCategory, createSlug, fetchParentCategories, getLocalizedName } from "@/features/category/categories/api";
 import type { Category } from "@/features/category/categories/types";
@@ -620,7 +622,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
   const [chain, setChain] = useState<AdminLevelChainItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const { message: toastMessage, visible: toastVisible, showToast: setToast } = useToast();
 
   const [form, setForm] = useState<FormState>(emptyForm);
   const [names, setNames] = useState<Record<string, string>>({});
@@ -959,6 +961,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
   return (
     <div className="relative min-h-full overflow-hidden bg-[color:var(--surface-0)] px-6 pt-10 pb-8 md:px-10 md:pt-14 md:pb-10 xl:px-14 xl:pt-16 xl:pb-12">
       <div className="aurora-bg" aria-hidden />
+      <ToastNotification message={toastMessage} visible={toastVisible} />
 
       <div className="relative z-10 flex flex-col gap-7">
         <div>
@@ -1018,12 +1021,6 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
             </button>
           </div>
         </div>
-
-        {toast && (
-          <div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] px-4 py-2 text-[12px] text-[color:var(--text-secondary)]">
-            {toast}
-          </div>
-        )}
 
         {place.aiValues ? (
           <GlassCard tone="accent">
