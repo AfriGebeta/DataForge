@@ -27,6 +27,8 @@ import { GlassCard } from "@/features/shared/GlassCard";
 import { cn } from "@/lib/utils";
 import { createCategory, createSlug, fetchParentCategories, getLocalizedName } from "@/features/category/categories/api";
 import type { Category } from "@/features/category/categories/types";
+import { fetchAddressLevels } from "@/features/address/nodes/api";
+import { addressLevelName, type AddressLevelDef } from "@/features/address/nodes/types";
 import {
   fetchAdminLevelChain,
   fetchPlace,
@@ -64,8 +66,6 @@ type Props = {
   backHref: string;
   backLabel: string;
 };
-
-const levelLabels = ["Country", "Region", "Zone", "City", "Kebele", "Neighborhood"];
 
 // ── Small field primitives — every input in this page uses one of these ────
 
@@ -530,9 +530,11 @@ type FormState = {
   completenessLevel: string;
   countryIso2: string;
   countryIso3: string;
+  streetName: string;
   streetNumber: string;
   blockNumber: string;
   buildingNumber: string;
+  buildingName: string;
   unitNumber: string;
   floorNumber: string;
   postcode: string;
@@ -540,6 +542,7 @@ type FormState = {
   formattedFull: string;
   formattedShort: string;
   landmarkDescription: string;
+  neighborhood: string;
   woredaNumber: string;
   kebeleNumber: string;
   isVerified: boolean;
@@ -567,9 +570,11 @@ const emptyForm: FormState = {
   completenessLevel: "",
   countryIso2: "",
   countryIso3: "",
+  streetName: "",
   streetNumber: "",
   blockNumber: "",
   buildingNumber: "",
+  buildingName: "",
   unitNumber: "",
   floorNumber: "",
   postcode: "",
@@ -577,6 +582,7 @@ const emptyForm: FormState = {
   formattedFull: "",
   formattedShort: "",
   landmarkDescription: "",
+  neighborhood: "",
   woredaNumber: "",
   kebeleNumber: "",
   isVerified: false,
@@ -625,6 +631,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
   const [images, setImages] = useState<ImageDraft[]>([]);
   const [chainDraft, setChainDraft] = useState<{ level: number; name: string }[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [addressLevels, setAddressLevels] = useState<AddressLevelDef[]>([]);
 
   // Snapshot of form/names/contacts/hours/attributes/images/chainDraft as of
   // the last successful load or save. Compared (during render, see isDirty
@@ -634,6 +641,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
 
   useEffect(() => {
     void fetchParentCategories().then(setCategories);
+    void fetchAddressLevels().then(setAddressLevels);
   }, []);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -672,9 +680,11 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
         completenessLevel: p.completenessLevel ?? "",
         countryIso2: p.address?.countryIso2 ?? "",
         countryIso3: p.address?.countryIso3 ?? "",
+        streetName: p.address?.streetName?.en ?? "",
         streetNumber: p.address?.streetNumber ?? "",
         blockNumber: p.address?.blockNumber ?? "",
         buildingNumber: p.address?.buildingNumber ?? "",
+        buildingName: p.address?.buildingName ?? "",
         unitNumber: p.address?.unitNumber ?? "",
         floorNumber: p.address?.floorNumber ?? "",
         postcode: p.address?.postcode ?? "",
@@ -682,6 +692,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
         formattedFull: p.address?.formattedFull?.en ?? "",
         formattedShort: p.address?.formattedShort?.en ?? "",
         landmarkDescription: p.address?.landmarkDescription ?? "",
+        neighborhood: p.address?.neighborhood ?? "",
         woredaNumber: p.address?.woredaNumber ?? "",
         kebeleNumber: p.address?.kebeleNumber ?? "",
         isVerified: p.address?.isVerified ?? false,
@@ -796,9 +807,11 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
       payload.address = {
         countryIso2: form.countryIso2.trim().toUpperCase(),
         countryIso3: form.countryIso3.trim() || undefined,
+        streetName: form.streetName.trim() ? { en: form.streetName.trim() } : undefined,
         streetNumber: form.streetNumber.trim() || undefined,
         blockNumber: form.blockNumber.trim() || undefined,
         buildingNumber: form.buildingNumber.trim() || undefined,
+        buildingName: form.buildingName.trim() || undefined,
         unitNumber: form.unitNumber.trim() || undefined,
         floorNumber: form.floorNumber.trim() || undefined,
         postcode: form.postcode.trim() || undefined,
@@ -806,6 +819,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
         formattedFull: form.formattedFull.trim() ? { en: form.formattedFull.trim() } : undefined,
         formattedShort: form.formattedShort.trim() ? { en: form.formattedShort.trim() } : undefined,
         landmarkDescription: form.landmarkDescription.trim() || undefined,
+        neighborhood: form.neighborhood.trim() || undefined,
         woredaNumber: form.woredaNumber.trim() || undefined,
         kebeleNumber: form.kebeleNumber.trim() || undefined,
         isVerified: form.isVerified,
@@ -1155,9 +1169,11 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
             </div>
             <TextField label="Formatted address (full)" value={form.formattedFull} onChange={(v) => set("formattedFull", v)} placeholder="Street, City, Country" />
             <TextField label="Formatted address (short)" value={form.formattedShort} onChange={(v) => set("formattedShort", v)} placeholder="City, Country" />
+            <TextField label="Street name" value={form.streetName} onChange={(v) => set("streetName", v)} />
             <div className="grid grid-cols-2 gap-3">
               <TextField label="Street number" value={form.streetNumber} onChange={(v) => set("streetNumber", v)} />
               <TextField label="Building number" value={form.buildingNumber} onChange={(v) => set("buildingNumber", v)} />
+              <TextField label="Building name" value={form.buildingName} onChange={(v) => set("buildingName", v)} />
               <TextField label="Block number" value={form.blockNumber} onChange={(v) => set("blockNumber", v)} />
               <TextField label="Unit number" value={form.unitNumber} onChange={(v) => set("unitNumber", v)} />
               <TextField label="Floor number" value={form.floorNumber} onChange={(v) => set("floorNumber", v)} />
@@ -1167,6 +1183,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
               <TextField label="Kebele number" value={form.kebeleNumber} onChange={(v) => set("kebeleNumber", v)} />
             </div>
             <TextField label="Landmark description" value={form.landmarkDescription} onChange={(v) => set("landmarkDescription", v)} />
+            <TextField label="Neighborhood" value={form.neighborhood} onChange={(v) => set("neighborhood", v)} placeholder="e.g. Bole, Kazanchis (free text — separate from the Admin-Level Chain below)" />
             <CheckboxField label="Address verified" checked={form.isVerified} onChange={(v) => set("isVerified", v)} />
           </Section>
 
@@ -1176,12 +1193,18 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
                 {chainDraft.map((entry, i) => (
                   <div key={entry.level} className="flex items-center gap-2.5">
                     <span className="w-24 shrink-0 text-[10px] uppercase tracking-wide text-[color:var(--text-muted)]">
-                      {levelLabels[entry.level] ?? `Level ${entry.level}`}
+                      {addressLevelName(
+                        addressLevels.find((l) => l.level === entry.level),
+                        entry.level,
+                      )}
                     </span>
                     <input
                       className={inputClass}
                       value={entry.name}
-                      placeholder={`e.g. ${levelLabels[entry.level] ?? ""}`}
+                      placeholder={`e.g. ${addressLevelName(
+                        addressLevels.find((l) => l.level === entry.level),
+                        entry.level,
+                      )}`}
                       onChange={(e) =>
                         setChainDraft((prev) => prev.map((c, idx) => (idx === i ? { ...c, name: e.target.value } : c)))
                       }

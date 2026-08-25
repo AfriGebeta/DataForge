@@ -71,6 +71,7 @@ export type AddressDetail = {
   streetNumber?: string;
   blockNumber?: string;
   buildingNumber?: string;
+  buildingName?: string;
   unitNumber?: string;
   floorNumber?: string;
   postcode?: string;
@@ -78,6 +79,7 @@ export type AddressDetail = {
   formattedFull?: Record<string, string>;
   formattedShort?: Record<string, string>;
   landmarkDescription?: string;
+  neighborhood?: string;
   woredaNumber?: string;
   kebeleNumber?: string;
   isVerified: boolean;
@@ -168,6 +170,7 @@ export type UpdateAddressPayload = {
   streetNumber?: string;
   blockNumber?: string;
   buildingNumber?: string;
+  buildingName?: string;
   unitNumber?: string;
   floorNumber?: string;
   postcode?: string;
@@ -175,6 +178,7 @@ export type UpdateAddressPayload = {
   formattedFull?: Record<string, string>;
   formattedShort?: Record<string, string>;
   landmarkDescription?: string;
+  neighborhood?: string;
   woredaNumber?: string;
   kebeleNumber?: string;
   isVerified?: boolean;

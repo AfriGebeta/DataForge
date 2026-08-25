@@ -23,6 +23,8 @@ import { GlassCard } from "@/features/shared/GlassCard";
 import { cn } from "@/lib/utils";
 import { fetchAdminLevelChain, fetchGeographicValidation } from "./api";
 import type { AdminLevelChainItem, ValidationFlag } from "./types";
+import { fetchAddressLevels } from "@/features/address/nodes/api";
+import { addressLevelName, type AddressLevelDef } from "@/features/address/nodes/types";
 
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
 
@@ -77,7 +79,6 @@ function severityTone(severity: ValidationFlag["severity"]): Tone {
   return "neutral";
 }
 
-const levelLabels = ["Country", "Region", "Zone", "City", "Kebele", "Neighborhood"];
 const levelIcons = [Globe2, MapIcon, Building2, Building, Building2, MapPin];
 
 function StatusBadge({ tone, children }: { tone: Tone; children: React.ReactNode }) {
@@ -101,6 +102,11 @@ export default function GeographicValidationPage() {
   const [chain, setChain] = useState<AdminLevelChainItem[] | null>(null);
   const [chainLoading, setChainLoading] = useState(false);
   const [chainError, setChainError] = useState<string | null>(null);
+  const [addressLevels, setAddressLevels] = useState<AddressLevelDef[]>([]);
+
+  useEffect(() => {
+    void fetchAddressLevels().then(setAddressLevels);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -303,7 +309,10 @@ export default function GeographicValidationPage() {
                     <div className="relative mt-5 grid grid-cols-3 items-start gap-3 sm:grid-cols-6">
                       {chain.map((node, i) => {
                         const Icon = levelIcons[node.level] ?? MapPin;
-                        const label = levelLabels[node.level] ?? `Level ${node.level}`;
+                        const label = addressLevelName(
+                          addressLevels.find((l) => l.level === node.level),
+                          node.level,
+                        );
                         const name = node.name.en ?? Object.values(node.name)[0] ?? node.code ?? "—";
                         return (
                           <motion.div
