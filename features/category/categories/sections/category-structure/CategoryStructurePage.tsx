@@ -114,7 +114,18 @@ function CategoryStructurePageInner() {
       try {
         await markCategoryReviewed(category.id);
         setFeedback(`"${category.slug}" marked as reviewed.`);
-        await load();
+        setNeedsReviewCount((current) => Math.max(0, current - 1));
+        // Update in place instead of re-fetching everything — a full
+        // reload flashes the whole table back to a loading state for one
+        // row's flag flip.
+        if (needsReviewOnly) {
+          setCategories((current) => current.filter((c) => c.id !== category.id));
+          setTotal((current) => Math.max(0, current - 1));
+        } else {
+          setCategories((current) =>
+            current.map((c) => (c.id === category.id ? { ...c, needsReview: false } : c)),
+          );
+        }
       } catch (cause) {
         setError(
           cause instanceof Error
@@ -125,7 +136,7 @@ function CategoryStructurePageInner() {
         setMarkingReviewedId(null);
       }
     },
-    [load],
+    [needsReviewOnly],
   );
 
   const handleSave = useCallback(
