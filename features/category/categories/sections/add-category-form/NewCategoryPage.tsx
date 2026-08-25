@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { createCategory, fetchParentCategories } from "../../api";
+import Link from "next/link";
+import {
+  CategoryApiError,
+  createCategory,
+  fetchCategoryBySlug,
+  fetchParentCategories,
+  getLocalizedName,
+} from "../../api";
 import type { Category, CategoryFormValues } from "../../types";
 import AddCategorySection from "./AddCategorySection";
 import { GlassCard } from "@/features/shared/GlassCard";
@@ -12,6 +19,7 @@ export default function NewCategoryPage() {
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<Category | null>(null);
   const [formResetKey, setFormResetKey] = useState(0);
 
   const loadRoots = useCallback(async () => {
@@ -44,6 +52,7 @@ export default function NewCategoryPage() {
     async (values: CategoryFormValues) => {
       setSubmitting(true);
       setError(null);
+      setConflict(null);
 
       try {
         await createCategory(values);
@@ -51,9 +60,19 @@ export default function NewCategoryPage() {
         setFormResetKey((current) => current + 1);
         await loadRoots();
       } catch (cause) {
-        setError(
-          cause instanceof Error ? cause.message : "Failed to create category.",
-        );
+        if (cause instanceof CategoryApiError && cause.status === 409) {
+          const existing = await fetchCategoryBySlug(values.slug.trim());
+          if (existing) {
+            setConflict(existing);
+            setError(null);
+          } else {
+            setError(cause.message);
+          }
+        } else {
+          setError(
+            cause instanceof Error ? cause.message : "Failed to create category.",
+          );
+        }
       } finally {
         setSubmitting(false);
       }
@@ -73,6 +92,18 @@ export default function NewCategoryPage() {
 
       {feedback ? <div className="category-feedback">{feedback}</div> : null}
       {error ? <div className="category-inline-error">{error}</div> : null}
+      {conflict ? (
+        <div className="category-inline-error">
+          A category with slug <span className="mono">&ldquo;{conflict.slug}&rdquo;</span>{" "}
+          already exists: <strong>{getLocalizedName(conflict, "en")}</strong>
+          {conflict.needsReview ? " (auto-created, needs review)" : ""}. Pick a
+          different slug, or{" "}
+          <Link href={`/category/structure?search=${encodeURIComponent(conflict.slug)}`}>
+            open it in Category Structure
+          </Link>{" "}
+          to edit or delete it.
+        </div>
+      ) : null}
 
       <GlassCard flat className="card category-form-card">
         {loadingRoots ? (

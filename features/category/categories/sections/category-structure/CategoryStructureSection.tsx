@@ -14,6 +14,9 @@ type CategoryStructureSectionProps = {
   needsReviewOnly: boolean;
   needsReviewCount: number;
   markingReviewedId: string | null;
+  searchInput: string;
+  isSearching: boolean;
+  onSearchInputChange: (value: string) => void;
   onLanguageChange: (language: CategoryLanguage) => void;
   onLimitChange: (limit: number) => void;
   onOffsetChange: (offset: number) => void;
@@ -102,6 +105,9 @@ export default function CategoryStructureSection({
   needsReviewOnly,
   needsReviewCount,
   markingReviewedId,
+  searchInput,
+  isSearching,
+  onSearchInputChange,
   onLanguageChange,
   onLimitChange,
   onOffsetChange,
@@ -129,6 +135,27 @@ export default function CategoryStructureSection({
           </div>
         </div>
         <div className="category-toolbar">
+          <div className="category-search-box">
+            <i className="ti ti-search" />
+            <input
+              id="category-search"
+              type="search"
+              value={searchInput}
+              onChange={(event) => onSearchInputChange(event.target.value)}
+              placeholder="Search by name or slug (any depth)…"
+              aria-label="Search categories"
+            />
+            {searchInput ? (
+              <button
+                type="button"
+                className="category-search-clear"
+                onClick={() => onSearchInputChange("")}
+                aria-label="Clear search"
+              >
+                <i className="ti ti-x" />
+              </button>
+            ) : null}
+          </div>
           <label
             className="category-toolbar-label"
             htmlFor="category-needs-review-only"
@@ -137,6 +164,7 @@ export default function CategoryStructureSection({
               id="category-needs-review-only"
               type="checkbox"
               checked={needsReviewOnly}
+              disabled={isSearching}
               onChange={(event) => onToggleNeedsReviewOnly(event.target.checked)}
             />{" "}
             Needs review only
@@ -171,7 +199,7 @@ export default function CategoryStructureSection({
           <div className="category-stat-value">{childCount}</div>
         </div>
         <div className="category-stat">
-          <div className="ml">Root Categories (Total)</div>
+          <div className="ml">{isSearching ? "Matches (Total)" : "Root Categories (Total)"}</div>
           <div className="category-stat-value">{total}</div>
         </div>
         <div className="category-stat">
@@ -185,7 +213,9 @@ export default function CategoryStructureSection({
           <div className="category-empty">Loading categories…</div>
         ) : flattened.length === 0 ? (
           <div className="category-empty">
-            No categories found for the current page.
+            {isSearching
+              ? `No categories match "${searchInput}".`
+              : "No categories found for the current page."}
           </div>
         ) : (
           <table>
@@ -296,11 +326,17 @@ export default function CategoryStructureSection({
 
       <div className="category-pagination">
         <div className="category-pagination-summary">
-          Showing root categories {pageStart}-{pageEnd} of {total}
-          <span className="csub">
-            {" "}
-            · sub-categories are always shown with their parent
-          </span>
+          {isSearching ? (
+            <>Showing matches {pageStart}-{pageEnd} of {total}</>
+          ) : (
+            <>
+              Showing root categories {pageStart}-{pageEnd} of {total}
+              <span className="csub">
+                {" "}
+                · sub-categories are always shown with their parent
+              </span>
+            </>
+          )}
         </div>
         <div className="category-pagination-controls">
           <label className="category-toolbar-label" htmlFor="category-limit">

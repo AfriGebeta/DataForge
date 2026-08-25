@@ -41,6 +41,13 @@ export type CategoryTreeNode = {
   name: CategoryNameMap;
   slug: string;
   needsReview: boolean;
+  /**
+   * Present on the wire even for nested nodes, but normally ignored in
+   * favor of tree position (see `flattenCategoryTree`). Search results
+   * come back as a flat list with no `children`, so that's the only
+   * place a node's real parent is recovered from.
+   */
+  parentId?: string | null;
   children?: CategoryTreeNode[];
   createdAt?: string;
   updatedAt?: string;

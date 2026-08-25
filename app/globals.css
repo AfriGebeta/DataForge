@@ -1347,6 +1347,48 @@ textarea {
     color: var(--text-secondary);
 }
 
+.category-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 240px;
+    flex: 1 1 240px;
+}
+
+.category-search-box > i {
+    position: absolute;
+    left: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.category-search-box input {
+    width: 100%;
+    padding-left: 30px;
+    padding-right: 28px;
+}
+
+.category-search-clear {
+    position: absolute;
+    right: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.category-search-clear:hover {
+    color: var(--text-primary);
+    background: var(--surface-2);
+}
+
 .category-stat-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));

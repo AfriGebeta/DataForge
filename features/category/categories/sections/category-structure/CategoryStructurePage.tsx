@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   deleteCategory,
   fetchCategories,
   fetchCategoriesNeedingReview,
   fetchParentCategories,
   flattenCategoryTree,
+  mapSearchResults,
   markCategoryReviewed,
   updateCategory,
 } from "../../api";
@@ -20,11 +22,22 @@ import ActionModals from "../action-modals/ActionModals";
 import { GlassCard } from "@/features/shared/GlassCard";
 
 export default function CategoryStructurePage() {
+  return (
+    <Suspense fallback={<div className="category-empty">Loading categories…</div>}>
+      <CategoryStructurePageInner />
+    </Suspense>
+  );
+}
+
+function CategoryStructurePageInner() {
+  const searchParams = useSearchParams();
   const [categories, setCategories] = useState<Category[]>([]);
   const [parentCategories, setParentCategories] = useState<Category[]>([]);
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(10);
   const [offset, setOffset] = useState(0);
+  const [search, setSearch] = useState(searchParams.get("search") ?? "");
+  const [searchInput, setSearchInput] = useState(searchParams.get("search") ?? "");
   const [language, setLanguage] = useState<CategoryLanguage>("en");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +66,11 @@ export default function CategoryStructurePage() {
       setNeedsReviewCount(flagged.length);
       setParentCategories(parents);
 
-      if (needsReviewOnly) {
+      if (search.trim()) {
+        const paged = await fetchCategories(limit, offset, search);
+        setCategories(mapSearchResults(paged.data));
+        setTotal(paged.total);
+      } else if (needsReviewOnly) {
         setCategories(flagged);
         setTotal(flagged.length);
       } else {
@@ -70,7 +87,7 @@ export default function CategoryStructurePage() {
     } finally {
       setLoading(false);
     }
-  }, [limit, offset, needsReviewOnly]);
+  }, [limit, offset, needsReviewOnly, search]);
 
   useEffect(() => {
     const run = async () => {
@@ -79,6 +96,15 @@ export default function CategoryStructurePage() {
 
     void run();
   }, [load]);
+
+  // Debounce the free-text search box before it drives a real fetch.
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setSearch(searchInput);
+      setOffset(0);
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
 
   const handleMarkReviewed = useCallback(
     async (category: Category) => {
@@ -210,6 +236,9 @@ export default function CategoryStructurePage() {
           needsReviewOnly={needsReviewOnly}
           needsReviewCount={needsReviewCount}
           markingReviewedId={markingReviewedId}
+          searchInput={searchInput}
+          isSearching={search.trim().length > 0}
+          onSearchInputChange={setSearchInput}
           onLanguageChange={setLanguage}
           onLimitChange={(nextLimit) => {
             setLimit(nextLimit);

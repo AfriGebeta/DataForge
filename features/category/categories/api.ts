@@ -157,6 +157,15 @@ export function buildUpdateRequestBody(
   return body;
 }
 
+/** Thrown by requestJson on a non-OK response; carries the real HTTP status. */
+export class CategoryApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await apiFetch(`${API_ENDPOINT}${path}`, init);
 
@@ -168,15 +177,15 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
       if (
         errorBody &&
         typeof errorBody === "object" &&
-        typeof (errorBody as { message?: unknown }).message === "string"
+        typeof (errorBody as { error?: unknown }).error === "string"
       ) {
-        message = (errorBody as { message: string }).message;
+        message = (errorBody as { error: string }).error;
       }
     } catch {
       // ignore non-JSON error bodies
     }
 
-    throw new Error(message);
+    throw new CategoryApiError(message, response.status);
   }
 
   if (response.status === 204) {
@@ -187,25 +196,67 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 /**
- * GET /api/v1/categories?limit=&offset=
- * `limit`/`offset` paginate over top-level (root) categories; each root's
- * full nested subtree is always included alongside it so hierarchy display
- * stays correct regardless of page size.
+ * GET /api/v1/categories?limit=&offset=&search=
+ * Without `search`: `limit`/`offset` paginate over top-level (root)
+ * categories; each root's full nested subtree is always included alongside
+ * it so hierarchy display stays correct regardless of page size.
+ * With `search`: matches slug/name at any depth in the tree (not just
+ * roots) and returns a flat list — see `mapSearchResults`, not
+ * `flattenCategoryTree`, for turning the response into `Category[]`.
  */
 export async function fetchCategories(
   limit = 10,
   offset = 0,
+  search = "",
 ): Promise<CategoryListResponse> {
   const params = new URLSearchParams({
     limit: String(limit),
     offset: String(offset),
   });
+  if (search.trim()) {
+    params.set("search", search.trim());
+  }
 
   try {
     return await requestJson<CategoryListResponse>(`?${params.toString()}`);
   } catch (cause) {
     console.warn("fetchCategories failed:", cause);
     return { data: [], total: 0, limit, offset };
+  }
+}
+
+/**
+ * Maps a flat search response (no `children`, real `parentId` per node)
+ * into the internal `Category[]` shape — the sibling of
+ * `flattenCategoryTree` for the non-hierarchical case.
+ */
+export function mapSearchResults(nodes: CategoryTreeNode[]): Category[] {
+  return nodes.map((node) => ({
+    id: node.id,
+    slug: node.slug,
+    parentId: node.parentId ?? null,
+    icon: "",
+    name: node.name,
+    deletedAt: null,
+    needsReview: node.needsReview,
+    createdAt: node.createdAt,
+    updatedAt: node.updatedAt,
+  }));
+}
+
+/**
+ * GET /api/v1/categories/{slug} — looks up a single category by its slug
+ * (the same endpoint also accepts a UUID id). Returns null on a 404 so
+ * callers can distinguish "doesn't exist" from a real network/server error.
+ */
+export async function fetchCategoryBySlug(slug: string): Promise<Category | null> {
+  try {
+    return await requestJson<Category>(`/${encodeURIComponent(slug)}`);
+  } catch (cause) {
+    if (!(cause instanceof CategoryApiError && cause.status === 404)) {
+      console.warn("fetchCategoryBySlug failed:", cause);
+    }
+    return null;
   }
 }
 
