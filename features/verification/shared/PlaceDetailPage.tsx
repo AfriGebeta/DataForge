@@ -688,6 +688,25 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
     void fetchAddressLevels().then(setAddressLevels);
   }, []);
 
+  // fetchParentCategories only loads the first 250 roots (+ their subtrees)
+  // — a place whose real categoryId falls outside that page (prod has 470+
+  // roots) would otherwise render as "Unknown category (<uuid>)" forever,
+  // even though the category genuinely exists. GetCategory accepts either a
+  // slug or a UUID id, so fetchCategoryBySlug doubles as "fetch by id" here.
+  useEffect(() => {
+    if (!form.categoryId) return;
+    if (categories.some((c) => c.id === form.categoryId)) return;
+
+    let cancelled = false;
+    void fetchCategoryBySlug(form.categoryId).then((category) => {
+      if (cancelled || !category) return;
+      setCategories((prev) => (prev.some((c) => c.id === category.id) ? prev : [...prev, category]));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [form.categoryId, categories]);
+
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }

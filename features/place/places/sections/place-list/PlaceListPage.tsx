@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { fetchPlaces } from "../../api";
 import type { AIDecision, IngestChannelType, PlaceListItem, PlaceType as TPlaceType, ReviewStatus } from "../../types";
 import { PLACE_TYPES } from "@/features/verification/shared/types";
-import { fetchParentCategories, getLocalizedName } from "@/features/category/categories/api";
+import { fetchCategoryBySlug, fetchParentCategories, getLocalizedName } from "@/features/category/categories/api";
 import type { Category } from "@/features/category/categories/types";
 import { fetchSettings } from "@/features/system/settings/api";
 import { fetchChannels } from "@/features/data/channels/api";
@@ -83,6 +83,38 @@ export default function PlaceListPage() {
   useEffect(() => {
     void fetchParentCategories().then(setCategories);
   }, []);
+
+  // fetchParentCategories only loads the first 250 roots (+ their subtrees)
+  // — a place whose real categoryId falls outside that page (prod has 470+
+  // roots) would otherwise show the raw uuid instead of a name forever, even
+  // though the category genuinely exists. GetCategory accepts a slug or a
+  // UUID id, so fetchCategoryBySlug doubles as "fetch by id" here.
+  useEffect(() => {
+    const known = new Set(categories.map((c) => c.id));
+    const missingIds = Array.from(
+      new Set(
+        places
+          .map((p) => p.categoryId)
+          .filter((id): id is string => id !== undefined && !known.has(id)),
+      ),
+    );
+    if (missingIds.length === 0) return;
+
+    let cancelled = false;
+    void Promise.all(missingIds.map((id) => fetchCategoryBySlug(id))).then((resolved) => {
+      if (cancelled) return;
+      const found = resolved.filter((c): c is Category => c != null);
+      if (found.length === 0) return;
+      setCategories((prev) => {
+        const existingIds = new Set(prev.map((c) => c.id));
+        const additions = found.filter((c) => !existingIds.has(c.id));
+        return additions.length > 0 ? [...prev, ...additions] : prev;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [places, categories]);
 
   useEffect(() => {
     void fetchChannels({ limit: 200 }).then((res) => setChannels(res.data));
