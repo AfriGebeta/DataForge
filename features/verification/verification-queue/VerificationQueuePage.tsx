@@ -155,6 +155,22 @@ type TrustFilter = "" | "low" | "medium" | "high";
 type AIDecisionFilter = "" | AIDecision | "NONE";
 type VisibilityFilter = "" | "visible" | "hidden";
 
+// Persists the toolbar/filter-modal state across a click-into-a-place-and-
+// back round trip — clicking a row navigates to a whole separate route
+// (`/verification/queue/[id]`), which unmounts this page entirely, so plain
+// useState alone loses everything on the way back. sessionStorage (not the
+// URL) survives both the "Back to Verification Queue" link and the browser
+// back button, and clears itself once the tab closes.
+const QUEUE_FILTERS_KEY = "verificationQueueFilters";
+
+type PersistedFilters = {
+  search: string;
+  aiDecisionFilter: AIDecisionFilter;
+  trustFilter: TrustFilter;
+  visibilityFilter: VisibilityFilter;
+  assignmentFilter: AssignmentFilter;
+};
+
 export default function VerificationQueuePage() {
   const router = useRouter();
   const [rows, setRows] = useState<QueuedPlace[]>([]);
@@ -177,6 +193,10 @@ export default function VerificationQueuePage() {
   const [filterModalOpen, setFilterModalOpen] = useState(false);
 
   const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>("");
+  // Gates the persist effect below until the restore effect has had its
+  // one chance to run — otherwise the first-mount write would flush the
+  // default empty filters over whatever was just restored.
+  const [filtersHydrated, setFiltersHydrated] = useState(false);
   const [currentAdminId, setCurrentAdminId] = useState<string | null>(null);
   // Assigning/splitting work is ADMIN-role-only on the backend (see
   // place/api/v1/routes.go's adminOnly gate on PATCH /places/bulk-assign) —
@@ -210,6 +230,46 @@ export default function VerificationQueuePage() {
         );
       });
   }, []);
+
+  useEffect(() => {
+    // Wrapped in a microtask, matching this file's fetchCurrentAdmin().then()
+    // pattern just above — an async boundary here (not this project's
+    // conditional-mount trick, which doesn't apply to a whole-page restore)
+    // keeps this off the react-hooks/set-state-in-effect list, unlike a bare
+    // synchronous setState call in the effect body.
+    void Promise.resolve().then(() => {
+      try {
+        const raw = sessionStorage.getItem(QUEUE_FILTERS_KEY);
+        if (raw) {
+          const saved = JSON.parse(raw) as Partial<PersistedFilters>;
+          if (saved.search) setSearch(saved.search);
+          if (saved.aiDecisionFilter) setAiDecisionFilter(saved.aiDecisionFilter);
+          if (saved.trustFilter) setTrustFilter(saved.trustFilter);
+          if (saved.visibilityFilter) setVisibilityFilter(saved.visibilityFilter);
+          if (saved.assignmentFilter) setAssignmentFilter(saved.assignmentFilter);
+        }
+      } catch (cause) {
+        console.warn("Failed to restore verification queue filters:", cause);
+      }
+      setFiltersHydrated(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!filtersHydrated) return;
+    const toPersist: PersistedFilters = {
+      search,
+      aiDecisionFilter,
+      trustFilter,
+      visibilityFilter,
+      assignmentFilter,
+    };
+    try {
+      sessionStorage.setItem(QUEUE_FILTERS_KEY, JSON.stringify(toPersist));
+    } catch (cause) {
+      console.warn("Failed to persist verification queue filters:", cause);
+    }
+  }, [filtersHydrated, search, aiDecisionFilter, trustFilter, visibilityFilter, assignmentFilter]);
 
   const adminNameById = useMemo(() => {
     const map = new Map<string, string>();
