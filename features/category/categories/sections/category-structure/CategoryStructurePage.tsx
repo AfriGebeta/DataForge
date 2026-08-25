@@ -1,8 +1,10 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
+  bulkDeleteCategories,
+  bulkUpdateCategories,
   deleteCategory,
   fetchCategories,
   fetchCategoriesNeedingReview,
@@ -53,6 +55,10 @@ function CategoryStructurePageInner() {
   const [markingReviewedId, setMarkingReviewedId] = useState<string | null>(
     null,
   );
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkSubmitting, setBulkSubmitting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -96,6 +102,17 @@ function CategoryStructurePageInner() {
 
     void run();
   }, [load]);
+
+  // Selection is scoped to whatever's currently loaded — derived at render
+  // time (not synced via an effect+setState) so a page/filter change or a
+  // delete that drops rows out of `categories` can't leave a stale selected
+  // id silently pointed at a bulk action the admin can no longer even see.
+  // `selectedIds` itself may still hold ids that just scrolled out of view;
+  // this is the only value ever read for display/bulk-action purposes.
+  const visibleSelectedIds = useMemo(() => {
+    const loadedIds = new Set(categories.map((c) => c.id));
+    return new Set([...selectedIds].filter((id) => loadedIds.has(id)));
+  }, [selectedIds, categories]);
 
   // Debounce the free-text search box before it drives a real fetch.
   useEffect(() => {
@@ -192,6 +209,79 @@ function CategoryStructurePageInner() {
     [categories.length, limit, load, offset],
   );
 
+  const handleToggleSelect = useCallback((id: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  // Called with every currently-visible row's id to select them all, or
+  // with `[]` to clear — same "select all / clear" toggle DataTable-based
+  // pages use, just expressed as one function since this table isn't built
+  // on that shared component.
+  const handleToggleSelectAll = useCallback((ids: string[]) => {
+    setSelectedIds(new Set(ids));
+  }, []);
+
+  const handleBulkDelete = useCallback(async () => {
+    const ids = Array.from(visibleSelectedIds);
+    if (ids.length === 0) return;
+
+    setBulkSubmitting(true);
+    setError(null);
+
+    try {
+      await bulkDeleteCategories(ids);
+      setBulkDeleteOpen(false);
+      setSelectedIds(new Set());
+      setFeedback(`${ids.length} categor${ids.length === 1 ? "y" : "ies"} deleted successfully.`);
+
+      const remainingItemsOnPage = Math.max(categories.length - ids.length, 0);
+      if (remainingItemsOnPage === 0 && offset > 0) {
+        setOffset((current) => Math.max(0, current - limit));
+      } else {
+        await load();
+      }
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Failed to delete selected categories.",
+      );
+    } finally {
+      setBulkSubmitting(false);
+    }
+  }, [visibleSelectedIds, categories.length, limit, load, offset]);
+
+  const handleBulkSave = useCallback(
+    async (patch: { parentId?: string | null; needsReview?: boolean }) => {
+      const ids = Array.from(visibleSelectedIds);
+      if (ids.length === 0) return;
+
+      setBulkSubmitting(true);
+      setError(null);
+
+      try {
+        await bulkUpdateCategories(ids, patch);
+        setBulkEditOpen(false);
+        setSelectedIds(new Set());
+        setFeedback(`${ids.length} categor${ids.length === 1 ? "y" : "ies"} updated successfully.`);
+        await load();
+      } catch (cause) {
+        setError(
+          cause instanceof Error ? cause.message : "Failed to update selected categories.",
+        );
+      } finally {
+        setBulkSubmitting(false);
+      }
+    },
+    [visibleSelectedIds, load],
+  );
+
   return (
     <div>
       <div
@@ -263,6 +353,11 @@ function CategoryStructurePageInner() {
           onEdit={setEditingCategory}
           onDelete={setDeletingCategory}
           onMarkReviewed={handleMarkReviewed}
+          selectedIds={visibleSelectedIds}
+          onToggleSelect={handleToggleSelect}
+          onToggleSelectAll={handleToggleSelectAll}
+          onBulkEdit={() => setBulkEditOpen(true)}
+          onBulkDelete={() => setBulkDeleteOpen(true)}
         />
       </GlassCard>
 
@@ -276,6 +371,13 @@ function CategoryStructurePageInner() {
         onCloseDelete={() => setDeletingCategory(null)}
         onSave={handleSave}
         onDelete={handleDelete}
+        bulkEditIds={bulkEditOpen ? Array.from(visibleSelectedIds) : null}
+        bulkDeleteIds={bulkDeleteOpen ? Array.from(visibleSelectedIds) : null}
+        bulkSubmitting={bulkSubmitting}
+        onCloseBulkEdit={() => setBulkEditOpen(false)}
+        onCloseBulkDelete={() => setBulkDeleteOpen(false)}
+        onBulkSave={handleBulkSave}
+        onBulkDelete={handleBulkDelete}
       />
     </div>
   );

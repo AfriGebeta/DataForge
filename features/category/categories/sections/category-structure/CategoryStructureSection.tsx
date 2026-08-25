@@ -1,8 +1,38 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { getLocalizedName } from "../../api";
 import type { Category, CategoryLanguage } from "../../types";
 import { GlassCard } from "@/features/shared/GlassCard";
+
+/** Native checkboxes have no `indeterminate` JSX prop — it's a DOM-only property. */
+function SelectAllCheckbox({
+  checked,
+  indeterminate,
+  onChange,
+}: {
+  checked: boolean;
+  indeterminate: boolean;
+  onChange: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.indeterminate = indeterminate && !checked;
+    }
+  }, [indeterminate, checked]);
+
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      checked={checked}
+      onChange={onChange}
+      aria-label="Select all visible categories"
+    />
+  );
+}
 
 type CategoryStructureSectionProps = {
   categories: Category[];
@@ -24,6 +54,11 @@ type CategoryStructureSectionProps = {
   onEdit: (category: Category) => void;
   onDelete: (category: Category) => void;
   onMarkReviewed: (category: Category) => void;
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onToggleSelectAll: (ids: string[]) => void;
+  onBulkEdit: () => void;
+  onBulkDelete: () => void;
 };
 
 type FlattenedCategory = {
@@ -115,6 +150,11 @@ export default function CategoryStructureSection({
   onEdit,
   onDelete,
   onMarkReviewed,
+  selectedIds,
+  onToggleSelect,
+  onToggleSelectAll,
+  onBulkEdit,
+  onBulkDelete,
 }: CategoryStructureSectionProps) {
   const flattened = flattenCategories(categories);
   const pageStart = total === 0 ? 0 : offset + 1;
@@ -123,6 +163,10 @@ export default function CategoryStructureSection({
   const canGoNext = offset + limit < total;
   const rootCount = categories.filter((category) => !category.parentId).length;
   const childCount = categories.length - rootCount;
+  const visibleIds = flattened.map(({ category }) => category.id);
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+  const someVisibleSelected = visibleIds.some((id) => selectedIds.has(id));
 
   return (
     <div>
@@ -208,6 +252,33 @@ export default function CategoryStructureSection({
         </div>
       </div>
 
+      {selectedIds.size > 0 ? (
+        <div className="category-action-panel">
+          <div className="category-action-summary">
+            <div className="category-action-title">
+              {selectedIds.size} categor{selectedIds.size === 1 ? "y" : "ies"} selected
+            </div>
+            <div className="category-action-buttons">
+              <button type="button" className="btn sm" onClick={onBulkEdit}>
+                <i className="ti ti-edit" />
+                Update selected
+              </button>
+              <button type="button" className="btn d sm" onClick={onBulkDelete}>
+                <i className="ti ti-trash" />
+                Delete selected
+              </button>
+              <button
+                type="button"
+                className="btn ghost sm"
+                onClick={() => onToggleSelectAll([])}
+              >
+                Clear selection
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <GlassCard flat className="card-dark category-table-shell">
         {loading ? (
           <div className="category-empty">Loading categories…</div>
@@ -220,13 +291,21 @@ export default function CategoryStructureSection({
         ) : (
           <table>
             <colgroup>
-              <col style={{ width: "80px" }} />
-              <col style={{ width: "40%" }} />
-              <col style={{ width: "28%" }} />
-              <col style={{ width: "22%" }} />
+              <col style={{ width: "40px" }} />
+              <col style={{ width: "76px" }} />
+              <col style={{ width: "38%" }} />
+              <col style={{ width: "27%" }} />
+              <col style={{ width: "21%" }} />
             </colgroup>
             <thead>
               <tr>
+                <th>
+                  <SelectAllCheckbox
+                    checked={allVisibleSelected}
+                    indeterminate={someVisibleSelected}
+                    onChange={() => onToggleSelectAll(visibleIds)}
+                  />
+                </th>
                 <th>Icon</th>
                 <th>Display Name</th>
                 <th>Slug</th>
@@ -237,8 +316,23 @@ export default function CategoryStructureSection({
               {flattened.map(({ category, depth }) => (
                 <tr
                   key={category.id}
-                  className={depth > 0 ? "category-row-child" : undefined}
+                  className={
+                    [
+                      depth > 0 ? "category-row-child" : "",
+                      selectedIds.has(category.id) ? "category-row-selected" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ") || undefined
+                  }
                 >
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(category.id)}
+                      onChange={() => onToggleSelect(category.id)}
+                      aria-label={`Select ${getLocalizedName(category, language)}`}
+                    />
+                  </td>
                   <td>
                     <div
                       className={`category-icon-cell ${

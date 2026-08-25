@@ -104,3 +104,19 @@ export type UpdateCategoryRequestBody = {
   parentId?: string | null;
   needsReview?: boolean;
 };
+
+/** Exact wire payload for DELETE /api/v1/categories/bulk. */
+export type BulkDeleteCategoriesRequestBody = {
+  ids: string[];
+};
+
+/**
+ * Exact wire payload for PATCH /api/v1/categories/bulk. Same
+ * omitted-vs-null-vs-value convention as `UpdateCategoryRequestBody.parentId`
+ * — omitted means "leave every selected category's parent alone."
+ */
+export type BulkUpdateCategoriesRequestBody = {
+  ids: string[];
+  parentId?: string | null;
+  needsReview?: boolean;
+};

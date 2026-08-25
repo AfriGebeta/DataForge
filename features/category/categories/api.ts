@@ -1,6 +1,8 @@
 import { apiFetch } from "@/lib/api-fetch";
 import { API_BASE_URL } from "@/lib/api-config";
 import type {
+  BulkDeleteCategoriesRequestBody,
+  BulkUpdateCategoriesRequestBody,
   Category,
   CategoryFormValues,
   CategoryLanguage,
@@ -361,4 +363,44 @@ export async function markCategoryReviewed(id: string): Promise<Category> {
 /** DELETE /api/v1/categories/{id}. Throws on failure so the caller can show the real error. */
 export async function deleteCategory(id: string): Promise<void> {
   await requestJson<void>(`/${id}`, { method: "DELETE" });
+}
+
+/**
+ * DELETE /api/v1/categories/bulk. Each deleted category's children/places
+ * just fall back to root/uncategorized server-side (ON DELETE SET NULL) — no
+ * confirmation-of-cascade needed here. Throws on failure.
+ */
+export async function bulkDeleteCategories(ids: string[]): Promise<void> {
+  const body: BulkDeleteCategoriesRequestBody = { ids };
+  await requestJson<void>("/bulk", {
+    method: "DELETE",
+    headers: JSON_CONTENT_TYPE_HEADERS,
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * PATCH /api/v1/categories/bulk. `patch.parentId`/`patch.needsReview` follow
+ * the single-category PUT's omitted-vs-value convention — only include a key
+ * here if that field should actually change for every selected category.
+ * Throws on failure (including the backend's "at least one field required"
+ * and "cannot be moved under itself" 400s).
+ */
+export async function bulkUpdateCategories(
+  ids: string[],
+  patch: { parentId?: string | null; needsReview?: boolean },
+): Promise<void> {
+  const body: BulkUpdateCategoriesRequestBody = { ids };
+  if (patch.parentId !== undefined) {
+    body.parentId = patch.parentId;
+  }
+  if (patch.needsReview !== undefined) {
+    body.needsReview = patch.needsReview;
+  }
+
+  await requestJson<void>("/bulk", {
+    method: "PATCH",
+    headers: JSON_CONTENT_TYPE_HEADERS,
+    body: JSON.stringify(body),
+  });
 }
