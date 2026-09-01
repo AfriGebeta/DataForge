@@ -31,15 +31,30 @@ export async function fetchAddressNodes(params: { level?: number; search?: strin
   return body.data;
 }
 
-export async function fetchAddressBoundary(id: string): Promise<AddressBoundary | null> {
+// POST /addresses/boundaries - batched alternative to N individual
+// per-node boundary fetches (what AddressNodesPage used to fire, one per
+// visible node, up to 16 at a time). ids with no boundary set are simply
+// absent from the response, not an error - same as a single failed fetch,
+// this returns an empty map rather than throwing, so one bad batch doesn't
+// take down every other chunk's markers.
+export async function fetchAddressBoundaries(ids: string[]): Promise<Map<string, GeoJSON.Geometry>> {
+  const result = new Map<string, GeoJSON.Geometry>();
+  if (ids.length === 0) return result;
   try {
-    const res = await apiFetch(`${ADDRESSES_ENDPOINT}/${id}/boundary`);
-    if (!res.ok) return null;
-    return res.json();
+    const res = await apiFetch(`${ADDRESSES_ENDPOINT}/boundaries`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+    if (!res.ok) return result;
+    const body: { data: AddressBoundary[] } = await res.json();
+    for (const item of body.data) {
+      if (item.boundary) result.set(item.id, item.boundary);
+    }
   } catch (cause) {
-    console.warn("fetchAddressBoundary failed:", cause);
-    return null;
+    console.warn("fetchAddressBoundaries failed:", cause);
   }
+  return result;
 }
 
 async function throwOnError(res: Response): Promise<never> {

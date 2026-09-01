@@ -7,7 +7,7 @@ import { ChevronDown, Layers, Pencil, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   createAddressNode,
-  fetchAddressBoundary,
+  fetchAddressBoundaries,
   fetchAddressLevels,
   fetchAddressNodes,
   updateAddressBoundary,
@@ -25,7 +25,12 @@ import type { EditTarget } from "./AddressMap";
 // boundary-bearing nodes grew past ~575 (import_dashen_voronoi.py's 445 +
 // the original 130) - 6-wide made that many round trips visibly crawl.
 // Postgres' own pool (SetMaxOpenConns) is 20, so this stays under that.
-const BOUNDARY_FETCH_CONCURRENCY = 16;
+// Chunk size for POST /addresses/boundaries requests - kept well under any
+// reasonable body/response cap even for District's 1194 nodes, rather than
+// one request per node (the old N-individual-fetch pattern this replaced -
+// see api.ts's fetchAddressBoundaries comment).
+const BOUNDARY_BATCH_SIZE = 150;
+const BOUNDARY_BATCH_CONCURRENCY = 4;
 
 // Leaflet touches `window` at module load time, which crashes during
 // Next's server render of this "use client" tree - same reason
@@ -372,29 +377,40 @@ export default function AddressNodesPage() {
   // Fetch every visible node's boundary polygon (not just the selected
   // one) so the map can render full admin-area shapes instead of dots -
   // per user request, filtering only happens via Level/Search, not by
-  // whichever node happens to be selected. Bounded concurrency, cached by
-  // id in `boundaries` so switching filters back and forth doesn't refetch.
+  // whichever node happens to be selected. Batched (POST /addresses/
+  // boundaries, BOUNDARY_BATCH_SIZE ids per call) rather than one request
+  // per node - a level with 100+ polygons (e.g. Borough) used to fire that
+  // many individual requests, and any that didn't come back in time
+  // silently rendered as a dot with no visible error. Cached by id in
+  // `boundaries` so switching filters back and forth doesn't refetch.
   useEffect(() => {
     const toFetch = nodes.filter((n) => n.hasBoundary && !requestedBoundaryIds.current.has(n.id));
     if (toFetch.length === 0) return;
     toFetch.forEach((n) => requestedBoundaryIds.current.add(n.id));
 
+    const chunks: AddressNode[][] = [];
+    for (let i = 0; i < toFetch.length; i += BOUNDARY_BATCH_SIZE) {
+      chunks.push(toFetch.slice(i, i + BOUNDARY_BATCH_SIZE));
+    }
+
     let cancelled = false;
     let cursor = 0;
     async function worker() {
       while (!cancelled) {
-        const node = toFetch[cursor++];
-        if (!node) return;
-        const b = await fetchAddressBoundary(node.id);
+        const chunk = chunks[cursor++];
+        if (!chunk) return;
+        const found = await fetchAddressBoundaries(chunk.map((n) => n.id));
         if (cancelled) return;
         setBoundaries((prev) => {
           const next = new Map(prev);
-          next.set(node.id, b?.boundary ?? null);
+          for (const node of chunk) {
+            next.set(node.id, found.get(node.id) ?? null);
+          }
           return next;
         });
       }
     }
-    void Promise.all(Array.from({ length: BOUNDARY_FETCH_CONCURRENCY }, worker));
+    void Promise.all(Array.from({ length: BOUNDARY_BATCH_CONCURRENCY }, worker));
 
     return () => {
       cancelled = true;
