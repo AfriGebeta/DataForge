@@ -854,7 +854,7 @@ export default function AddressNodesPage() {
         ) : null}
 
         {!loading && !error && nodes.length === 0 ? (
-          <div className="absolute inset-0 z-[1000] flex items-center justify-center">
+          <div className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center">
             <div className="max-w-xs rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-4 py-3 text-center text-[12px] text-[color:var(--text-muted)]">
               {hasLoadedOnce
                 ? "No address nodes match this filter."
