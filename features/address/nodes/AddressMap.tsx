@@ -6,7 +6,7 @@ import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "./leafletGeomanSetup";
 import "@geoman-io/leaflet-geoman-free";
 import { useEffect, useMemo, useRef } from "react";
-import { CircleMarker, GeoJSON, MapContainer, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { CircleMarker, GeoJSON, MapContainer, Rectangle, TileLayer, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
 import { ADDRESS_LEVEL_FALLBACK_COLOR, addressNodeName } from "./types";
 import type { AddressNode } from "./types";
@@ -42,6 +42,14 @@ type Props = {
   // reporting the live shape upward on every change.
   editing: EditTarget | null;
   onEditChange: (geometry: GeoJSON.Geometry) => void;
+  // "Draw area to load" flow: enables Geoman's rectangle draw tool; fires
+  // once with the drawn rectangle's bounds so the page can turn it into a
+  // bbox query instead of fetching a whole (possibly huge) level.
+  drawingArea: boolean;
+  onAreaFinished: (bounds: L.LatLngBounds) => void;
+  // The bbox currently applied as a filter, if any - rendered as a dashed
+  // overlay so it's clear what's in/out of view while browsing.
+  loadedArea: L.LatLngBoundsExpression | null;
   // level -> color, from GET /address-levels (see AddressNodesPage) -
   // replaces what used to be this file's own ADDRESS_LEVEL_COLORS import,
   // so a color picked via the Level filter's management form shows up on
@@ -162,6 +170,37 @@ function DrawTool({ active, onFinished }: { active: boolean; onFinished: (geomet
   return null;
 }
 
+// "Draw area to load" flow: enables Geoman's rectangle draw tool while
+// `active`, reports the drawn rectangle's bounds once, then tears itself
+// down - mirrors DrawTool above, but a Rectangle (not a Polygon) since the
+// backend only supports a lat/lng envelope filter, not an arbitrary shape.
+function LoadAreaTool({ active, onFinished }: { active: boolean; onFinished: (bounds: L.LatLngBounds) => void }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!active) return;
+
+    map.pm.enableDraw("Rectangle", {
+      pathOptions: { color: "#38bdf8", weight: 2, dashArray: "6 4", fillColor: "#38bdf8", fillOpacity: 0.08 },
+    });
+
+    let drawnLayer: L.Layer | null = null;
+    function handleCreate(e: { layer: L.Layer }) {
+      drawnLayer = e.layer;
+      onFinished((e.layer as L.Rectangle).getBounds());
+    }
+    map.on("pm:create", handleCreate as never);
+
+    return () => {
+      map.off("pm:create", handleCreate as never);
+      if (map.pm.globalDrawModeEnabled()) map.pm.disableDraw("Rectangle");
+      if (drawnLayer) map.removeLayer(drawnLayer);
+    };
+  }, [active, map, onFinished]);
+
+  return null;
+}
+
 // Edit-boundary flow: adds a standalone editable (vertex-draggable) copy of
 // `target`'s geometry on top of the map, reporting the live shape upward
 // via onChange on every edit so the parent's Save button always has the
@@ -224,6 +263,9 @@ export default function AddressMap({
   previewGeometry,
   editing,
   onEditChange,
+  drawingArea,
+  onAreaFinished,
+  loadedArea,
   levelColors,
 }: Props) {
   const boundariesRef = useRef(boundaries);
@@ -268,7 +310,15 @@ export default function AddressMap({
       />
       <FitToView nodes={nodes} selectedId={selectedId} boundariesRef={boundariesRef} />
       <DrawTool active={drawing} onFinished={onDrawFinished} />
+      <LoadAreaTool active={drawingArea} onFinished={onAreaFinished} />
       <EditableBoundary target={editing} color={colorForLevel(editingNode?.level ?? null)} onChange={onEditChange} />
+      {loadedArea ? (
+        <Rectangle
+          bounds={loadedArea}
+          pathOptions={{ color: "#38bdf8", weight: 1.5, dashArray: "6 4", fill: false }}
+          interactive={false}
+        />
+      ) : null}
       {previewGeometry ? (
         <GeoJSON
           data={previewGeometry}

@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Layers, Pencil, Plus, Search, X } from "lucide-react";
+import { BoxSelect, ChevronDown, Layers, Pencil, Plus, Search, X } from "lucide-react";
+import type L from "leaflet";
 import { cn } from "@/lib/utils";
 import {
   createAddressNode,
@@ -14,7 +15,7 @@ import {
   upsertAddressLevel,
 } from "./api";
 import { ADDRESS_LEVEL_FALLBACK_COLOR, addressLevelName, addressNodeName } from "./types";
-import type { AddressLevelDef, AddressNode } from "./types";
+import type { AddressLevelDef, AddressNode, BoundingBox } from "./types";
 import type { EditTarget } from "./AddressMap";
 
 // How many boundary polygons to fetch in parallel - the backend warns some
@@ -93,7 +94,8 @@ type MapMode =
   | { kind: "browse" }
   | { kind: "drawing" }
   | { kind: "naming"; geometry: GeoJSON.Geometry }
-  | { kind: "editing"; nodeId: string; geometry: GeoJSON.Geometry };
+  | { kind: "editing"; nodeId: string; geometry: GeoJSON.Geometry }
+  | { kind: "area" };
 
 // Mirrors PlaceForge's own address-hierarchy chain-continuity rule
 // (isContinuousChain in address-admin-level/api/v1/handler.go) - a parent is
@@ -242,8 +244,25 @@ export default function AddressNodesPage() {
   const deepLinkSelectId = searchParams.get("select");
 
   const [nodes, setNodes] = useState<AddressNode[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Nothing is fetched until the user does something - District alone is
+  // 1194 nodes, and blind-loading every level's worth of boundaries on
+  // mount is what made this page feel slow. Flips true (permanently, for
+  // the rest of the page's life) the first time the user picks a level,
+  // searches, or draws a load area; from then on the effect below re-runs
+  // load() normally on every filter change, same as before this existed.
+  const [autoLoadEnabled, setAutoLoadEnabled] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+
+  // Bbox filter from the "draw area to load" tool - narrows fetchAddressNodes
+  // to whatever's inside this WGS84 rectangle instead of a whole level.
+  // `bounds` is the same rectangle as Leaflet L.LatLngBounds, kept alongside
+  // `bbox` purely for AddressMap's dashed overlay (no reason to re-derive it
+  // from bbox's plain numbers every render).
+  const [bbox, setBbox] = useState<BoundingBox | null>(null);
+  const [bboxBounds, setBboxBounds] = useState<L.LatLngBoundsExpression | null>(null);
 
   // GET /address-levels - display metadata for every defined level,
   // replacing what used to be a hardcoded ADDRESS_LEVEL_LABELS/
@@ -337,17 +356,23 @@ export default function AddressNodesPage() {
 
   // Debounced so typing doesn't fire a request (and a map refit) per keystroke.
   useEffect(() => {
-    const timer = setTimeout(() => setSearch(searchInput.trim()), 300);
+    const timer = setTimeout(() => {
+      const trimmed = searchInput.trim();
+      setSearch(trimmed);
+      if (trimmed) setAutoLoadEnabled(true);
+    }, 300);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setHasLoadedOnce(true);
     try {
       const data = await fetchAddressNodes({
         level: levelFilter === "all" ? undefined : levelFilter,
         search: search || undefined,
+        bbox: bbox ?? undefined,
       });
       setNodes(data);
       // Decided outside the updater, not inside it - setState updaters must
@@ -366,11 +391,19 @@ export default function AddressNodesPage() {
     } finally {
       setLoading(false);
     }
-  }, [levelFilter, search, deepLinkSelectId]);
+  }, [levelFilter, search, bbox, deepLinkSelectId]);
+
+  // Deep-linked selection (?select=) is an explicit request to see one
+  // specific node, so it loads immediately even before the user has
+  // otherwise interacted with the page.
+  useEffect(() => {
+    if (deepLinkSelectId) setAutoLoadEnabled(true);
+  }, [deepLinkSelectId]);
 
   useEffect(() => {
+    if (!autoLoadEnabled) return;
     void load();
-  }, [load]);
+  }, [load, autoLoadEnabled]);
 
   const selected = nodes.find((n) => n.id === selectedId) ?? null;
 
@@ -426,6 +459,7 @@ export default function AddressNodesPage() {
   function selectLevel(level: number | "all") {
     setLevelFilter(level);
     setLevelMenuOpen(false);
+    setAutoLoadEnabled(true);
   }
 
   function selectNode(id: string) {
@@ -460,6 +494,32 @@ export default function AddressNodesPage() {
     setSaveError(null);
     setMapMode({ kind: "naming", geometry });
   }, []);
+
+  function startDrawingArea() {
+    setSelectedId(null);
+    setLevelMenuOpen(false);
+    setSearchMenuOpen(false);
+    setMapMode({ kind: "area" });
+  }
+
+  // useCallback for the same reason as handleDrawFinished - passed to
+  // AddressMap's LoadAreaTool as an effect dependency.
+  const handleAreaFinished = useCallback((bounds: L.LatLngBounds) => {
+    setBbox({
+      minLat: bounds.getSouth(),
+      minLng: bounds.getWest(),
+      maxLat: bounds.getNorth(),
+      maxLng: bounds.getEast(),
+    });
+    setBboxBounds(bounds);
+    setAutoLoadEnabled(true);
+    setMapMode({ kind: "browse" });
+  }, []);
+
+  function clearArea() {
+    setBbox(null);
+    setBboxBounds(null);
+  }
 
   function cancelMode() {
     editDraftRef.current = null;
@@ -546,6 +606,16 @@ export default function AddressNodesPage() {
             <span className="text-[12px] text-[color:var(--text-secondary)]">
               Click on the map to draw the new node&apos;s boundary. Click the first point again (or press Enter) to
               finish.
+            </span>
+            <button type="button" onClick={cancelMode} className={secondaryButtonClass}>
+              <X className="h-3.5 w-3.5" />
+              Cancel
+            </button>
+          </>
+        ) : mapMode.kind === "area" ? (
+          <>
+            <span className="text-[12px] text-[color:var(--text-secondary)]">
+              Drag a rectangle on the map to load only the nodes inside it.
             </span>
             <button type="button" onClick={cancelMode} className={secondaryButtonClass}>
               <X className="h-3.5 w-3.5" />
@@ -660,6 +730,23 @@ export default function AddressNodesPage() {
           ) : null}
         </div>
 
+        {bbox ? (
+          <button
+            type="button"
+            onClick={clearArea}
+            className="inline-flex items-center gap-1.5 rounded-md border border-[#38bdf8]/40 bg-[#38bdf8]/12 px-3 py-1.5 text-[12px] font-medium text-[#38bdf8] transition hover:bg-[#38bdf8]/20"
+          >
+            <BoxSelect className="h-3.5 w-3.5" />
+            Area loaded
+            <X className="h-3.5 w-3.5" />
+          </button>
+        ) : (
+          <button type="button" onClick={startDrawingArea} className={secondaryButtonClass}>
+            <BoxSelect className="h-3.5 w-3.5" />
+            Draw area to load
+          </button>
+        )}
+
         <div className="flex items-center gap-2">
         <button type="button" onClick={startDrawing} className={secondaryButtonClass}>
           <Plus className="h-3.5 w-3.5" />
@@ -750,6 +837,9 @@ export default function AddressNodesPage() {
           previewGeometry={previewGeometry}
           editing={editingTarget}
           onEditChange={handleEditChange}
+          drawingArea={mapMode.kind === "area"}
+          onAreaFinished={handleAreaFinished}
+          loadedArea={bboxBounds}
           levelColors={levelColorsMap}
         />
 
@@ -765,8 +855,10 @@ export default function AddressNodesPage() {
 
         {!loading && !error && nodes.length === 0 ? (
           <div className="absolute inset-0 z-[1000] flex items-center justify-center">
-            <div className="rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-4 py-3 text-[12px] text-[color:var(--text-muted)]">
-              No address nodes match this filter.
+            <div className="max-w-xs rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-4 py-3 text-center text-[12px] text-[color:var(--text-muted)]">
+              {hasLoadedOnce
+                ? "No address nodes match this filter."
+                : "Pick a level, search by name, or draw an area on the map to load address nodes."}
             </div>
           </div>
         ) : null}

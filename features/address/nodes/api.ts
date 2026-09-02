@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api-fetch";
 import { API_BASE_URL } from "@/lib/api-config";
-import type { AddressBoundary, AddressLevelDef, AddressNode } from "./types";
+import type { AddressBoundary, AddressLevelDef, AddressNode, BoundingBox } from "./types";
 
 const ADDRESSES_ENDPOINT = `${API_BASE_URL}/api/v1/addresses`;
 const ADDRESS_LEVELS_ENDPOINT = `${API_BASE_URL}/api/v1/address-levels`;
@@ -20,10 +20,18 @@ type BackendListResponse = {
 // if this data keeps growing.
 const LIST_LIMIT = "2000";
 
-export async function fetchAddressNodes(params: { level?: number; search?: string } = {}): Promise<AddressNode[]> {
+export async function fetchAddressNodes(
+  params: { level?: number; search?: string; bbox?: BoundingBox } = {},
+): Promise<AddressNode[]> {
   const query = new URLSearchParams({ limit: LIST_LIMIT });
   if (params.level != null) query.set("level", String(params.level));
   if (params.search) query.set("search", params.search);
+  if (params.bbox) {
+    query.set("minLat", String(params.bbox.minLat));
+    query.set("minLng", String(params.bbox.minLng));
+    query.set("maxLat", String(params.bbox.maxLat));
+    query.set("maxLng", String(params.bbox.maxLng));
+  }
 
   const res = await apiFetch(`${ADDRESSES_ENDPOINT}?${query.toString()}`);
   if (!res.ok) throw new Error(`Request failed with status ${res.status}`);

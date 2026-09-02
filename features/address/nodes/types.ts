@@ -47,3 +47,14 @@ export type AddressBoundary = {
 export function addressNodeName(node: AddressNode): string {
   return node.name?.en ?? Object.values(node.name ?? {})[0] ?? "(unnamed)";
 }
+
+// A WGS84 viewport rectangle - backs the "draw an area to load" tool
+// (fetchAddressNodes' bbox param / GET /addresses?minLat=...). Narrows a
+// fetch to what's actually on screen instead of an entire high-volume level
+// (District alone is 1194 nodes).
+export type BoundingBox = {
+  minLat: number;
+  minLng: number;
+  maxLat: number;
+  maxLng: number;
+};
