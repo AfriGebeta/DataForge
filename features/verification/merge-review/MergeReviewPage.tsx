@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import {
   applyMerge,
   fetchMergeDiff,
-  fetchPendingMergeForPlace,
+  fetchPendingMergesForPlace,
   fetchPlaceSummary,
   rejectMerge,
 } from "./api";
@@ -140,6 +140,13 @@ type Props = { placeId: number };
 
 export default function MergeReviewPage({ placeId }: Props) {
   const router = useRouter();
+  // This place can have more than one pending duplicate candidate (a
+  // three-or-more-way duplicate cluster resolves as one MergeRecord per
+  // pair, never a single N-way merge — some candidates in a list like
+  // this can be false flags, so each still needs its own human decision).
+  // `pending` is every one of them; `merge` is whichever one is currently
+  // being reviewed in the diff panel below.
+  const [pending, setPending] = useState<MergeRecord[]>([]);
   const [merge, setMerge] = useState<MergeRecord | null>(null);
   const [diff, setDiff] = useState<MergeDiff | null>(null);
   const [winner, setWinner] = useState<PlaceSummary | null>(null);
@@ -154,16 +161,7 @@ export default function MergeReviewPage({ placeId }: Props) {
   const [attrChoices, setAttrChoices] = useState<Record<string, FieldChoice>>({});
   const [nameChoices, setNameChoices] = useState<Record<string, FieldChoice>>({});
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setNotFound(false);
-    const found = await fetchPendingMergeForPlace(placeId);
-    if (!found) {
-      setMerge(null);
-      setNotFound(true);
-      setLoading(false);
-      return;
-    }
+  const loadDiffFor = useCallback(async (found: MergeRecord) => {
     setMerge(found);
     setPlaceChoices({});
     setAttrChoices({});
@@ -176,12 +174,37 @@ export default function MergeReviewPage({ placeId }: Props) {
     setDiff(d);
     setWinner(w);
     setLoser(l);
+  }, []);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setNotFound(false);
+    const found = await fetchPendingMergesForPlace(placeId);
+    setPending(found);
+    if (found.length === 0) {
+      setMerge(null);
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+    await loadDiffFor(found[0]);
     setLoading(false);
-  }, [placeId]);
+  }, [placeId, loadDiffFor]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function selectMerge(candidate: MergeRecord) {
+    if (candidate.id === merge?.id) return;
+    setLoading(true);
+    await loadDiffFor(candidate);
+    setLoading(false);
+  }
+
+  function otherPartyId(m: MergeRecord): number {
+    return m.winner_id === placeId ? m.loser_id : m.winner_id;
+  }
 
   function buildResolution(): MergeFieldResolution {
     const resolution: MergeFieldResolution = {};
@@ -210,6 +233,21 @@ export default function MergeReviewPage({ placeId }: Props) {
     return resolution;
   }
 
+  // After resolving one candidate, move on to the next pending one for
+  // this place instead of always bouncing back to the queue — otherwise a
+  // three-plus-way duplicate cluster leaves the reviewer having to
+  // re-navigate into this place from the queue for every remaining
+  // candidate, and it's easy to lose track of whether any are left.
+  async function advanceAfterResolution(resolvedId: string) {
+    const remaining = pending.filter((m) => m.id !== resolvedId);
+    setPending(remaining);
+    if (remaining.length === 0) {
+      router.push("/verification/queue");
+      return;
+    }
+    await loadDiffFor(remaining[0]);
+  }
+
   async function handleApply() {
     if (!merge) return;
     setActing(true);
@@ -217,7 +255,7 @@ export default function MergeReviewPage({ placeId }: Props) {
     setActing(false);
     if (result) {
       setToast(`Merge applied — #${merge.loser_id} deactivated into #${merge.winner_id}.`);
-      router.push("/verification/queue");
+      await advanceAfterResolution(merge.id);
     } else {
       setToast("Apply failed — check the backend is reachable.");
     }
@@ -230,7 +268,8 @@ export default function MergeReviewPage({ placeId }: Props) {
     setActing(false);
     if (result) {
       setToast("Merge rejected — no data changed.");
-      router.push("/verification/queue");
+      setRejectionReason("");
+      await advanceAfterResolution(merge.id);
     } else {
       setToast("Reject failed — check the backend is reachable.");
     }
@@ -277,6 +316,34 @@ export default function MergeReviewPage({ placeId }: Props) {
           <div className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] px-4 py-2 text-[12px] text-[color:var(--text-secondary)]">
             {toast}
           </div>
+        )}
+
+        {pending.length > 1 && (
+          <GlassCard tone="warning">
+            <CardContent className="flex flex-col gap-2.5 px-5 py-4">
+              <div className="text-[11.5px] font-medium text-[color:var(--text-primary)]">
+                Place #{placeId} has {pending.length} pending duplicate candidates — each needs its own decision, some
+                can be false flags.
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {pending.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => void selectMerge(m)}
+                    className={cn(
+                      "rounded-md border px-2.5 py-1 font-mono text-[11px] transition",
+                      m.id === merge?.id
+                        ? "border-[color:var(--orange-400)]/50 bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)]"
+                        : "border-[color:var(--border)] bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]",
+                    )}
+                  >
+                    vs #{otherPartyId(m)}
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </GlassCard>
         )}
 
         {/* Order banner */}

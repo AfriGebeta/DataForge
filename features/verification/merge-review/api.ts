@@ -8,8 +8,16 @@ export const PLACES_ENDPOINT = `${API_BASE_URL}/api/v1/places`;
 // A place flagged aiDecision=DUPLICATE has a MergeRecord somewhere with it
 // as either winner or loser (auto-detection always makes the *new*
 // submission a candidate on one side) — check both, status=PENDING is the
-// one still awaiting a human.
-export async function fetchPendingMergeForPlace(placeId: number): Promise<MergeRecord | null> {
+// set still awaiting a human. A place can have MORE than one pending
+// candidate now (backend auto-detection opens one proposal per candidate
+// instead of collapsing to a single top match, see
+// PlaceForge/src/modules/data-quality/repository/merge_recheck.go) — a
+// three-or-more-way duplicate cluster is exactly the case that used to
+// leave a reviewer with one merged pair and a silently-orphaned third
+// place, since only the first result was ever used. Every pending
+// candidate is returned here so the page can present (and let a reviewer
+// individually confirm or reject) all of them, not just one.
+export async function fetchPendingMergesForPlace(placeId: number): Promise<MergeRecord[]> {
   try {
     const [asLoser, asWinner] = await Promise.all([
       apiFetch(`${MERGES_ENDPOINT}?loser_id=${placeId}&status=PENDING`).then((r) => (r.ok ? r.json() : null)),
@@ -17,10 +25,12 @@ export async function fetchPendingMergeForPlace(placeId: number): Promise<MergeR
     ]);
     const fromLoser: MergeRecord[] = asLoser?.data ?? [];
     const fromWinner: MergeRecord[] = asWinner?.data ?? [];
-    return fromLoser[0] ?? fromWinner[0] ?? null;
+    const byId = new Map<string, MergeRecord>();
+    for (const m of [...fromLoser, ...fromWinner]) byId.set(m.id, m);
+    return [...byId.values()];
   } catch (cause) {
-    console.warn("fetchPendingMergeForPlace failed:", cause);
-    return null;
+    console.warn("fetchPendingMergesForPlace failed:", cause);
+    return [];
   }
 }
 
