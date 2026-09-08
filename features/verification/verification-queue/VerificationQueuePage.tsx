@@ -34,6 +34,7 @@ import { bulkAssignPlaces, fetchCurrentAdmin, fetchVerificationQueue } from "./a
 import { fetchPlace } from "../shared/api";
 import { VERIFICATION_QUEUE_TOAST_KEY } from "../config";
 import { fetchMergeRecords } from "@/features/quality/merge-records/api";
+import { fetchPendingMergesForPlace } from "../merge-review/api";
 import { fetchUsers } from "@/features/system/users/api";
 import type { AdminUser } from "@/features/system/users/types";
 import type { AIDecision, QueuedPlace } from "./types";
@@ -352,7 +353,31 @@ export default function VerificationQueuePage() {
       await Promise.all(Array.from(orphanIds).map((id) => fetchPlace(id)))
     ).filter((p): p is NonNullable<typeof p> => p != null);
 
-    setRows([...res.data, ...orphans]);
+    // The global PENDING list above is capped at the 100 most-recently-
+    // created merge records — fine when the backlog is small, but this
+    // dataset has had thousands of pending duplicates outstanding at once
+    // (see bug-072/bug-073), so an older place's merge record can fall
+    // outside that window and never make it into nextPendingMergeIds even
+    // though it genuinely has one. That silently broke goToPlace's direct-
+    // to-merge-review routing for exactly that place (it'd land on the
+    // plain detail page instead, like every non-duplicate place). Directly
+    // check every DUPLICATE-tagged row actually on this page/orphan set
+    // that the global snapshot didn't already cover, instead of trusting
+    // the top-100 window's coverage.
+    const allRows = [...res.data, ...orphans];
+    const uncoveredDuplicateIds = allRows
+      .filter((r) => r.aiValues?.aiDecision === "DUPLICATE" && !nextPendingMergeIds.has(r.id))
+      .map((r) => r.id);
+    if (uncoveredDuplicateIds.length > 0) {
+      const checks = await Promise.all(
+        uncoveredDuplicateIds.map((id) => fetchPendingMergesForPlace(id)),
+      );
+      uncoveredDuplicateIds.forEach((id, i) => {
+        if (checks[i].length > 0) nextPendingMergeIds.add(id);
+      });
+    }
+
+    setRows(allRows);
     setTotal(res.total + orphans.length);
     setMatchingTotal(res.total);
     setPendingMergeIds(nextPendingMergeIds);
