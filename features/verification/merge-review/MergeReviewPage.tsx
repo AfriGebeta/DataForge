@@ -162,6 +162,18 @@ export default function MergeReviewPage({ placeId }: Props) {
   const [attrChoices, setAttrChoices] = useState<Record<string, FieldChoice>>({});
   const [nameChoices, setNameChoices] = useState<Record<string, FieldChoice>>({});
 
+  // Display-only names for the OTHER place on each pending candidate, keyed
+  // by that place's id — lets the candidate switcher below show "Tata
+  // Health Post #247584" instead of a bare "#247584", without waiting on
+  // the full diff/summary fetch loadDiffFor does for whichever one is
+  // currently active.
+  const [otherNames, setOtherNames] = useState<Record<number, string>>({});
+
+  const otherPartyId = useCallback(
+    (m: MergeRecord): number => (m.winner_id === placeId ? m.loser_id : m.winner_id),
+    [placeId],
+  );
+
   const loadDiffFor = useCallback(async (found: MergeRecord) => {
     setMerge(found);
     setPlaceChoices({});
@@ -188,9 +200,16 @@ export default function MergeReviewPage({ placeId }: Props) {
       setLoading(false);
       return;
     }
+    const otherIds = Array.from(new Set(found.map(otherPartyId)));
+    const summaries = await Promise.all(otherIds.map((id) => fetchPlaceSummary(id)));
+    const names: Record<number, string> = {};
+    otherIds.forEach((id, i) => {
+      names[id] = placeName(summaries[i]);
+    });
+    setOtherNames(names);
     await loadDiffFor(found[0]);
     setLoading(false);
-  }, [placeId, loadDiffFor]);
+  }, [placeId, loadDiffFor, otherPartyId]);
 
   useEffect(() => {
     void load();
@@ -201,10 +220,6 @@ export default function MergeReviewPage({ placeId }: Props) {
     setLoading(true);
     await loadDiffFor(candidate);
     setLoading(false);
-  }
-
-  function otherPartyId(m: MergeRecord): number {
-    return m.winner_id === placeId ? m.loser_id : m.winner_id;
   }
 
   function buildResolution(): MergeFieldResolution {
@@ -335,27 +350,54 @@ export default function MergeReviewPage({ placeId }: Props) {
 
         {pending.length > 1 && (
           <GlassCard tone="warning">
-            <CardContent className="flex flex-col gap-2.5 px-5 py-4">
+            <CardContent className="flex flex-col gap-3 px-5 py-4">
               <div className="text-[11.5px] font-medium text-[color:var(--text-primary)]">
                 Place #{placeId} has {pending.length} pending duplicate candidates — each needs its own decision, some
                 can be false flags.
               </div>
-              <div className="flex flex-wrap gap-2">
-                {pending.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => void selectMerge(m)}
-                    className={cn(
-                      "rounded-md border px-2.5 py-1 font-mono text-[11px] transition",
-                      m.id === merge?.id
-                        ? "border-[color:var(--orange-400)]/50 bg-[color:var(--orange-500)]/15 text-[color:var(--orange-400)]"
-                        : "border-[color:var(--border)] bg-[color:var(--surface-2)] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]",
-                    )}
-                  >
-                    vs #{otherPartyId(m)}
-                  </button>
-                ))}
+              <div className="flex flex-col gap-2">
+                {pending.map((m, i) => {
+                  const otherId = otherPartyId(m);
+                  const active = m.id === merge?.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => void selectMerge(m)}
+                      className={cn(
+                        "flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left transition",
+                        active
+                          ? "border-[color:var(--orange-400)]/50 bg-[color:var(--orange-500)]/15"
+                          : "border-[color:var(--border)] bg-[color:var(--surface-2)] hover:bg-[color:var(--surface-3)]",
+                      )}
+                    >
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[color:var(--text-muted)]">
+                          Candidate {i + 1} of {pending.length}
+                        </div>
+                        <div
+                          className={cn(
+                            "mt-0.5 text-[13.5px] font-medium",
+                            active ? "text-[color:var(--orange-400)]" : "text-[color:var(--text-primary)]",
+                          )}
+                        >
+                          {otherNames[otherId] ?? `Place #${otherId}`}{" "}
+                          <span className="font-mono text-[11px] font-normal text-[color:var(--text-muted)]">
+                            #{otherId}
+                          </span>
+                        </div>
+                      </div>
+                      {active ? (
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[color:var(--orange-500)]/20 px-2.5 py-1 text-[10.5px] font-semibold text-[color:var(--orange-400)]">
+                          <Check className="h-3 w-3" />
+                          Viewing
+                        </span>
+                      ) : (
+                        <ArrowRight className="h-4 w-4 shrink-0 text-[color:var(--text-muted)]" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </CardContent>
           </GlassCard>
