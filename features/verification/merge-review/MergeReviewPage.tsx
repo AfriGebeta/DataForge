@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/features/shared/GlassCard";
 import { cn } from "@/lib/utils";
+import { VERIFICATION_QUEUE_TOAST_KEY } from "../config";
 import {
   applyMerge,
   fetchMergeDiff,
@@ -238,10 +239,22 @@ export default function MergeReviewPage({ placeId }: Props) {
   // three-plus-way duplicate cluster leaves the reviewer having to
   // re-navigate into this place from the queue for every remaining
   // candidate, and it's easy to lose track of whether any are left.
-  async function advanceAfterResolution(resolvedId: string) {
+  //
+  // The redirect back to the queue (the common case: one candidate, now
+  // resolved) unmounts this page in the same tick as the success toast set
+  // just before calling this — the toast would never actually be seen
+  // (reported as "when i apply the merge it disappear"). Stashing the same
+  // message in sessionStorage lets VerificationQueuePage show it once,
+  // right after landing, instead of it being silently lost to navigation.
+  async function advanceAfterResolution(resolvedId: string, confirmation: string) {
     const remaining = pending.filter((m) => m.id !== resolvedId);
     setPending(remaining);
     if (remaining.length === 0) {
+      try {
+        sessionStorage.setItem(VERIFICATION_QUEUE_TOAST_KEY, confirmation);
+      } catch (cause) {
+        console.warn("Failed to persist merge confirmation across redirect:", cause);
+      }
       router.push("/verification/queue");
       return;
     }
@@ -254,8 +267,9 @@ export default function MergeReviewPage({ placeId }: Props) {
     const result = await applyMerge(merge.id, buildResolution());
     setActing(false);
     if (result) {
-      setToast(`Merge applied — #${merge.loser_id} deactivated into #${merge.winner_id}.`);
-      await advanceAfterResolution(merge.id);
+      const confirmation = `Merge applied — #${merge.loser_id} deactivated into #${merge.winner_id}.`;
+      setToast(confirmation);
+      await advanceAfterResolution(merge.id, confirmation);
     } else {
       setToast("Apply failed — check the backend is reachable.");
     }
@@ -267,9 +281,10 @@ export default function MergeReviewPage({ placeId }: Props) {
     const result = await rejectMerge(merge.id, undefined, rejectionReason.trim() || undefined);
     setActing(false);
     if (result) {
-      setToast("Merge rejected — no data changed.");
+      const confirmation = "Merge rejected — no data changed.";
+      setToast(confirmation);
       setRejectionReason("");
-      await advanceAfterResolution(merge.id);
+      await advanceAfterResolution(merge.id, confirmation);
     } else {
       setToast("Reject failed — check the backend is reachable.");
     }

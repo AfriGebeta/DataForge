@@ -27,9 +27,12 @@ import {
 } from "@/components/ui/card";
 import DataTable, { type ColumnDef } from "@/components/ui/DataTable";
 import { GlassCard } from "@/features/shared/GlassCard";
+import ToastNotification from "@/components/custom/Toast";
+import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 import { bulkAssignPlaces, fetchCurrentAdmin, fetchVerificationQueue } from "./api";
 import { fetchPlace } from "../shared/api";
+import { VERIFICATION_QUEUE_TOAST_KEY } from "../config";
 import { fetchMergeRecords } from "@/features/quality/merge-records/api";
 import { fetchUsers } from "@/features/system/users/api";
 import type { AdminUser } from "@/features/system/users/types";
@@ -211,6 +214,25 @@ export default function VerificationQueuePage() {
   const [splitModalOpen, setSplitModalOpen] = useState(false);
   const [splitScope, setSplitScope] = useState<"selected" | "all">("selected");
   const [myAssignedCount, setMyAssignedCount] = useState(0);
+  const { message: toastMessage, visible: toastVisible, showToast: setToast } = useToast();
+
+  // Picks up the one-shot confirmation MergeReviewPage stashes just before
+  // its own redirect here (see advanceAfterResolution) — its success toast
+  // would otherwise never be seen, since the redirect unmounts that page in
+  // the same tick the toast is set.
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      try {
+        const msg = sessionStorage.getItem(VERIFICATION_QUEUE_TOAST_KEY);
+        if (msg) {
+          sessionStorage.removeItem(VERIFICATION_QUEUE_TOAST_KEY);
+          setToast(msg);
+        }
+      } catch (cause) {
+        console.warn("Failed to read merge confirmation:", cause);
+      }
+    });
+  }, [setToast]);
 
   useEffect(() => {
     void fetchCurrentAdmin().then((me) => {
@@ -571,6 +593,7 @@ export default function VerificationQueuePage() {
       id="v-verification-queue"
     >
       <div className="aurora-bg" aria-hidden />
+      <ToastNotification message={toastMessage} visible={toastVisible} />
 
       <motion.div
         variants={container}
