@@ -50,6 +50,8 @@ import {
   saveAdminLevelChain,
   updatePlace,
 } from "./api";
+import { fetchPendingMergesForPlace } from "../merge-review/api";
+import type { MergeRecord } from "../merge-review/types";
 import {
   ACCESS_TYPES,
   ATTRIBUTE_VALUE_TYPES,
@@ -662,6 +664,13 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
   const [place, setPlace] = useState<PlaceDetail | null>(null);
   const [flags, setFlags] = useState<PlaceFlag[]>([]);
   const [chain, setChain] = useState<AdminLevelChainItem[]>([]);
+  // Any PENDING merge_record naming this place, on either side — the AI
+  // Validation card's "Duplicate score" is otherwise just a bare number with
+  // no way to see WHICH other place it was flagged against (see bug: user
+  // opened a place with Duplicate score 91% and had no way to find the
+  // candidate it matched, short of separately searching the Merge Review
+  // queue). Empty for a place with no open duplicate proposal.
+  const [pendingMerges, setPendingMerges] = useState<MergeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { message: toastMessage, visible: toastVisible, showToast: setToast } = useToast();
@@ -786,6 +795,9 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
       const f = await fetchPlaceFlags(placeId);
       setFlags(f);
 
+      const merges = await fetchPendingMergesForPlace(placeId);
+      setPendingMerges(merges);
+
       let nextChainDraft: { level: number; name: string }[];
       if (p.address?.id) {
         const rows = await fetchAdminLevelChain(p.address.id);
@@ -803,6 +815,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
       setBaseline(snapshotOf(nextForm, nameMap, nextContacts, nextHours, nextAttributes, nextImages, nextChainDraft));
     } else {
       setBaseline("");
+      setPendingMerges([]);
     }
     setLoading(false);
   }, [placeId]);
@@ -1127,6 +1140,35 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
                 </span>
               </div>
             </CardContent>
+            {pendingMerges.length > 0 ? (
+              <CardContent className="flex flex-col gap-2 border-t border-[color:var(--border)] px-6 pb-6 pt-4">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-muted)]">
+                  Possible duplicate of
+                </div>
+                {pendingMerges.map((m) => {
+                  const isLoser = m.loser_id === place.id;
+                  const otherId = isLoser ? m.winner_id : m.loser_id;
+                  const otherName = (isLoser ? m.winner_name : m.loser_name) ?? `Place #${otherId}`;
+                  const score = isLoser ? m.winner_ai_duplicate_score : m.loser_ai_duplicate_score;
+                  return (
+                    <Link
+                      key={m.id}
+                      href={`/verification/merge-review/${place.id}`}
+                      className="flex items-center justify-between gap-3 rounded-md border border-[color:var(--orange-400)]/25 bg-[color:var(--orange-500)]/8 px-3 py-2 text-[12px] text-[color:var(--text-primary)] transition hover:bg-[color:var(--orange-500)]/15"
+                    >
+                      <span>
+                        {otherName}{" "}
+                        <span className="font-mono text-[10.5px] text-[color:var(--text-muted)]">#{otherId}</span>
+                      </span>
+                      <span className="flex items-center gap-2 text-[11px] text-[color:var(--orange-400)]">
+                        {score != null ? <span className="font-mono">{Math.round(score)}%</span> : null}
+                        Review merge →
+                      </span>
+                    </Link>
+                  );
+                })}
+              </CardContent>
+            ) : null}
           </GlassCard>
         ) : null}
 
