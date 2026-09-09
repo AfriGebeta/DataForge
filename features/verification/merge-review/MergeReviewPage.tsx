@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/features/shared/GlassCard";
 import { cn } from "@/lib/utils";
-import { VERIFICATION_QUEUE_TOAST_KEY } from "../config";
+import { VERIFICATION_QUEUE_TOAST_KEY, nextQueueTarget } from "../config";
 import {
   applyMerge,
   fetchMergeDiff,
@@ -215,6 +215,25 @@ export default function MergeReviewPage({ placeId }: Props) {
     void load();
   }, [load]);
 
+  // Picks up a confirmation stashed by advanceAfterResolution (this file,
+  // below) or PlaceDetailPage's handleDecision just before redirecting a
+  // resolved item's reviewer straight into this place as the next queue
+  // item — same one-shot sessionStorage handoff VerificationQueuePage uses
+  // for the case where the redirect lands there instead.
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      try {
+        const msg = sessionStorage.getItem(VERIFICATION_QUEUE_TOAST_KEY);
+        if (msg) {
+          sessionStorage.removeItem(VERIFICATION_QUEUE_TOAST_KEY);
+          setToast(msg);
+        }
+      } catch (cause) {
+        console.warn("Failed to read merge confirmation:", cause);
+      }
+    });
+  }, []);
+
   async function selectMerge(candidate: MergeRecord) {
     if (candidate.id === merge?.id) return;
     setLoading(true);
@@ -270,7 +289,12 @@ export default function MergeReviewPage({ placeId }: Props) {
       } catch (cause) {
         console.warn("Failed to persist merge confirmation across redirect:", cause);
       }
-      router.push("/verification/queue");
+      // This place has no more pending candidates — move on to the next
+      // place in the same filtered queue view instead of always bouncing
+      // back to the list for a re-pick (falls back to the list itself if
+      // there's no stored nav list, e.g. a deep link, or this was the last
+      // entry in it).
+      router.push(nextQueueTarget(placeId) ?? "/verification/queue");
       return;
     }
     await loadDiffFor(remaining[0]);

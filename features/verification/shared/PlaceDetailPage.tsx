@@ -52,6 +52,7 @@ import {
 } from "./api";
 import { fetchPendingMergesForPlace } from "../merge-review/api";
 import type { MergeRecord } from "../merge-review/types";
+import { VERIFICATION_QUEUE_TOAST_KEY, nextQueueTarget } from "../config";
 import {
   ACCESS_TYPES,
   ATTRIBUTE_VALUE_TYPES,
@@ -697,6 +698,25 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
     void fetchAddressLevels().then(setAddressLevels);
   }, []);
 
+  // Picks up the one-shot confirmation MergeReviewPage stashes just before
+  // redirecting a resolved merge's reviewer straight into the next queue
+  // item (see nextQueueTarget/advanceAfterResolution) — mirrors
+  // VerificationQueuePage's identical pickup for the case where the
+  // redirect lands here instead of back at the queue list.
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      try {
+        const msg = sessionStorage.getItem(VERIFICATION_QUEUE_TOAST_KEY);
+        if (msg) {
+          sessionStorage.removeItem(VERIFICATION_QUEUE_TOAST_KEY);
+          setToast(msg);
+        }
+      } catch (cause) {
+        console.warn("Failed to read merge confirmation:", cause);
+      }
+    });
+  }, [setToast]);
+
   // fetchParentCategories only loads the first 250 roots (+ their subtrees)
   // — a place whose real categoryId falls outside that page (prod has 470+
   // roots) would otherwise render as "Unknown category (<uuid>)" forever,
@@ -969,7 +989,12 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
     const result = await reviewPlace(place.id, decision);
     setSaving(false);
     if (result) {
-      router.push(backHref);
+      // Jump straight to the next place in the same filtered queue view
+      // instead of always bouncing back to the list for a re-pick — only
+      // meaningful in queue mode, since geographic/manage entry points
+      // don't come from VerificationQueuePage's row click at all.
+      const next = mode === "queue" ? nextQueueTarget(place.id) : null;
+      router.push(next ?? backHref);
     } else {
       setToast("Action failed — check the backend is reachable.");
     }

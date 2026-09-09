@@ -32,7 +32,7 @@ import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 import { bulkAssignPlaces, fetchCurrentAdmin, fetchVerificationQueue } from "./api";
 import { fetchPlace } from "../shared/api";
-import { VERIFICATION_QUEUE_TOAST_KEY } from "../config";
+import { VERIFICATION_QUEUE_TOAST_KEY, setQueueNav } from "../config";
 import { fetchMergeRecords } from "@/features/quality/merge-records/api";
 import { fetchPendingMergesForPlace } from "../merge-review/api";
 import { fetchUsers } from "@/features/system/users/api";
@@ -605,6 +605,10 @@ export default function VerificationQueuePage() {
   }
 
   function goToPlace(row: QueuedPlace) {
+    // Snapshot the exact filtered list being clicked from, so the detail/
+    // merge-review page can advance straight to the next item in it once
+    // this one is resolved, instead of bouncing back here for a re-pick.
+    setQueueNav(filteredRows.map((r) => ({ id: r.id, hasMerge: pendingMergeIds.has(r.id) })));
     router.push(
       pendingMergeIds.has(row.id)
         ? `/verification/merge-review/${row.id}`
