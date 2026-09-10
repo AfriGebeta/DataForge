@@ -162,14 +162,19 @@ export default function MergeReviewPage({ placeId }: Props) {
   const [attrChoices, setAttrChoices] = useState<Record<string, FieldChoice>>({});
   const [nameChoices, setNameChoices] = useState<Record<string, FieldChoice>>({});
 
-  // One row per language across conflicts/loser_only/winner_only, each with
-  // a single free-text "final name" field — no winner/loser/custom picker.
-  // ApplyMerge's resolution.names[lang]={source:'custom',value} path already
-  // works uniformly for all three cases (see PlaceForge's applyNames: the
-  // custom-value loop runs independent of which list a language came from),
-  // so there's nothing this needs to route differently by category.
+  // One row per language present on EITHER place, each with a single
+  // free-text "final name" field — no winner/loser/custom picker. Built
+  // from winner/loser's own full name lists, not diff.names — the diff's
+  // conflicts/loser_only/winner_only lists only exist for languages that
+  // differ between the two places, so a place pair with byte-identical
+  // names (a real case: same text already correct on both sides, nothing
+  // to reconcile) produced zero rows and the reviewer had no way to fix a
+  // name that's simply wrong on both copies. ApplyMerge's
+  // resolution.names[lang]={source:'custom',value} path works the same way
+  // regardless of whether that language showed up as a diff or not (see
+  // PlaceForge's applyNames: the custom-value loop is independent of
+  // loserNames/diff entirely), so there's nothing backend-side blocking this.
   const nameRows = useMemo(() => {
-    if (!diff) return [];
     const rows = new Map<string, { language_code: string; winner?: string; loser?: string }>();
     const row = (lang: string) => {
       let r = rows.get(lang);
@@ -179,21 +184,16 @@ export default function MergeReviewPage({ placeId }: Props) {
       }
       return r;
     };
-    diff.names.conflicts.forEach((c) => {
-      const r = row(c.language_code);
-      r.winner = c.winner_name;
-      r.loser = c.loser_name;
+    (winner?.names ?? []).forEach((n) => {
+      const r = row(n.languageCode);
+      if (r.winner === undefined || n.isPrimary) r.winner = n.name;
     });
-    diff.names.loser_only.forEach((n) => {
-      const r = row(n.language_code);
-      if (r.loser === undefined) r.loser = n.name;
-    });
-    diff.names.winner_only.forEach((n) => {
-      const r = row(n.language_code);
-      if (r.winner === undefined) r.winner = n.name;
+    (loser?.names ?? []).forEach((n) => {
+      const r = row(n.languageCode);
+      if (r.loser === undefined || n.isPrimary) r.loser = n.name;
     });
     return Array.from(rows.values()).sort((a, b) => a.language_code.localeCompare(b.language_code));
-  }, [diff]);
+  }, [winner, loser]);
 
   // Display-only names for the OTHER place on each pending candidate, keyed
   // by that place's id — lets the candidate switcher below show "Tata
@@ -602,7 +602,7 @@ export default function MergeReviewPage({ placeId }: Props) {
                 </table>
               </div>
             ) : (
-              <div className="py-4 text-center text-[12px] text-[color:var(--text-muted)]">No differences.</div>
+              <div className="py-4 text-center text-[12px] text-[color:var(--text-muted)]">No names on either place.</div>
             )}
           </CardContent>
         </GlassCard>

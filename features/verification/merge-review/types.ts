@@ -66,7 +66,7 @@ export type PlaceSummary = {
   id: number;
   isVisible: boolean;
   reviewStatus: string;
-  names: { name: string; isPrimary: boolean }[];
+  names: { languageCode: string; name: string; isPrimary: boolean }[];
   contacts?: unknown[];
   attributes?: unknown[];
   images?: unknown[];
