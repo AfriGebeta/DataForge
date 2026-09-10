@@ -10,6 +10,7 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassCard } from "@/features/shared/GlassCard";
 import { cn } from "@/lib/utils";
 import { VERIFICATION_QUEUE_TOAST_KEY, nextQueueTarget } from "../config";
+import { updatePlace } from "../shared/api";
 import {
   applyMerge,
   fetchMergeDiff,
@@ -157,6 +158,11 @@ export default function MergeReviewPage({ placeId }: Props) {
   const [acting, setActing] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  // Not a duplicate pair, but neither place should stay live either (e.g.
+  // both are spam/invalid) — reject the proposal AND soft-deactivate both
+  // places in one action, instead of rejecting here then hunting down each
+  // place individually to deactivate it via the Place editor.
+  const [deactivateBoth, setDeactivateBoth] = useState(false);
 
   const [placeChoices, setPlaceChoices] = useState<Record<string, FieldChoice>>({});
   const [attrChoices, setAttrChoices] = useState<Record<string, FieldChoice>>({});
@@ -351,15 +357,27 @@ export default function MergeReviewPage({ placeId }: Props) {
     if (!merge) return;
     setActing(true);
     const result = await rejectMerge(merge.id, undefined, rejectionReason.trim() || undefined);
-    setActing(false);
-    if (result) {
-      const confirmation = "Merge rejected — no data changed.";
-      setToast(confirmation);
-      setRejectionReason("");
-      await advanceAfterResolution(merge.id, confirmation);
-    } else {
+    if (!result) {
+      setActing(false);
       setToast("Reject failed — check the backend is reachable.");
+      return;
     }
+    let confirmation = "Merge rejected — no data changed.";
+    if (deactivateBoth) {
+      const [w, l] = await Promise.all([
+        updatePlace(merge.winner_id, { isActive: false, isVisible: false }),
+        updatePlace(merge.loser_id, { isActive: false, isVisible: false }),
+      ]);
+      confirmation =
+        w && l
+          ? `Merge rejected — #${merge.winner_id} and #${merge.loser_id} both marked inactive.`
+          : "Merge rejected, but deactivating one or both places failed — check them individually.";
+    }
+    setActing(false);
+    setToast(confirmation);
+    setRejectionReason("");
+    setDeactivateBoth(false);
+    await advanceAfterResolution(merge.id, confirmation);
   }
 
   if (loading) {
@@ -709,6 +727,15 @@ export default function MergeReviewPage({ placeId }: Props) {
                     placeholder="Rejection reason (optional)"
                     className="min-w-[220px] flex-1 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-3 py-1.5 text-[12px] text-[color:var(--text-secondary)] outline-none focus:border-[color:var(--orange-400)]/50"
                   />
+                  <label className="flex items-center gap-1.5 text-[11.5px] text-[color:var(--text-secondary)]">
+                    <input
+                      type="checkbox"
+                      checked={deactivateBoth}
+                      onChange={(e) => setDeactivateBoth(e.target.checked)}
+                      className="h-3.5 w-3.5 rounded border-[color:var(--border)]"
+                    />
+                    Also mark both places inactive
+                  </label>
                   <button
                     type="button"
                     onClick={() => void handleReject()}
@@ -716,7 +743,7 @@ export default function MergeReviewPage({ placeId }: Props) {
                     className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[color:var(--text-danger)]/30 bg-[color:var(--text-danger)]/12 px-4 py-2 text-[12px] font-medium text-[color:var(--text-danger)] transition hover:bg-[color:var(--text-danger)]/20 disabled:opacity-40"
                   >
                     <X className="h-3.5 w-3.5" />
-                    Reject merge
+                    {deactivateBoth ? "Reject & deactivate both" : "Reject merge"}
                   </button>
                 </div>
               </>
