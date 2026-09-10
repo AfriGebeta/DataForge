@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, X } from "lucide-react";
+import { ArrowRight, Check, Plus, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -167,6 +167,11 @@ export default function MergeReviewPage({ placeId }: Props) {
   const [placeChoices, setPlaceChoices] = useState<Record<string, FieldChoice>>({});
   const [attrChoices, setAttrChoices] = useState<Record<string, FieldChoice>>({});
   const [nameChoices, setNameChoices] = useState<Record<string, FieldChoice>>({});
+  // Language codes the reviewer added manually — neither place has a name
+  // in these yet, so nameRows (built from winner/loser's own name lists)
+  // wouldn't otherwise show a row to type one into.
+  const [extraLanguages, setExtraLanguages] = useState<string[]>([]);
+  const [newLangCode, setNewLangCode] = useState("");
 
   // One row per language present on EITHER place, each with a single
   // free-text "final name" field — no winner/loser/custom picker. Built
@@ -198,8 +203,29 @@ export default function MergeReviewPage({ placeId }: Props) {
       const r = row(n.languageCode);
       if (r.loser === undefined || n.isPrimary) r.loser = n.name;
     });
+    extraLanguages.forEach((lang) => row(lang));
     return Array.from(rows.values()).sort((a, b) => a.language_code.localeCompare(b.language_code));
-  }, [winner, loser]);
+  }, [winner, loser, extraLanguages]);
+
+  function addLanguage() {
+    const code = newLangCode.trim().toLowerCase();
+    if (!code) return;
+    if (nameRows.some((r) => r.language_code === code)) {
+      setNewLangCode("");
+      return;
+    }
+    setExtraLanguages((prev) => [...prev, code]);
+    setNewLangCode("");
+  }
+
+  function removeLanguage(lang: string) {
+    setExtraLanguages((prev) => prev.filter((l) => l !== lang));
+    setNameChoices((prev) => {
+      const next = { ...prev };
+      delete next[lang];
+      return next;
+    });
+  }
 
   // Display-only names for the OTHER place on each pending candidate, keyed
   // by that place's id — lets the candidate switcher below show "Tata
@@ -218,6 +244,8 @@ export default function MergeReviewPage({ placeId }: Props) {
     setPlaceChoices({});
     setAttrChoices({});
     setNameChoices({});
+    setExtraLanguages([]);
+    setNewLangCode("");
     const [d, w, l] = await Promise.all([
       fetchMergeDiff(found.id),
       fetchPlaceSummary(found.winner_id),
@@ -569,7 +597,7 @@ export default function MergeReviewPage({ placeId }: Props) {
               Winner/loser columns are just for reference — type the name you want directly, for any language.
             </p>
           </CardHeader>
-          <CardContent className="px-6 pb-6 pt-4">
+          <CardContent className="flex flex-col gap-3 px-6 pb-6 pt-4">
             {nameRows.length > 0 ? (
               <div className={tableWrap}>
                 <table className="w-full text-left text-[12px]">
@@ -587,6 +615,7 @@ export default function MergeReviewPage({ placeId }: Props) {
                       const choice = nameChoices[row.language_code];
                       const value =
                         choice?.source === "custom" && typeof choice.value === "string" ? choice.value : defaultValue;
+                      const isExtra = extraLanguages.includes(row.language_code);
                       return (
                         <tr key={row.language_code} className="border-t border-[color:var(--border)]">
                           <td className={cn(td, "font-mono text-[color:var(--text-muted)]")}>{row.language_code}</td>
@@ -597,21 +626,33 @@ export default function MergeReviewPage({ placeId }: Props) {
                             {row.loser ?? <span className="text-[color:var(--text-muted)]">—</span>}
                           </td>
                           <td className={td}>
-                            <input
-                              className="w-full rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-2 py-1 text-[11.5px] text-[color:var(--text-primary)] outline-none focus:border-[color:var(--orange-400)]/40"
-                              value={value}
-                              onChange={(e) => {
-                                const text = e.target.value;
-                                setNameChoices((prev) => {
-                                  if (text === defaultValue) {
-                                    const next = { ...prev };
-                                    delete next[row.language_code];
-                                    return next;
-                                  }
-                                  return { ...prev, [row.language_code]: { source: "custom", value: text } };
-                                });
-                              }}
-                            />
+                            <div className="flex items-center gap-2">
+                              <input
+                                className="w-full rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-2 py-1 text-[11.5px] text-[color:var(--text-primary)] outline-none focus:border-[color:var(--orange-400)]/40"
+                                value={value}
+                                onChange={(e) => {
+                                  const text = e.target.value;
+                                  setNameChoices((prev) => {
+                                    if (text === defaultValue) {
+                                      const next = { ...prev };
+                                      delete next[row.language_code];
+                                      return next;
+                                    }
+                                    return { ...prev, [row.language_code]: { source: "custom", value: text } };
+                                  });
+                                }}
+                              />
+                              {isExtra ? (
+                                <button
+                                  type="button"
+                                  onClick={() => removeLanguage(row.language_code)}
+                                  className="shrink-0 text-[color:var(--text-muted)] transition hover:text-[color:var(--text-danger)]"
+                                  aria-label={`Remove ${row.language_code}`}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              ) : null}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -622,6 +663,29 @@ export default function MergeReviewPage({ placeId }: Props) {
             ) : (
               <div className="py-4 text-center text-[12px] text-[color:var(--text-muted)]">No names on either place.</div>
             )}
+            <div className="flex items-center gap-2">
+              <input
+                value={newLangCode}
+                onChange={(e) => setNewLangCode(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addLanguage();
+                  }
+                }}
+                placeholder="language code, e.g. am"
+                maxLength={5}
+                className="w-40 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-2 py-1.5 text-[11.5px] text-[color:var(--text-primary)] outline-none focus:border-[color:var(--orange-400)]/50"
+              />
+              <button
+                type="button"
+                onClick={addLanguage}
+                className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-3 py-1.5 text-[11.5px] text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)]"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add language
+              </button>
+            </div>
           </CardContent>
         </GlassCard>
 
