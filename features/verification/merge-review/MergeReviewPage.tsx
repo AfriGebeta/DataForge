@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, X } from "lucide-react";
@@ -161,6 +161,39 @@ export default function MergeReviewPage({ placeId }: Props) {
   const [placeChoices, setPlaceChoices] = useState<Record<string, FieldChoice>>({});
   const [attrChoices, setAttrChoices] = useState<Record<string, FieldChoice>>({});
   const [nameChoices, setNameChoices] = useState<Record<string, FieldChoice>>({});
+
+  // One row per language across conflicts/loser_only/winner_only, each with
+  // a single free-text "final name" field — no winner/loser/custom picker.
+  // ApplyMerge's resolution.names[lang]={source:'custom',value} path already
+  // works uniformly for all three cases (see PlaceForge's applyNames: the
+  // custom-value loop runs independent of which list a language came from),
+  // so there's nothing this needs to route differently by category.
+  const nameRows = useMemo(() => {
+    if (!diff) return [];
+    const rows = new Map<string, { language_code: string; winner?: string; loser?: string }>();
+    const row = (lang: string) => {
+      let r = rows.get(lang);
+      if (!r) {
+        r = { language_code: lang };
+        rows.set(lang, r);
+      }
+      return r;
+    };
+    diff.names.conflicts.forEach((c) => {
+      const r = row(c.language_code);
+      r.winner = c.winner_name;
+      r.loser = c.loser_name;
+    });
+    diff.names.loser_only.forEach((n) => {
+      const r = row(n.language_code);
+      if (r.loser === undefined) r.loser = n.name;
+    });
+    diff.names.winner_only.forEach((n) => {
+      const r = row(n.language_code);
+      if (r.winner === undefined) r.winner = n.name;
+    });
+    return Array.from(rows.values()).sort((a, b) => a.language_code.localeCompare(b.language_code));
+  }, [diff]);
 
   // Display-only names for the OTHER place on each pending candidate, keyed
   // by that place's id — lets the candidate switcher below show "Tata
@@ -514,9 +547,12 @@ export default function MergeReviewPage({ placeId }: Props) {
         <GlassCard>
           <CardHeader className="px-6 pb-0 pt-6">
             <CardTitle className="font-display text-[13px] font-semibold text-[color:var(--text-secondary)]">Names</CardTitle>
+            <p className="mt-1 text-[11px] text-[color:var(--text-muted)]">
+              Winner/loser columns are just for reference — type the name you want directly, for any language.
+            </p>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4 px-6 pb-6 pt-4">
-            {diff && diff.names.conflicts.length > 0 ? (
+          <CardContent className="px-6 pb-6 pt-4">
+            {nameRows.length > 0 ? (
               <div className={tableWrap}>
                 <table className="w-full text-left text-[12px]">
                   <thead>
@@ -524,38 +560,50 @@ export default function MergeReviewPage({ placeId }: Props) {
                       <th className={th}>Language</th>
                       <th className={th}>Winner name</th>
                       <th className={th}>Loser name</th>
-                      <th className={th}>Resolution</th>
+                      <th className={th}>Final name</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {diff.names.conflicts.map((c) => (
-                      <tr key={c.language_code} className="border-t border-[color:var(--border)]">
-                        <td className={cn(td, "font-mono text-[color:var(--text-muted)]")}>{c.language_code}</td>
-                        <td className={cn(td, "bg-[color:var(--text-warning)]/[0.06] text-[color:var(--text-primary)]")}>{c.winner_name}</td>
-                        <td className={cn(td, "bg-[color:var(--text-warning)]/[0.06] text-[color:var(--text-primary)]")}>{c.loser_name}</td>
-                        <td className={td}>
-                          <ResolveControl
-                            choice={nameChoices[c.language_code] ?? { source: "winner" }}
-                            onChange={(ch) => setNameChoices((prev) => ({ ...prev, [c.language_code]: ch }))}
-                          />
-                        </td>
-                      </tr>
-                    ))}
+                    {nameRows.map((row) => {
+                      const defaultValue = row.winner ?? row.loser ?? "";
+                      const choice = nameChoices[row.language_code];
+                      const value =
+                        choice?.source === "custom" && typeof choice.value === "string" ? choice.value : defaultValue;
+                      return (
+                        <tr key={row.language_code} className="border-t border-[color:var(--border)]">
+                          <td className={cn(td, "font-mono text-[color:var(--text-muted)]")}>{row.language_code}</td>
+                          <td className={cn(td, "text-[color:var(--text-primary)]")}>
+                            {row.winner ?? <span className="text-[color:var(--text-muted)]">—</span>}
+                          </td>
+                          <td className={cn(td, "text-[color:var(--text-primary)]")}>
+                            {row.loser ?? <span className="text-[color:var(--text-muted)]">—</span>}
+                          </td>
+                          <td className={td}>
+                            <input
+                              className="w-full rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-2 py-1 text-[11.5px] text-[color:var(--text-primary)] outline-none focus:border-[color:var(--orange-400)]/40"
+                              value={value}
+                              onChange={(e) => {
+                                const text = e.target.value;
+                                setNameChoices((prev) => {
+                                  if (text === defaultValue) {
+                                    const next = { ...prev };
+                                    delete next[row.language_code];
+                                    return next;
+                                  }
+                                  return { ...prev, [row.language_code]: { source: "custom", value: text } };
+                                });
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-            ) : null}
-            <InfoList
-              title="Only on loser (would be added to winner):"
-              items={(diff?.names.loser_only ?? []).map((n) => `[${n.language_code}] ${n.name}${n.is_primary ? " (primary)" : ""}`)}
-            />
-            <InfoList
-              title="Only on winner:"
-              items={(diff?.names.winner_only ?? []).map((n) => `[${n.language_code}] ${n.name}`)}
-            />
-            {diff && diff.names.conflicts.length === 0 && diff.names.loser_only.length === 0 && diff.names.winner_only.length === 0 ? (
-              <div className="text-[12px] text-[color:var(--text-muted)]">No differences.</div>
-            ) : null}
+            ) : (
+              <div className="py-4 text-center text-[12px] text-[color:var(--text-muted)]">No differences.</div>
+            )}
           </CardContent>
         </GlassCard>
 
