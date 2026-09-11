@@ -53,6 +53,7 @@ import {
 import { fetchPendingMergesForPlace } from "../merge-review/api";
 import type { MergeRecord } from "../merge-review/types";
 import { VERIFICATION_QUEUE_TOAST_KEY, nextQueueTarget } from "../config";
+import { fetchCurrentAdmin } from "../verification-queue/api";
 import {
   ACCESS_TYPES,
   ATTRIBUTE_VALUE_TYPES,
@@ -674,6 +675,10 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
   const [pendingMerges, setPendingMerges] = useState<MergeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Who's logged in — needed so nextQueueTarget can restrict "next" to this
+  // admin's own assigned places (see bug-084) rather than whatever happened
+  // to be in the nav snapshot regardless of assignment.
+  const [currentAdminId, setCurrentAdminId] = useState<string | null>(null);
   const { message: toastMessage, visible: toastVisible, showToast: setToast } = useToast();
 
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -696,6 +701,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
   useEffect(() => {
     void fetchParentCategories().then(setCategories);
     void fetchAddressLevels().then(setAddressLevels);
+    void fetchCurrentAdmin().then((me) => setCurrentAdminId(me?.adminId ?? null));
   }, []);
 
   // Picks up the one-shot confirmation MergeReviewPage stashes just before
@@ -993,7 +999,7 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
       // instead of always bouncing back to the list for a re-pick — only
       // meaningful in queue mode, since geographic/manage entry points
       // don't come from VerificationQueuePage's row click at all.
-      const next = mode === "queue" ? nextQueueTarget(place.id) : null;
+      const next = mode === "queue" ? nextQueueTarget(place.id, currentAdminId) : null;
       router.push(next ?? backHref);
     } else {
       setToast("Action failed — check the backend is reachable.");

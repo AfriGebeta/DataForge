@@ -11,6 +11,7 @@ import { GlassCard } from "@/features/shared/GlassCard";
 import { cn } from "@/lib/utils";
 import { VERIFICATION_QUEUE_TOAST_KEY, nextQueueTarget } from "../config";
 import { updatePlace } from "../shared/api";
+import { fetchCurrentAdmin } from "../verification-queue/api";
 import {
   applyMerge,
   fetchMergeDiff,
@@ -158,6 +159,10 @@ export default function MergeReviewPage({ placeId }: Props) {
   const [acting, setActing] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  // Who's logged in — needed so nextQueueTarget can restrict "next" to this
+  // admin's own assigned places (see bug-084) rather than whatever happened
+  // to be in the nav snapshot regardless of assignment.
+  const [currentAdminId, setCurrentAdminId] = useState<string | null>(null);
   // Not a duplicate pair, but neither place should stay live either (e.g.
   // both are spam/invalid) — reject the proposal AND soft-deactivate both
   // places in one action, instead of rejecting here then hunting down each
@@ -282,6 +287,10 @@ export default function MergeReviewPage({ placeId }: Props) {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    void fetchCurrentAdmin().then((me) => setCurrentAdminId(me?.adminId ?? null));
+  }, []);
+
   // Picks up a confirmation stashed by advanceAfterResolution (this file,
   // below) or PlaceDetailPage's handleDecision just before redirecting a
   // resolved item's reviewer straight into this place as the next queue
@@ -361,7 +370,7 @@ export default function MergeReviewPage({ placeId }: Props) {
       // back to the list for a re-pick (falls back to the list itself if
       // there's no stored nav list, e.g. a deep link, or this was the last
       // entry in it).
-      router.push(nextQueueTarget(placeId) ?? "/verification/queue");
+      router.push(nextQueueTarget(placeId, currentAdminId) ?? "/verification/queue");
       return;
     }
     await loadDiffFor(remaining[0]);

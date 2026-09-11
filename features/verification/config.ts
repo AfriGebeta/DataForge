@@ -21,7 +21,7 @@ export const VERIFICATION_QUEUE_TOAST_KEY = "verificationQueueToast";
 // hand. See setQueueNav/nextQueueTarget below.
 const VERIFICATION_QUEUE_NAV_KEY = "verificationQueueNav";
 
-export type QueueNavEntry = { id: number; hasMerge: boolean };
+export type QueueNavEntry = { id: number; hasMerge: boolean; assignedToId?: string };
 
 export function setQueueNav(entries: QueueNavEntry[]): void {
   try {
@@ -34,9 +34,19 @@ export function setQueueNav(entries: QueueNavEntry[]): void {
 // Returns the next place's target URL (merge-review or plain detail,
 // mirroring goToPlace's own routing rule) and advances the stored list past
 // currentId — or null if there's no stored list, currentId isn't in it, or
-// it was the last entry, in which case the caller should fall back to
-// /verification/queue.
-export function nextQueueTarget(currentId: number): string | null {
+// there's no qualifying entry left, in which case the caller should fall
+// back to /verification/queue.
+//
+// currentAdminId, when known, restricts "next" to places actually assigned
+// to that admin — skipping over anyone else's places in the snapshot. This
+// applies regardless of whether the reviewer had an assignment filter
+// active on the queue table itself: advancing through an edit/resolve flow
+// must never hand the reviewer someone else's place just because it
+// happened to be visible in an unfiltered table view (see bug-084 — the
+// table-filter fix alone wasn't enough, this is the actual "after editing"
+// path the reviewer hits). Pass null/undefined only when the caller
+// genuinely doesn't know who's logged in yet.
+export function nextQueueTarget(currentId: number, currentAdminId?: string | null): string | null {
   try {
     const raw = sessionStorage.getItem(VERIFICATION_QUEUE_NAV_KEY);
     if (!raw) return null;
@@ -47,7 +57,12 @@ export function nextQueueTarget(currentId: number): string | null {
       VERIFICATION_QUEUE_NAV_KEY,
       JSON.stringify(nav.filter((e) => e.id !== currentId)),
     );
-    const next = nav[idx + 1];
+    let next: QueueNavEntry | undefined;
+    if (currentAdminId) {
+      next = nav.slice(idx + 1).find((e) => e.assignedToId === currentAdminId);
+    } else {
+      next = nav[idx + 1];
+    }
     if (!next) return null;
     return next.hasMerge ? `/verification/merge-review/${next.id}` : `/verification/queue/${next.id}`;
   } catch (cause) {

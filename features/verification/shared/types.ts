@@ -161,6 +161,7 @@ export type PlaceDetail = {
   sourceChannel?: string;
   sourceChannelId?: string;
   sourceChannelName?: string;
+  assignedToId?: string;
 };
 
 export type UpdateAddressPayload = {

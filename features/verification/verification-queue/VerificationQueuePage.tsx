@@ -349,9 +349,23 @@ export default function VerificationQueuePage() {
       if (!knownIds.has(loserId)) orphanIds.add(loserId);
     }
 
+    // fetchPlace has no assignment filter of its own — an orphan loser can
+    // belong to (or be unassigned from) a totally different reviewer than
+    // whatever assignedToId/unassigned this load() call itself is scoped
+    // to. Left unfiltered, those orphans still landed in rows/filteredRows
+    // and therefore in goToPlace's next-item nav list, so "assigned to me"
+    // could hand the reviewer someone else's place as the "next" item.
+    // Apply the exact same assignment criteria fetchVerificationQueue's own
+    // query params already enforced server-side for the rest of the page.
     const orphans = (
       await Promise.all(Array.from(orphanIds).map((id) => fetchPlace(id)))
-    ).filter((p): p is NonNullable<typeof p> => p != null);
+    )
+      .filter((p): p is NonNullable<typeof p> => p != null)
+      .filter((p) => {
+        if (assignedToId) return p.assignedToId === assignedToId;
+        if (unassigned) return !p.assignedToId;
+        return true;
+      });
 
     // The global PENDING list above is capped at the 100 most-recently-
     // created merge records — fine when the backlog is small, but this
@@ -608,7 +622,9 @@ export default function VerificationQueuePage() {
     // Snapshot the exact filtered list being clicked from, so the detail/
     // merge-review page can advance straight to the next item in it once
     // this one is resolved, instead of bouncing back here for a re-pick.
-    setQueueNav(filteredRows.map((r) => ({ id: r.id, hasMerge: pendingMergeIds.has(r.id) })));
+    setQueueNav(
+      filteredRows.map((r) => ({ id: r.id, hasMerge: pendingMergeIds.has(r.id), assignedToId: r.assignedToId })),
+    );
     router.push(
       pendingMergeIds.has(row.id)
         ? `/verification/merge-review/${row.id}`
