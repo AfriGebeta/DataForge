@@ -84,6 +84,19 @@ function stringify(value: unknown): string {
   return String(value);
 }
 
+function isEmptyValue(value: unknown): boolean {
+  return value == null || value === "";
+}
+
+// A field where the winner is blank but the loser has a real value should
+// default to "Take loser" instead of "Keep winner" — otherwise Apply merge
+// (which only sends explicit loser/custom choices, see buildResolution)
+// leaves the winner's blank value in place even though a usable value was
+// sitting right there on the loser (e.g. categoryId empty on winner).
+function defaultFieldSource(winnerValue: unknown, loserValue: unknown): FieldChoiceSource {
+  return isEmptyValue(winnerValue) && !isEmptyValue(loserValue) ? "loser" : "winner";
+}
+
 // ── Resolve control — per differing field/key, pick winner/loser/custom.
 // Ported 1:1 from PlaceForge/scripts/merge_review.html's resolve-ctl widget.
 function ResolveControl({
@@ -259,6 +272,18 @@ export default function MergeReviewPage({ placeId }: Props) {
     setDiff(d);
     setWinner(w);
     setLoser(l);
+
+    const placeDefaults: Record<string, FieldChoice> = {};
+    Object.entries(d?.place ?? {}).forEach(([field, fd]) => {
+      if (defaultFieldSource(fd.winner, fd.loser) === "loser") placeDefaults[field] = { source: "loser" };
+    });
+    setPlaceChoices(placeDefaults);
+
+    const attrDefaults: Record<string, FieldChoice> = {};
+    (d?.attributes.conflicts ?? []).forEach((c) => {
+      if (defaultFieldSource(c.winner_value, c.loser_value) === "loser") attrDefaults[c.key] = { source: "loser" };
+    });
+    setAttrChoices(attrDefaults);
   }, []);
 
   const load = useCallback(async () => {
