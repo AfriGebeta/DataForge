@@ -11,7 +11,19 @@ const emptyResponse: VerificationQueueResponse = { data: [], total: 0, limit: 50
 export async function fetchVerificationQueue(
   params?: VerificationQueueParams,
 ): Promise<VerificationQueueResponse> {
-  const query = new URLSearchParams({ reviewStatus: "NEEDS_REVIEW" });
+  const query = new URLSearchParams();
+  // Missing category/coordinates is a data-quality problem, not a review-
+  // status one — a place already reviewStatus=COMPLETED can still be
+  // missing both. Scoping to NEEDS_REVIEW would hide it from the one page
+  // meant to let an admin go fix it, so either filter drops that scope
+  // entirely instead of ANDing with it. Default (neither set) keeps the
+  // queue's normal NEEDS_REVIEW behavior.
+  if (params?.missingCategory || params?.missingCoordinates) {
+    if (params.missingCategory) query.set("missingCategory", "true");
+    if (params.missingCoordinates) query.set("missingCoordinates", "true");
+  } else {
+    query.set("reviewStatus", "NEEDS_REVIEW");
+  }
   const pageSize = params?.pageSize ?? 50;
   query.set("limit", String(pageSize));
   if (params?.page) query.set("offset", String((params.page - 1) * pageSize));

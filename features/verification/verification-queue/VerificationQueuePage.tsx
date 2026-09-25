@@ -173,6 +173,8 @@ type PersistedFilters = {
   trustFilter: TrustFilter;
   visibilityFilter: VisibilityFilter;
   assignmentFilter: AssignmentFilter;
+  missingCategoryFilter: boolean;
+  missingCoordinatesFilter: boolean;
 };
 
 export default function VerificationQueuePage() {
@@ -194,6 +196,11 @@ export default function VerificationQueuePage() {
   const [aiDecisionFilter, setAiDecisionFilter] = useState<AIDecisionFilter>("");
   const [trustFilter, setTrustFilter] = useState<TrustFilter>("");
   const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>("");
+  // Server-side, unlike the three client-side filters above — see api.ts's
+  // fetchVerificationQueue, which drops the NEEDS_REVIEW scope entirely
+  // when either is set so these places surface regardless of review status.
+  const [missingCategoryFilter, setMissingCategoryFilter] = useState(false);
+  const [missingCoordinatesFilter, setMissingCoordinatesFilter] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
 
   const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>("");
@@ -270,6 +277,8 @@ export default function VerificationQueuePage() {
           if (saved.trustFilter) setTrustFilter(saved.trustFilter);
           if (saved.visibilityFilter) setVisibilityFilter(saved.visibilityFilter);
           if (saved.assignmentFilter) setAssignmentFilter(saved.assignmentFilter);
+          if (saved.missingCategoryFilter) setMissingCategoryFilter(saved.missingCategoryFilter);
+          if (saved.missingCoordinatesFilter) setMissingCoordinatesFilter(saved.missingCoordinatesFilter);
         }
       } catch (cause) {
         console.warn("Failed to restore verification queue filters:", cause);
@@ -286,13 +295,24 @@ export default function VerificationQueuePage() {
       trustFilter,
       visibilityFilter,
       assignmentFilter,
+      missingCategoryFilter,
+      missingCoordinatesFilter,
     };
     try {
       sessionStorage.setItem(QUEUE_FILTERS_KEY, JSON.stringify(toPersist));
     } catch (cause) {
       console.warn("Failed to persist verification queue filters:", cause);
     }
-  }, [filtersHydrated, search, aiDecisionFilter, trustFilter, visibilityFilter, assignmentFilter]);
+  }, [
+    filtersHydrated,
+    search,
+    aiDecisionFilter,
+    trustFilter,
+    visibilityFilter,
+    assignmentFilter,
+    missingCategoryFilter,
+    missingCoordinatesFilter,
+  ]);
 
   const adminNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -314,12 +334,20 @@ export default function VerificationQueuePage() {
     return { assignedToId, unassigned };
   }, [assignmentFilter, currentAdminId]);
 
+  const missingDataFilterActive = missingCategoryFilter || missingCoordinatesFilter;
+
   const load = useCallback(async () => {
     setLoading(true);
     const { assignedToId, unassigned } = assignmentQueryParams();
 
     const [res, pendingMerges, myAssigned] = await Promise.all([
-      fetchVerificationQueue({ pageSize: 50, assignedToId, unassigned }),
+      fetchVerificationQueue({
+        pageSize: 50,
+        assignedToId,
+        unassigned,
+        missingCategory: missingCategoryFilter,
+        missingCoordinates: missingCoordinatesFilter,
+      }),
       fetchMergeRecords({ status: "PENDING", limit: 100 }),
       // Independent of the page's own assignment filter — this is always
       // "how much of the queue is mine right now", for the KPI card below.
@@ -328,6 +356,20 @@ export default function VerificationQueuePage() {
         : Promise.resolve(null),
     ]);
     setMyAssignedCount(myAssigned?.total ?? 0);
+
+    // Missing-category/coordinates places need fixing regardless of review
+    // status or any pending duplicate merge — skip the NEEDS_REVIEW-specific
+    // orphan-widening below when either filter is active. An orphan pulled
+    // in from pendingMerges isn't necessarily missing anything itself, and
+    // would just pollute what's supposed to be a targeted fix-this-data view.
+    if (missingCategoryFilter || missingCoordinatesFilter) {
+      setRows(res.data);
+      setTotal(res.total);
+      setMatchingTotal(res.total);
+      setPendingMergeIds(new Set());
+      setLoading(false);
+      return;
+    }
 
     // A PENDING merge_record is an unresolved duplicate-candidate regardless
     // of whether the two places it references have since been individually
@@ -396,7 +438,7 @@ export default function VerificationQueuePage() {
     setMatchingTotal(res.total);
     setPendingMergeIds(nextPendingMergeIds);
     setLoading(false);
-  }, [assignmentQueryParams, currentAdminId]);
+  }, [assignmentQueryParams, currentAdminId, missingCategoryFilter, missingCoordinatesFilter]);
 
   useEffect(() => {
     void load();
@@ -451,6 +493,8 @@ export default function VerificationQueuePage() {
           pageSize: Math.max(matchingTotal, 1),
           assignedToId,
           unassigned,
+          missingCategory: missingCategoryFilter,
+          missingCoordinates: missingCoordinatesFilter,
         });
         ids = res.data.map((p) => p.id);
       } else {
@@ -502,11 +546,33 @@ export default function VerificationQueuePage() {
         header: "Coordinates",
         size: 150,
         enableSorting: false,
-        cell: ({ row }) => (
-          <span className="font-mono text-[11px] text-[color:var(--text-secondary)]">
-            {row.original.latitude.toFixed(3)}, {row.original.longitude.toFixed(3)}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const missing = row.original.latitude === 0 && row.original.longitude === 0;
+          return (
+            <span
+              className={cn(
+                "font-mono text-[11px]",
+                missing ? "text-[color:var(--text-danger)]" : "text-[color:var(--text-secondary)]",
+              )}
+            >
+              {row.original.latitude.toFixed(3)}, {row.original.longitude.toFixed(3)}
+              {missing ? " (missing)" : ""}
+            </span>
+          );
+        },
+      },
+      {
+        id: "category",
+        accessorFn: (r) => (r.categoryId ? 1 : 0),
+        header: "Category",
+        size: 100,
+        enableSorting: false,
+        cell: ({ row }) =>
+          row.original.categoryId ? (
+            <StatusBadge tone="success">Set</StatusBadge>
+          ) : (
+            <StatusBadge tone="danger">Missing</StatusBadge>
+          ),
       },
       {
         id: "trust",
@@ -605,9 +671,14 @@ export default function VerificationQueuePage() {
     });
   }, [rows, search, aiDecisionFilter, trustFilter, visibilityFilter]);
 
-  const activeFilterCount = [aiDecisionFilter, trustFilter, visibilityFilter, assignmentFilter].filter(
-    Boolean,
-  ).length;
+  const activeFilterCount = [
+    aiDecisionFilter,
+    trustFilter,
+    visibilityFilter,
+    assignmentFilter,
+    missingCategoryFilter,
+    missingCoordinatesFilter,
+  ].filter(Boolean).length;
   const filtersActive = Boolean(search || activeFilterCount > 0);
 
   function clearFilters() {
@@ -616,6 +687,8 @@ export default function VerificationQueuePage() {
     setTrustFilter("");
     setVisibilityFilter("");
     setAssignmentFilter("");
+    setMissingCategoryFilter(false);
+    setMissingCoordinatesFilter(false);
   }
 
   function goToPlace(row: QueuedPlace) {
@@ -662,8 +735,17 @@ export default function VerificationQueuePage() {
               Verification Queue
             </h2>
             <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-[color:var(--text-muted)]">
-              Places marked reviewStatus=NEEDS_REVIEW, plus any place still on an unresolved
-              (PENDING) duplicate-merge proposal even if it was reviewed directly.
+              {missingDataFilterActive ? (
+                <>
+                  Places missing a category and/or real coordinates, regardless of review
+                  status — these still need fixing even if already reviewed.
+                </>
+              ) : (
+                <>
+                  Places marked reviewStatus=NEEDS_REVIEW, plus any place still on an unresolved
+                  (PENDING) duplicate-merge proposal even if it was reviewed directly.
+                </>
+              )}
               <span className="ml-1 text-[color:var(--orange-400)]">
                 {total} item{total === 1 ? "" : "s"} awaiting action
               </span>
@@ -918,7 +1000,9 @@ export default function VerificationQueuePage() {
             <CardContent className="px-6 pb-6 pt-4">
               {rows.length === 0 && !loading ? (
                 <div className="py-10 text-center text-[12px] text-[color:var(--text-muted)]">
-                  No places are currently in NEEDS_REVIEW.
+                  {missingDataFilterActive
+                    ? "No places are currently missing that data."
+                    : "No places are currently in NEEDS_REVIEW."}
                 </div>
               ) : (
                 <DataTable
@@ -945,12 +1029,16 @@ export default function VerificationQueuePage() {
         trustFilter={trustFilter}
         visibilityFilter={visibilityFilter}
         assignmentFilter={assignmentFilter}
+        missingCategoryFilter={missingCategoryFilter}
+        missingCoordinatesFilter={missingCoordinatesFilter}
         adminUsers={adminUsers}
-        onApply={(ai, trust, visibility, assignment) => {
+        onApply={(ai, trust, visibility, assignment, missingCategory, missingCoordinates) => {
           setAiDecisionFilter(ai);
           setTrustFilter(trust);
           setVisibilityFilter(visibility);
           setAssignmentFilter(assignment);
+          setMissingCategoryFilter(missingCategory);
+          setMissingCoordinatesFilter(missingCoordinates);
           setFilterModalOpen(false);
         }}
       />
@@ -977,12 +1065,16 @@ type FilterModalProps = {
   trustFilter: TrustFilter;
   visibilityFilter: VisibilityFilter;
   assignmentFilter: AssignmentFilter;
+  missingCategoryFilter: boolean;
+  missingCoordinatesFilter: boolean;
   adminUsers: AdminUser[];
   onApply: (
     ai: AIDecisionFilter,
     trust: TrustFilter,
     visibility: VisibilityFilter,
     assignment: AssignmentFilter,
+    missingCategory: boolean,
+    missingCoordinates: boolean,
   ) => void;
 };
 
@@ -993,6 +1085,8 @@ function FilterModal({
   trustFilter,
   visibilityFilter,
   assignmentFilter,
+  missingCategoryFilter,
+  missingCoordinatesFilter,
   adminUsers,
   onApply,
 }: FilterModalProps) {
@@ -1000,6 +1094,8 @@ function FilterModal({
   const [draftTrust, setDraftTrust] = useState<TrustFilter>(trustFilter);
   const [draftVisibility, setDraftVisibility] = useState<VisibilityFilter>(visibilityFilter);
   const [draftAssignment, setDraftAssignment] = useState<AssignmentFilter>(assignmentFilter);
+  const [draftMissingCategory, setDraftMissingCategory] = useState(missingCategoryFilter);
+  const [draftMissingCoordinates, setDraftMissingCoordinates] = useState(missingCoordinatesFilter);
 
   useEffect(() => {
     if (isOpen) {
@@ -1007,8 +1103,18 @@ function FilterModal({
       setDraftTrust(trustFilter);
       setDraftVisibility(visibilityFilter);
       setDraftAssignment(assignmentFilter);
+      setDraftMissingCategory(missingCategoryFilter);
+      setDraftMissingCoordinates(missingCoordinatesFilter);
     }
-  }, [isOpen, aiDecisionFilter, trustFilter, visibilityFilter, assignmentFilter]);
+  }, [
+    isOpen,
+    aiDecisionFilter,
+    trustFilter,
+    visibilityFilter,
+    assignmentFilter,
+    missingCategoryFilter,
+    missingCoordinatesFilter,
+  ]);
 
   if (!isOpen) return null;
 
@@ -1103,6 +1209,33 @@ function FilterModal({
               ))}
             </select>
           </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[color:var(--text-muted)]">
+              Missing data
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 text-[12px] text-[color:var(--text-secondary)]">
+              <input
+                type="checkbox"
+                checked={draftMissingCategory}
+                onChange={(e) => setDraftMissingCategory(e.target.checked)}
+                className="h-3.5 w-3.5 cursor-pointer accent-[color:var(--orange-400)]"
+              />
+              Missing category
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 text-[12px] text-[color:var(--text-secondary)]">
+              <input
+                type="checkbox"
+                checked={draftMissingCoordinates}
+                onChange={(e) => setDraftMissingCoordinates(e.target.checked)}
+                className="h-3.5 w-3.5 cursor-pointer accent-[color:var(--orange-400)]"
+              />
+              Missing coordinates
+            </label>
+            <p className="text-[10.5px] text-[color:var(--text-muted)]">
+              Includes places of any review status — not just NEEDS_REVIEW.
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-[color:var(--border)] px-5 py-4">
@@ -1113,6 +1246,8 @@ function FilterModal({
               setDraftTrust("");
               setDraftVisibility("");
               setDraftAssignment("");
+              setDraftMissingCategory(false);
+              setDraftMissingCoordinates(false);
             }}
             className="rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-3 py-1.5 text-[12px] text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-3)]"
           >
@@ -1120,7 +1255,16 @@ function FilterModal({
           </button>
           <button
             type="button"
-            onClick={() => onApply(draftAi, draftTrust, draftVisibility, draftAssignment)}
+            onClick={() =>
+              onApply(
+                draftAi,
+                draftTrust,
+                draftVisibility,
+                draftAssignment,
+                draftMissingCategory,
+                draftMissingCoordinates,
+              )
+            }
             className="inline-flex items-center gap-1.5 rounded-md border border-[color:var(--orange-400)]/40 bg-[color:var(--orange-500)]/15 px-4 py-1.5 text-[12px] font-medium text-[color:var(--orange-400)] transition hover:bg-[color:var(--orange-500)]/25"
           >
             <Check className="h-3.5 w-3.5" />

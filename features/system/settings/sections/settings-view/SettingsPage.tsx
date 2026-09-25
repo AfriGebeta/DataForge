@@ -68,6 +68,7 @@ export default function SettingsPage() {
         onStaleDaysChange={(v) => setData({ ...data, staleDaysThreshold: v })}
         onRoleChange={(v: AdminRole) => setData({ ...data, defaultAdminRole: v })}
         onAllowedLanguagesChange={(v) => setData({ ...data, allowedLanguages: v })}
+        onPlaceAttributeCatalogChange={(v) => setData({ ...data, placeAttributeCatalog: v })}
         onSave={handleSave}
         onDiscard={handleDiscard}
         saving={saving}

@@ -38,6 +38,47 @@ export const ATTRIBUTE_VALUE_TYPES = [
   "STRING", "NUMBER", "BOOLEAN", "JSON", "URL", "DATETIME", "ARRAY",
 ] as const;
 
+export type PlaceAttributeCatalogEntry = {
+  key: string;
+  label: string;
+  valueType: (typeof ATTRIBUTE_VALUE_TYPES)[number];
+  /** Fixed choices for the value itself — rendered as a dropdown instead of free text. */
+  options?: readonly string[];
+  hint?: string;
+};
+
+// PlaceAttribute (PlaceForge's place_attribute table) is a freeform typed
+// key/value store — there is no schema-level list of allowed keys. The real
+// catalog now lives in the DB (app_setting row "place_attribute_catalog",
+// admin-editable at System → Settings, see PlaceForge's
+// DefaultPlaceAttributeCatalog / GET /settings) so it can be extended
+// without a code change. This copy is only the bundled fallback both
+// editors render with until that fetch resolves, or if it fails.
+export const DEFAULT_PLACE_ATTRIBUTE_CATALOG: readonly PlaceAttributeCatalogEntry[] = [
+  { key: "price_level", label: "Price level", valueType: "NUMBER", options: ["1", "2", "3", "4"], hint: "1 = budget, 4 = premium" },
+  { key: "editorial_summary", label: "Editorial summary", valueType: "STRING", hint: "One-line description shown on the place card" },
+  { key: "wheelchair_accessible", label: "Wheelchair accessible", valueType: "BOOLEAN" },
+  { key: "has_parking", label: "Parking available", valueType: "BOOLEAN" },
+  { key: "has_wifi", label: "Wi-Fi available", valueType: "BOOLEAN" },
+  { key: "outdoor_seating", label: "Outdoor seating", valueType: "BOOLEAN" },
+  { key: "accepts_cards", label: "Accepts cards", valueType: "BOOLEAN" },
+  { key: "delivery", label: "Delivery", valueType: "BOOLEAN" },
+  { key: "takeout", label: "Takeout", valueType: "BOOLEAN" },
+  { key: "reservations", label: "Takes reservations", valueType: "BOOLEAN" },
+  { key: "good_for_kids", label: "Good for kids", valueType: "BOOLEAN" },
+  { key: "pet_friendly", label: "Pet friendly", valueType: "BOOLEAN" },
+  { key: "serves_alcohol", label: "Serves alcohol", valueType: "BOOLEAN" },
+] as const;
+
+export function findAttributeCatalogEntry(
+  catalog: readonly PlaceAttributeCatalogEntry[],
+  key: string,
+): PlaceAttributeCatalogEntry | undefined {
+  return catalog.find((a) => a.key === key);
+}
+
+export const CUSTOM_ATTRIBUTE_KEY = "__custom__";
+
 export const WEEKDAYS = [
   "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
 ] as const;

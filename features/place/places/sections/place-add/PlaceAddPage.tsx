@@ -17,10 +17,15 @@ import {
   ACCESS_TYPES,
   ATTRIBUTE_VALUE_TYPES,
   CONTACT_TYPES,
+  CUSTOM_ATTRIBUTE_KEY,
+  DEFAULT_PLACE_ATTRIBUTE_CATALOG,
+  findAttributeCatalogEntry,
   GEOCODE_METHODS,
   PLACE_TYPES,
   WEEKDAYS,
+  type PlaceAttributeCatalogEntry,
 } from "@/features/verification/shared/types";
+import { fetchSettings } from "@/features/system/settings/api";
 import { fetchParentCategories, getLocalizedName } from "@/features/category/categories/api";
 import type { Category } from "@/features/category/categories/types";
 import { GlassCard } from "@/features/shared/GlassCard";
@@ -34,7 +39,20 @@ export default function PlaceAddPage() {
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
 
-  useEffect(() => { void fetchParentCategories().then(setCategories); }, []);
+  // Bundled fallback until GET /settings resolves — the real, admin-edited
+  // catalog lives in the DB (System → Settings), so it can grow without a
+  // code change; see DEFAULT_PLACE_ATTRIBUTE_CATALOG's doc comment.
+  const [attributeCatalog, setAttributeCatalog] =
+    useState<readonly PlaceAttributeCatalogEntry[]>(DEFAULT_PLACE_ATTRIBUTE_CATALOG);
+
+  useEffect(() => {
+    void fetchParentCategories().then(setCategories);
+    void fetchSettings()
+      .then((res) => {
+        if (res.placeAttributeCatalog?.length) setAttributeCatalog(res.placeAttributeCatalog);
+      })
+      .catch(() => {});
+  }, []);
 
   // Core fields
   const [placeType, setPlaceType] = useState<PlaceType>("POI");
@@ -96,6 +114,18 @@ export default function PlaceAddPage() {
   const removeAttribute = (i: number) => setAttributes(attributes.filter((_, idx) => idx !== i));
   const updateAttribute = (i: number, field: keyof AttributeDraft, value: string) =>
     setAttributes(attributes.map((a, idx) => (idx === i ? { ...a, [field]: value } : a)));
+  const selectAttributeKey = (i: number, nextKey: string) =>
+    setAttributes(
+      attributes.map((a, idx) => {
+        if (idx !== i) return a;
+        if (nextKey === CUSTOM_ATTRIBUTE_KEY) {
+          return { ...a, key: findAttributeCatalogEntry(attributeCatalog, a.key) ? "" : a.key };
+        }
+        const entry = findAttributeCatalogEntry(attributeCatalog, nextKey);
+        const value = entry?.options ? (entry.options[0] ?? "") : entry?.valueType === "BOOLEAN" ? "true" : "";
+        return { ...a, key: nextKey, valueType: (entry?.valueType ?? a.valueType) as AttributeDraft["valueType"], value };
+      }),
+    );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -361,18 +391,48 @@ export default function PlaceAddPage() {
         <GlassCard flat className="card" style={{ marginBottom: 14 }}>
           <div className="ch"><span className="ct">Attributes</span><button type="button" className="btn sm" onClick={addAttribute}><i className="ti ti-plus" />Add</button></div>
           {attributes.length === 0 && <div style={{ padding: "8px 0", color: "var(--text-muted)", fontSize: 12 }}>No attributes.</div>}
-          {attributes.map((a, i) => (
-            <div key={i} className="fr" style={{ alignItems: "flex-end" }}>
-              <div className="fg"><label className="fl">Key</label><input type="text" placeholder="has_wifi" value={a.key} onChange={(e) => updateAttribute(i, "key", e.target.value)} /></div>
-              <div className="fg"><label className="fl">Value</label><input type="text" placeholder="true" value={a.value} onChange={(e) => updateAttribute(i, "value", e.target.value)} /></div>
-              <div className="fg" style={{ width: 120 }}><label className="fl">Type</label>
-                <select className="glass-select" value={a.valueType} onChange={(e) => updateAttribute(i, "valueType", e.target.value)}>
-                  {ATTRIBUTE_VALUE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
+          {attributes.map((a, i) => {
+            const catalogEntry = findAttributeCatalogEntry(attributeCatalog, a.key);
+            const isCustomKey = !catalogEntry;
+            return (
+              <div key={i} style={{ marginBottom: 8 }}>
+                <div className="fr" style={{ alignItems: "flex-end" }}>
+                  <div className="fg">
+                    <label className="fl">Attribute</label>
+                    <select className="glass-select" value={catalogEntry ? a.key : CUSTOM_ATTRIBUTE_KEY} onChange={(e) => selectAttributeKey(i, e.target.value)}>
+                      {attributeCatalog.map((entry) => <option key={entry.key} value={entry.key}>{entry.label}</option>)}
+                      <option value={CUSTOM_ATTRIBUTE_KEY}>Custom key…</option>
+                    </select>
+                  </div>
+                  <div className="fg">
+                    <label className="fl">Value</label>
+                    {catalogEntry?.options ? (
+                      <select className="glass-select" value={a.value} onChange={(e) => updateAttribute(i, "value", e.target.value)}>
+                        {catalogEntry.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    ) : catalogEntry?.valueType === "BOOLEAN" ? (
+                      <select className="glass-select" value={a.value || "true"} onChange={(e) => updateAttribute(i, "value", e.target.value)}>
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                      </select>
+                    ) : (
+                      <input type="text" placeholder="true" value={a.value} onChange={(e) => updateAttribute(i, "value", e.target.value)} />
+                    )}
+                  </div>
+                  <div className="fg" style={{ width: 120 }}><label className="fl">Type</label>
+                    <select className="glass-select" value={a.valueType} disabled={Boolean(catalogEntry)} onChange={(e) => updateAttribute(i, "valueType", e.target.value)}>
+                      {ATTRIBUTE_VALUE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <button type="button" className="btn sm d" onClick={() => removeAttribute(i)} style={{ marginBottom: 8 }}><i className="ti ti-x" /></button>
+                </div>
+                {isCustomKey ? (
+                  <input type="text" placeholder="custom_key_name" value={a.key} onChange={(e) => updateAttribute(i, "key", e.target.value)} style={{ marginTop: 4 }} />
+                ) : null}
+                {catalogEntry?.hint ? <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{catalogEntry.hint}</div> : null}
               </div>
-              <button type="button" className="btn sm d" onClick={() => removeAttribute(i)} style={{ marginBottom: 8 }}><i className="ti ti-x" /></button>
-            </div>
-          ))}
+            );
+          })}
         </GlassCard>
 
         <div className="category-form-actions">

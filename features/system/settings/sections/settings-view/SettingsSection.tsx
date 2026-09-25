@@ -1,6 +1,7 @@
-import type { AdminRole, SettingsData } from "../../types";
+import type { AdminRole, PlaceAttributeCatalogEntry, SettingsData } from "../../types";
 import AllowedLanguagesCard from "./AllowedLanguagesCard";
 import OutdatedPlacesCard from "./OutdatedPlacesCard";
+import PlaceAttributeCatalogCard from "./PlaceAttributeCatalogCard";
 import UserRolesCard from "./UserRolesCard";
 
 type Props = {
@@ -8,6 +9,7 @@ type Props = {
   onStaleDaysChange: (value: number) => void;
   onRoleChange: (value: AdminRole) => void;
   onAllowedLanguagesChange: (value: string[]) => void;
+  onPlaceAttributeCatalogChange: (value: PlaceAttributeCatalogEntry[]) => void;
   onSave: () => void;
   onDiscard: () => void;
   saving: boolean;
@@ -19,6 +21,7 @@ export default function SettingsSection({
   onStaleDaysChange,
   onRoleChange,
   onAllowedLanguagesChange,
+  onPlaceAttributeCatalogChange,
   onSave,
   onDiscard,
   saving,
@@ -52,7 +55,14 @@ export default function SettingsSection({
         </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
+      <div style={{ marginTop: 16 }}>
+        <PlaceAttributeCatalogCard
+          catalog={data.placeAttributeCatalog}
+          onChange={onPlaceAttributeCatalogChange}
+        />
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
         <button className="btn" onClick={onDiscard} disabled={!dirty || saving}>Discard Changes</button>
         <button className="btn p" onClick={onSave} disabled={!dirty || saving}>
           <i className="ti ti-check" />

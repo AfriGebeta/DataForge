@@ -59,10 +59,14 @@ import {
   ATTRIBUTE_VALUE_TYPES,
   COMPLETENESS_LEVELS,
   CONTACT_TYPES,
+  CUSTOM_ATTRIBUTE_KEY,
+  DEFAULT_PLACE_ATTRIBUTE_CATALOG,
+  findAttributeCatalogEntry,
   GEOCODE_METHODS,
   PLACE_TYPES,
   WEEKDAYS,
   type AdminLevelChainItem,
+  type PlaceAttributeCatalogEntry,
   type PlaceDetail,
   type PlaceFlag,
   type UpdateContactPayload,
@@ -70,6 +74,7 @@ import {
   type UpdateOpeningHourPayload,
   type UpdatePlacePayload,
 } from "./types";
+import { fetchSettings } from "@/features/system/settings/api";
 
 // "manage" is the generic Place-menu entry point (Update Place) — same editor,
 // no Approve/Reject actions since the place isn't necessarily in review.
@@ -691,6 +696,11 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
   const [chainDraft, setChainDraft] = useState<{ level: number; name: string }[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [addressLevels, setAddressLevels] = useState<AddressLevelDef[]>([]);
+  // Bundled fallback until GET /settings resolves — the real, admin-edited
+  // catalog lives in the DB (System → Settings) per DEFAULT_PLACE_ATTRIBUTE_CATALOG's
+  // doc comment, so this list can grow without a code change.
+  const [attributeCatalog, setAttributeCatalog] =
+    useState<readonly PlaceAttributeCatalogEntry[]>(DEFAULT_PLACE_ATTRIBUTE_CATALOG);
 
   // Snapshot of form/names/contacts/hours/attributes/images/chainDraft as of
   // the last successful load or save. Compared (during render, see isDirty
@@ -702,6 +712,13 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
     void fetchParentCategories().then(setCategories);
     void fetchAddressLevels().then(setAddressLevels);
     void fetchCurrentAdmin().then((me) => setCurrentAdminId(me?.adminId ?? null));
+    // Best-effort: keep the bundled fallback catalog if Settings can't be
+    // reached rather than breaking the Attributes editor over it.
+    void fetchSettings()
+      .then((res) => {
+        if (res.placeAttributeCatalog?.length) setAttributeCatalog(res.placeAttributeCatalog);
+      })
+      .catch(() => {});
   }, []);
 
   // Picks up the one-shot confirmation MergeReviewPage stashes just before
@@ -1499,47 +1516,116 @@ export default function PlaceDetailPage({ placeId, mode, backHref, backLabel }: 
           </Section>
 
           <Section title="Attributes" icon={MapPin}>
-            {attributes.map((a, i) => (
-              <div key={i} className="flex items-end gap-2">
-                <div className="flex-1">
-                  <FieldLabel>Key</FieldLabel>
-                  <input
-                    className={inputClass}
-                    value={a.key}
-                    onChange={(e) =>
-                      setAttributes((prev) => prev.map((x, idx) => (idx === i ? { ...x, key: e.target.value } : x)))
-                    }
-                  />
+            {attributes.map((a, i) => {
+              const catalogEntry = findAttributeCatalogEntry(attributeCatalog, a.key);
+              const isCustomKey = !catalogEntry;
+              return (
+                <div key={i} className="flex flex-col gap-1.5 rounded-md border border-[color:var(--border)] p-2.5">
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <FieldLabel>Attribute</FieldLabel>
+                      <select
+                        className={selectClass}
+                        value={catalogEntry ? a.key : CUSTOM_ATTRIBUTE_KEY}
+                        onChange={(e) => {
+                          const nextKey = e.target.value;
+                          setAttributes((prev) =>
+                            prev.map((x, idx) => {
+                              if (idx !== i) return x;
+                              if (nextKey === CUSTOM_ATTRIBUTE_KEY) {
+                                return { ...x, key: isCustomKey ? x.key : "" };
+                              }
+                              const entry = findAttributeCatalogEntry(attributeCatalog, nextKey);
+                              const value = entry?.options
+                                ? (entry.options[0] ?? "")
+                                : entry?.valueType === "BOOLEAN"
+                                  ? "true"
+                                  : "";
+                              return { ...x, key: nextKey, valueType: entry?.valueType ?? x.valueType, value };
+                            }),
+                          );
+                        }}
+                      >
+                        {attributeCatalog.map((entry) => (
+                          <option key={entry.key} value={entry.key}>
+                            {entry.label}
+                          </option>
+                        ))}
+                        <option value={CUSTOM_ATTRIBUTE_KEY}>Custom key…</option>
+                      </select>
+                    </div>
+                    <div className="flex-1">
+                      <FieldLabel>Value</FieldLabel>
+                      {catalogEntry?.options ? (
+                        <select
+                          className={selectClass}
+                          value={a.value}
+                          onChange={(e) =>
+                            setAttributes((prev) => prev.map((x, idx) => (idx === i ? { ...x, value: e.target.value } : x)))
+                          }
+                        >
+                          {catalogEntry.options.map((o) => (
+                            <option key={o} value={o}>
+                              {o}
+                            </option>
+                          ))}
+                        </select>
+                      ) : catalogEntry?.valueType === "BOOLEAN" ? (
+                        <select
+                          className={selectClass}
+                          value={a.value || "true"}
+                          onChange={(e) =>
+                            setAttributes((prev) => prev.map((x, idx) => (idx === i ? { ...x, value: e.target.value } : x)))
+                          }
+                        >
+                          <option value="true">Yes</option>
+                          <option value="false">No</option>
+                        </select>
+                      ) : (
+                        <input
+                          className={inputClass}
+                          value={a.value}
+                          onChange={(e) =>
+                            setAttributes((prev) => prev.map((x, idx) => (idx === i ? { ...x, value: e.target.value } : x)))
+                          }
+                        />
+                      )}
+                    </div>
+                    <div className="w-32 shrink-0">
+                      <FieldLabel>Type</FieldLabel>
+                      <select
+                        className={selectClass}
+                        value={a.valueType}
+                        disabled={Boolean(catalogEntry)}
+                        onChange={(e) =>
+                          setAttributes((prev) => prev.map((x, idx) => (idx === i ? { ...x, valueType: e.target.value } : x)))
+                        }
+                      >
+                        {ATTRIBUTE_VALUE_TYPES.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <RemoveButton onClick={() => setAttributes((prev) => prev.filter((_, idx) => idx !== i))} />
+                  </div>
+                  {isCustomKey ? (
+                    <input
+                      className={inputClass}
+                      placeholder="custom_key_name"
+                      value={a.key}
+                      onChange={(e) =>
+                        setAttributes((prev) => prev.map((x, idx) => (idx === i ? { ...x, key: e.target.value } : x)))
+                      }
+                    />
+                  ) : null}
+                  {catalogEntry?.hint ? (
+                    <div className="text-[10.5px] text-[color:var(--text-muted)]">{catalogEntry.hint}</div>
+                  ) : null}
                 </div>
-                <div className="flex-1">
-                  <FieldLabel>Value</FieldLabel>
-                  <input
-                    className={inputClass}
-                    value={a.value}
-                    onChange={(e) =>
-                      setAttributes((prev) => prev.map((x, idx) => (idx === i ? { ...x, value: e.target.value } : x)))
-                    }
-                  />
-                </div>
-                <div className="w-32 shrink-0">
-                  <FieldLabel>Type</FieldLabel>
-                  <select
-                    className={selectClass}
-                    value={a.valueType}
-                    onChange={(e) =>
-                      setAttributes((prev) => prev.map((x, idx) => (idx === i ? { ...x, valueType: e.target.value } : x)))
-                    }
-                  >
-                    {ATTRIBUTE_VALUE_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <RemoveButton onClick={() => setAttributes((prev) => prev.filter((_, idx) => idx !== i))} />
-              </div>
-            ))}
+              );
+            })}
             <AddButton
               label="Add attribute"
               onClick={() => setAttributes((prev) => [...prev, { key: "", value: "", valueType: "STRING" }])}

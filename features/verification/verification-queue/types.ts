@@ -54,6 +54,11 @@ export type VerificationQueueParams = {
   // Mutually exclusive: set one or neither, never both.
   assignedToId?: string;
   unassigned?: boolean;
+  // When either is set, the query drops the default reviewStatus=NEEDS_REVIEW
+  // scope entirely (see api.ts) — a place missing this data needs fixing
+  // regardless of its review status, not just while it's still in the queue.
+  missingCategory?: boolean;
+  missingCoordinates?: boolean;
 };
 
 export type VerificationQueueResponse = {
