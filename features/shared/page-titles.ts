@@ -9,6 +9,7 @@ import { pageTitles as categoryTitles } from "@/features/category/page-titles";
 import { pageTitles as placeTitles } from "@/features/place/page-titles";
 import { pageTitles as schemaTitles } from "@/features/schema/page-titles";
 import { pageTitles as businessTitles } from "@/features/business/page-titles";
+import { pageTitles as geoSyncTitles } from "@/features/geo-sync/page-titles";
 
 export const pageTitles: Record<string, string> = {
   ...overviewTitles,
@@ -22,4 +23,5 @@ export const pageTitles: Record<string, string> = {
   ...placeTitles,
   ...schemaTitles,
   ...businessTitles,
+  ...geoSyncTitles,
 };

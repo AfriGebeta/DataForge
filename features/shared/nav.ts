@@ -13,6 +13,7 @@ import { navGroup as schemaNav } from "@/features/schema/nav";
 import { navGroup as businessNav } from "@/features/business/nav";
 import { navGroup as docsNav } from "@/features/docs/nav";
 import { navGroup as osmEditorNav } from "@/features/osm-editor/nav";
+import { navGroup as geoSyncNav } from "@/features/geo-sync/nav";
 
 export type {
   PageConfig as NavItem,
@@ -33,5 +34,6 @@ export const navGroups: FeatureNavGroup[] = [
   systemNav,
   schemaNav,
   businessNav,
+  geoSyncNav,
   docsNav,
 ];
