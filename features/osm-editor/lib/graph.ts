@@ -98,6 +98,9 @@ export class PlaceholderIds {
   }
 }
 
+const NO_WAYS: readonly WayEntity[] = [];
+const NO_RELATIONS: readonly RelationEntity[] = [];
+
 export class Graph {
   private constructor(private readonly entities: ReadonlyMap<string, Entity>) {}
 
@@ -168,27 +171,65 @@ export class Graph {
     return this.all().filter((e): e is RelationEntity => e.type === "relation");
   }
 
-  visibleNodes(): NodeEntity[] {
-    return this.nodes().filter((n) => n.visible);
+  // A Graph is immutable, so these derived views are computed once per
+  // instance and shared. They used to be rebuilt (and parentWays was a
+  // full scan of every way) on every call, which made rendering and
+  // validation quadratic: parentWays alone cost ~0.6 s per render on a
+  // 776-way view. Treat the results as read-only.
+  private cache: {
+    nodes?: readonly NodeEntity[];
+    ways?: readonly WayEntity[];
+    relations?: readonly RelationEntity[];
+    parentWays?: Map<number, WayEntity[]>;
+    parentRelations?: Map<string, RelationEntity[]>;
+  } = {};
+
+  visibleNodes(): readonly NodeEntity[] {
+    return (this.cache.nodes ??= this.nodes().filter((n) => n.visible));
   }
 
-  visibleWays(): WayEntity[] {
-    return this.ways().filter((w) => w.visible);
+  visibleWays(): readonly WayEntity[] {
+    return (this.cache.ways ??= this.ways().filter((w) => w.visible));
   }
 
-  visibleRelations(): RelationEntity[] {
-    return this.relations().filter((r) => r.visible);
+  visibleRelations(): readonly RelationEntity[] {
+    return (this.cache.relations ??= this.relations().filter((r) => r.visible));
   }
 
   // Every visible way that references this node — the backbone of
   // geometry-role derivation (vertex vs. point) and cascade-delete.
-  parentWays(nodeId: number): WayEntity[] {
-    return this.visibleWays().filter((w) => w.nodeIds.includes(nodeId));
+  parentWays(nodeId: number): readonly WayEntity[] {
+    let index = this.cache.parentWays;
+    if (!index) {
+      index = new Map();
+      for (const w of this.visibleWays()) {
+        // A node can repeat within a way (closed rings); count the way once.
+        for (const id of new Set(w.nodeIds)) {
+          const list = index.get(id);
+          if (list) list.push(w);
+          else index.set(id, [w]);
+        }
+      }
+      this.cache.parentWays = index;
+    }
+    return index.get(nodeId) ?? NO_WAYS;
   }
 
   // Every visible relation with a member matching (type, id).
-  parentRelations(type: EntityType, id: number): RelationEntity[] {
-    return this.visibleRelations().filter((r) => r.members.some((m) => m.type === type && m.ref === id));
+  parentRelations(type: EntityType, id: number): readonly RelationEntity[] {
+    let index = this.cache.parentRelations;
+    if (!index) {
+      index = new Map();
+      for (const r of this.visibleRelations()) {
+        for (const key of new Set(r.members.map((m) => entityKey(m.type, m.ref)))) {
+          const list = index.get(key);
+          if (list) list.push(r);
+          else index.set(key, [r]);
+        }
+      }
+      this.cache.parentRelations = index;
+    }
+    return index.get(entityKey(type, id)) ?? NO_RELATIONS;
   }
 
   childNodes(way: WayEntity): NodeEntity[] {

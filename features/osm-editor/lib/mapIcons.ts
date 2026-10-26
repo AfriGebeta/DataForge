@@ -57,3 +57,23 @@ export function midpointDivIcon(): L.DivIcon {
   </svg>`;
   return L.divIcon({ html, className: "osm-editor-midpoint", iconSize: [10, 10], iconAnchor: [5, 5] });
 }
+
+// Direction arrow for one-way roads: black, `size` px square (callers pass the
+// road's drawn width so it never exceeds the road). The SVG points right;
+// `angle` (degrees, screen-space, clockwise from east) rotates it along the
+// road. Cached per (10° step, size) so thousands of arrows share few icons.
+const onewayIconCache = new Map<string, L.DivIcon>();
+export function onewayArrowIcon(angle: number, size: number): L.DivIcon {
+  const key = ((Math.round(angle / 10) * 10) % 360 + 360) % 360;
+  const px = Math.max(4, Math.round(size));
+  const cacheKey = `${key}:${px}`;
+  let icon = onewayIconCache.get(cacheKey);
+  if (!icon) {
+    const html = `<svg width="${px}" height="${px}" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" style="transform:rotate(${key}deg);display:block">
+      <polygon points="1,1 13,7 1,13 4.5,7" fill="#000"/>
+    </svg>`;
+    icon = L.divIcon({ html, className: "osm-editor-oneway", iconSize: [px, px], iconAnchor: [px / 2, px / 2] });
+    onewayIconCache.set(cacheKey, icon);
+  }
+  return icon;
+}

@@ -8,8 +8,7 @@
 // selection (§1.4) and each is independently enabled/disabled.
 
 import { useEffect, useMemo, useState } from "react";
-import { GitBranch, RotateCcw, Scissors, Trash2, Unlink } from "lucide-react";
-import * as graphActions from "./lib/actions";
+import { buildOperations, type SelectionOp } from "./selectionOps";
 import type { EditorStore } from "./useEditorStore";
 
 // §2D quick reference — clearance margins the menu keeps from the
@@ -17,15 +16,6 @@ import type { EditorStore } from "./useEditorStore";
 const CLEARANCE = { top: 85, bottom: 45, side: 35 };
 const MENU_WIDTH = 40;
 const ITEM_HEIGHT = 36;
-
-interface MenuOp {
-  id: string;
-  label: string;
-  icon: typeof Trash2;
-  enabled: boolean;
-  danger?: boolean;
-  run: () => void;
-}
 
 export default function EditMenu({ store }: { store: EditorStore }) {
   const { selection, graph, menuAnchor, changeset } = store;
@@ -53,96 +43,20 @@ export default function EditMenu({ store }: { store: EditorStore }) {
     return () => map.removeEventListener("wheel", dismiss);
   }, [menuAnchor, store]);
 
-  const ops: MenuOp[] = useMemo(() => {
-    if (!changeset) return [];
-    const list: MenuOp[] = [];
-
-    if (selection.length >= 1) {
-      list.push({
-        id: "delete",
-        label: "Delete",
-        icon: Trash2,
-        danger: true,
-        enabled: true,
-        run: () => store.deleteSelection(),
-      });
-    }
-
-    if (selection.length === 1 && selection[0].type === "node") {
-      const node = graph.node(selection[0].id);
-      const parentWays = node ? graph.parentWays(node.id) : [];
-
-      list.push({
-        id: "disconnect",
-        label: "Disconnect",
-        icon: Unlink,
-        enabled: !!node && parentWays.length > 0,
-        run: () => {
-          if (!node) return;
-          let g = graph;
-          for (const way of parentWays) g = graphActions.disconnectNodeFromWay(g, way.id, node.id);
-          store.commitGraph(g);
-        },
-      });
-
-      const singleParent = parentWays.length === 1 ? parentWays[0] : null;
-      const isInterior =
-        !!node && !!singleParent && singleParent.nodeIds[0] !== node.id && singleParent.nodeIds[singleParent.nodeIds.length - 1] !== node.id;
-      list.push({
-        id: "split",
-        label: "Split way here",
-        icon: Scissors,
-        enabled: isInterior,
-        run: () => {
-          if (!node || !singleParent) return;
-          const newWayId = store.allocateId("way");
-          store.commitGraph(graphActions.splitWayAtNode(graph, singleParent.id, node.id, newWayId));
-        },
-      });
-    }
-
-    if (selection.length === 1 && selection[0].type === "way") {
-      const way = graph.way(selection[0].id);
-      list.push({
-        id: "reverse",
-        label: "Reverse direction",
-        icon: RotateCcw,
-        enabled: !!way,
-        run: () => {
-          if (way) store.commitGraph(graphActions.reverseWay(graph, way.id));
-        },
-      });
-    }
-
-    if (selection.length === 2 && selection.every((s) => s.type === "node")) {
-      const [a, b] = selection;
-      const blocked = graph.parentRelations("node", a.id).length > 0 || graph.parentRelations("node", b.id).length > 0;
-      list.push({
-        id: "merge",
-        label: "Merge nodes",
-        icon: GitBranch,
-        enabled: !blocked,
-        run: () => {
-          store.commitGraph(graphActions.mergeNodes(graph, a.id, b.id));
-          store.select({ type: "node", id: a.id }, false);
-        },
-      });
-    }
-
-    return list;
-  }, [selection, graph, changeset, store]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const ops: SelectionOp[] = useMemo(() => buildOperations(store), [selection, graph, changeset, store.transform]);
 
   if (!menuAnchor || ops.length === 0) return null;
 
-  const menuHeight = ops.length * ITEM_HEIGHT;
+  const menuHeight = Math.min(ops.length * ITEM_HEIGHT, Math.max(ITEM_HEIGHT, viewport.height - CLEARANCE.top - CLEARANCE.bottom));
   const flipLeft = menuAnchor.x + CLEARANCE.side + MENU_WIDTH > viewport.width;
   const left = flipLeft ? menuAnchor.x - MENU_WIDTH - 8 : menuAnchor.x + 8;
   const top = Math.min(Math.max(menuAnchor.y - menuHeight / 2, CLEARANCE.top), Math.max(CLEARANCE.top, viewport.height - CLEARANCE.bottom - menuHeight));
 
   return (
     <div
-      className="fixed z-[1100] flex flex-col overflow-hidden rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] shadow-xl"
-      style={{ left, top, width: MENU_WIDTH }}
+      className="fixed z-[1100] flex flex-col overflow-y-auto rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)] shadow-xl"
+      style={{ left, top, width: MENU_WIDTH, maxHeight: menuHeight }}
     >
       {ops.map((op) => {
         const Icon = op.icon;
@@ -150,7 +64,7 @@ export default function EditMenu({ store }: { store: EditorStore }) {
           <button
             key={op.id}
             type="button"
-            title={op.label}
+            title={!op.enabled && op.disabledReason ? op.disabledReason : op.hotkey ? `${op.label} (${op.hotkey})` : op.label}
             disabled={!op.enabled}
             onClick={() => {
               op.run();

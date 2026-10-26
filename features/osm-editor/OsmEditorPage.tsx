@@ -1,12 +1,29 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type L from "leaflet";
-import { Download, MapPin, Minus, Pin, Plus, Redo2, Route, Square, Trash2, Undo2, Upload, X } from "lucide-react";
+import { Crosshair, Download, MessageSquarePlus, History as HistoryIcon, Image as ImageIcon, Layers, MapPin, Minus, Pin, Plus, Redo2, Route, Ruler, Search, Square, Trash2, Undo2, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { closeChangeset, createChangeset, downloadTextFile, fetchChangesetOsmChangeXml, fetchMapData, fetchMapOsmXml, importOsmFile } from "./api";
+import { closeChangeset, createChangeset, downloadTextFile, fetchChangesetOsmChangeXml, fetchMapData, fetchMapOsmXml, importOsmFile, listNotes } from "./api";
 import EditMenu from "./EditMenu";
+import IssuesPanel, { useIssues, type IssueScope } from "./IssuesPanel";
+import CoordinatesBar from "./CoordinatesBar";
+import CopyTagsDialog from "./CopyTagsDialog";
+import GoToDialog from "./GoToDialog";
+import SearchDialog from "./SearchDialog";
+import Walkthrough from "./Walkthrough";
+import { useNavigationShortcuts } from "./shortcuts";
+import AutoTracePanel from "./panels/AutoTracePanel";
+import BackgroundPanel from "./panels/BackgroundPanel";
+import LocationPanel from "./panels/LocationPanel";
+import NotesPanel from "./panels/NotesPanel";
+import PreferencesPanel from "./panels/PreferencesPanel";
+import type { PanelId } from "./panels/ids";
+import HistoryPanel from "./panels/HistoryPanel";
+import MapDataPanel from "./panels/MapDataPanel";
+import MeasurementPanel from "./panels/MeasurementPanel";
+import { useOperationShortcuts } from "./selectionOps";
 import { nodeRole, wayRole } from "./lib/geometryRoles";
 import type { Entity } from "./lib/graph";
 import PresetPicker from "./PresetPicker";
@@ -15,6 +32,9 @@ import SaveReviewModal from "./SaveReviewModal";
 import ShortcutsPanel from "./ShortcutsPanel";
 import { useEditorStore, type SelectionEntry } from "./useEditorStore";
 import type { BoundingBox, OsmTags } from "./types";
+
+// Leaflet touches `window`, so the inset loads client-side only, like the main map.
+const MiniMap = dynamic(() => import("./MiniMap"), { ssr: false });
 
 const OsmEditorMap = dynamic(() => import("./OsmEditorMap"), {
   ssr: false,
@@ -49,15 +69,31 @@ function rowsToTags(rows: TagRow[]): OsmTags {
   return out;
 }
 
-function TagsEditor({ rows, onChange }: { rows: TagRow[]; onChange: (rows: TagRow[]) => void }) {
+function TagsEditor({ rows: externalRows, onChange }: { rows: TagRow[]; onChange: (rows: TagRow[]) => void }) {
+  // Local draft: a freshly added row has an empty key, which rowsToTags drops,
+  // so the parent's rows (derived from tags) would erase it the moment it's added.
+  const [rows, setRows] = useState(externalRows);
+  const externalSig = JSON.stringify(rowsToTags(externalRows));
+  const [seenSig, setSeenSig] = useState(externalSig);
+  if (seenSig !== externalSig) {
+    // Tags changed from outside (other selection, undo, a fix) — take them,
+    // unless the draft already represents exactly those tags.
+    setSeenSig(externalSig);
+    if (JSON.stringify(rowsToTags(rows)) !== externalSig) setRows(externalRows);
+  }
+
+  function commit(next: TagRow[]) {
+    setRows(next);
+    onChange(next);
+  }
   function setRow(i: number, patch: Partial<TagRow>) {
-    onChange(rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+    commit(rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
   }
   function removeRow(i: number) {
-    onChange(rows.filter((_, idx) => idx !== i));
+    commit(rows.filter((_, idx) => idx !== i));
   }
   function addRow() {
-    onChange([...rows, { key: "", value: "" }]);
+    commit([...rows, { key: "", value: "" }]);
   }
 
   return (
@@ -94,6 +130,16 @@ function TagsEditor({ rows, onChange }: { rows: TagRow[]; onChange: (rows: TagRo
 
 export default function OsmEditorPage() {
   const store = useEditorStore();
+  const t = store.t;
+  useOperationShortcuts(store);
+
+  // One floating panel at a time, like iD's right-hand panes.
+  const noteActive = store.selectedNoteId !== null || store.noteDraft !== null;
+  const [openPanel, setOpenPanel] = useState<PanelId | null>(null);
+  const togglePanel = (id: PanelId) => setOpenPanel((cur) => (cur === id ? null : id));
+  const [issueScope, setIssueScope] = useState<IssueScope>("mine");
+  const issues = useIssues(store, issueScope);
+  const issueErrors = issues.filter((i) => i.severity === "error").length;
 
   const [changesetFormOpen, setChangesetFormOpen] = useState(false);
   const [changesetComment, setChangesetComment] = useState("");
@@ -112,8 +158,46 @@ export default function OsmEditorPage() {
 
   const [showSaveReview, setShowSaveReview] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showGoTo, setShowGoTo] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+  // First visit: offer the tour once (never auto-open it over someone's work).
+  const [tourDismissed, setTourDismissed] = useState(false);
+  // localStorage is external state: read it via useSyncExternalStore (false on the server).
+  const tourSeenStored = useSyncExternalStore(
+    () => () => {},
+    () => {
+      try {
+        return window.localStorage.getItem("osm-editor:tour-seen") !== null;
+      } catch {
+        return true; // no storage: don't offer
+      }
+    },
+    () => true,
+  );
+  const offerTour = !tourSeenStored && !tourDismissed;
+  function dismissTourOffer() {
+    setTourDismissed(true);
+    try {
+      window.localStorage.setItem("osm-editor:tour-seen", "1");
+    } catch {
+      // not worth surfacing
+    }
+  }
+  const [showSearch, setShowSearch] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useNavigationShortcuts(store, {
+    togglePanel,
+    openGoTo: () => setShowGoTo(true),
+    openSearch: () => setShowSearch(true),
+    toggleShortcuts: () => setShowShortcuts((v) => !v),
+    toggleCoordsBar: () => store.setShowCoords(!store.showCoords),
+    openSave: () => {
+      if (store.changeset && store.hasUnsavedChanges) setShowSaveReview(true);
+      else store.flash(store.changeset ? store.t("flash.nothingToSave") : store.t("flash.startSession"));
+    },
+  });
 
   const selectedEntity = (() => {
     if (store.selection.length !== 1) return null;
@@ -160,23 +244,45 @@ export default function OsmEditorPage() {
     }
   }
 
-  async function loadCurrentView() {
-    const bounds = boundsGetterRef.current?.();
-    if (!bounds) return;
-    const box: BoundingBox = { minLat: bounds.getSouth(), minLon: bounds.getWest(), maxLat: bounds.getNorth(), maxLon: bounds.getEast() };
+  async function loadArea(box: BoundingBox, shown: L.LatLngBoundsExpression) {
     setBbox(box);
-    setLoadedAreaBounds(bounds);
+    setLoadedAreaBounds(shown);
     setLoading(true);
     setError(null);
     setHasLoadedOnce(true);
     try {
-      store.loadMapData(await fetchMapData(box));
+      // Notes ride along with the map area; a notes failure must never
+      // block the map data itself.
+      const [data, notes] = await Promise.all([fetchMapData(box), listNotes(box).catch(() => null)]);
+      store.loadMapData(data);
+      if (notes) store.setNotes(notes);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to load map data.");
     } finally {
       setLoading(false);
     }
   }
+
+  async function loadCurrentView() {
+    const bounds = boundsGetterRef.current?.();
+    if (!bounds) return;
+    await loadArea({ minLat: bounds.getSouth(), minLon: bounds.getWest(), maxLat: bounds.getNorth(), maxLon: bounds.getEast() }, bounds);
+  }
+
+  // Go to / boundary / `#id=` links ask the store to load an area; the
+  // loader lives here because it owns the loading/error/bbox state.
+  const loadRequest = store.loadRequest;
+  useEffect(() => {
+    if (!loadRequest) return;
+    const b = loadRequest.bounds;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadArea(b, [
+      [b.minLat, b.minLon],
+      [b.maxLat, b.maxLon],
+    ]);
+    // loadArea only closes over stable setters + store.loadMapData
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadRequest]);
 
   async function startEditingSession(e: React.FormEvent) {
     e.preventDefault();
@@ -286,7 +392,7 @@ export default function OsmEditorPage() {
             ) : (
               <button type="button" onClick={() => setChangesetFormOpen(true)} className={primaryButtonClass}>
                 <Pin className="h-3.5 w-3.5" />
-                Start editing session
+                {t("toolbar.startSession")}
               </button>
             )
           ) : (
@@ -299,14 +405,14 @@ export default function OsmEditorPage() {
                 disabled={changesetBusy}
                 className="ml-1 rounded-md border border-[color:var(--orange-400)]/30 px-2 py-0.5 text-[11px] hover:bg-[color:var(--orange-500)]/20"
               >
-                {changesetBusy ? "Closing…" : "Finish"}
+                {changesetBusy ? t("banner.loading") : t("toolbar.finish")}
               </button>
             </div>
           )}
 
           <button type="button" onClick={() => void loadCurrentView()} className={secondaryButtonClass}>
             <MapPin className="h-3.5 w-3.5" />
-            Load / refresh view
+            {t("toolbar.loadView")}
           </button>
 
           <button
@@ -316,7 +422,7 @@ export default function OsmEditorPage() {
             className={store.mode === "drawPoint" ? activeToolButtonClass : secondaryButtonClass}
           >
             <MapPin className="h-3.5 w-3.5" />
-            {store.mode === "drawPoint" ? "Click map to place…" : "Add point"}
+            {store.mode === "drawPoint" ? "Click map to place…" : t("toolbar.addPoint")}
           </button>
           <button
             type="button"
@@ -325,7 +431,7 @@ export default function OsmEditorPage() {
             className={store.mode === "drawLine" ? activeToolButtonClass : secondaryButtonClass}
           >
             <Route className="h-3.5 w-3.5" />
-            {store.mode === "drawLine" ? "Click to add points, Enter to finish…" : "Add line"}
+            {store.mode === "drawLine" ? "Click to add points, Enter to finish…" : t("toolbar.addLine")}
           </button>
           <button
             type="button"
@@ -335,14 +441,14 @@ export default function OsmEditorPage() {
             title="Click points, then close the loop on the start point to finish"
           >
             <Square className="h-3.5 w-3.5" />
-            {store.mode === "drawArea" ? "Click to add points, close the loop…" : "Add area"}
+            {store.mode === "drawArea" ? "Click to add points, close the loop…" : t("toolbar.addArea")}
           </button>
 
           <div className="mx-1 h-5 w-px bg-[color:var(--border)]" />
-          <button type="button" onClick={store.undo} disabled={!store.canUndo} className={secondaryButtonClass} title="Undo (Ctrl+Z)">
+          <button type="button" onClick={store.undo} disabled={!store.canUndo} className={secondaryButtonClass} title={t("tip.undo")}>
             <Undo2 className="h-3.5 w-3.5" />
           </button>
-          <button type="button" onClick={store.redo} disabled={!store.canRedo} className={secondaryButtonClass} title="Redo (Ctrl+Shift+Z)">
+          <button type="button" onClick={store.redo} disabled={!store.canRedo} className={secondaryButtonClass} title={t("tip.redo")}>
             <Redo2 className="h-3.5 w-3.5" />
           </button>
           <button
@@ -351,7 +457,7 @@ export default function OsmEditorPage() {
             disabled={!store.changeset || !store.hasUnsavedChanges || store.saving}
             className={primaryButtonClass}
           >
-            {store.saving ? "Saving…" : "Save"}
+            {store.saving ? t("notes.saving") : t("toolbar.save")}
           </button>
         </div>
 
@@ -362,7 +468,7 @@ export default function OsmEditorPage() {
             className={store.wireframe ? activeToolButtonClass : secondaryButtonClass}
             title="Wireframe: show every feature as a plain line/point, no area fills"
           >
-            Wireframe
+            {t("toolbar.wireframe")}
           </button>
           <button
             type="button"
@@ -370,22 +476,83 @@ export default function OsmEditorPage() {
             className={store.highlightEdits ? activeToolButtonClass : secondaryButtonClass}
             title="Highlight features added/retagged/moved since the last save"
           >
-            Highlight edits
+            {t("toolbar.highlightEdits")}
           </button>
-          <button type="button" onClick={() => setShowShortcuts(true)} className={secondaryButtonClass} title="Keyboard shortcuts">
+          <button
+            type="button"
+            onClick={() => togglePanel("issues")}
+            className={openPanel === "issues" ? activeToolButtonClass : secondaryButtonClass}
+            title={t("tip.issues")}
+          >
+            {t("toolbar.issues")}
+            {issues.length > 0 ? (
+              <span className={`rounded-full px-1.5 text-[10px] font-semibold ${issueErrors > 0 ? "bg-[color:var(--text-danger)]/20 text-[color:var(--text-danger)]" : "bg-[color:var(--text-warning)]/20 text-[color:var(--text-warning)]"}`}>
+                {issues.length}
+              </span>
+            ) : null}
+          </button>
+          <button
+            type="button"
+            onClick={() => store.setMode(store.mode === "addNote" ? "browse" : "addNote")}
+            className={store.mode === "addNote" ? activeToolButtonClass : secondaryButtonClass}
+            title={t("tip.note")}
+          >
+            <MessageSquarePlus className="h-3.5 w-3.5" />
+            {store.mode === "addNote" ? t("notes.addHint") : t("toolbar.addNote")}
+          </button>
+          <button type="button" onClick={() => setShowGoTo(true)} className={secondaryButtonClass} title={t("tip.goTo")}>
+            <Crosshair className="h-3.5 w-3.5" />
+            {t("toolbar.goTo")}
+          </button>
+          <button type="button" onClick={() => setShowSearch(true)} className={secondaryButtonClass} title={t("tip.search")}>
+            <Search className="h-3.5 w-3.5" />
+            {t("toolbar.search")}
+          </button>
+          <button type="button" onClick={() => togglePanel("background")} className={openPanel === "background" ? activeToolButtonClass : secondaryButtonClass} title={t("tip.background")}>
+            <ImageIcon className="h-3.5 w-3.5" />
+            {t("toolbar.background")}
+          </button>
+          <button
+            type="button"
+            onClick={() => togglePanel("data")}
+            className={openPanel === "data" ? activeToolButtonClass : secondaryButtonClass}
+            title={t("tip.mapData")}
+          >
+            <Layers className="h-3.5 w-3.5" />
+            {t("toolbar.mapData")}
+            {store.hiddenFeatures.length > 0 ? <span className="rounded-full bg-[color:var(--text-warning)]/20 px-1.5 text-[10px] font-semibold text-[color:var(--text-warning)]">{store.hiddenFeatures.length} hidden</span> : null}
+          </button>
+          <button type="button" onClick={() => togglePanel("measure")} className={openPanel === "measure" ? activeToolButtonClass : secondaryButtonClass} title={t("tip.measure")}>
+            <Ruler className="h-3.5 w-3.5" />
+            {t("toolbar.measure")}
+          </button>
+          <button type="button" onClick={() => togglePanel("history")} className={openPanel === "history" ? activeToolButtonClass : secondaryButtonClass} title={t("tip.history")}>
+            <HistoryIcon className="h-3.5 w-3.5" />
+            {t("toolbar.history")}
+          </button>
+          <button type="button" onClick={() => togglePanel("trace")} className={openPanel === "trace" ? activeToolButtonClass : secondaryButtonClass} title={t("tip.autoTrace")}>
+            {t("toolbar.autoTrace")}
+          </button>
+          <button type="button" onClick={() => togglePanel("preferences")} className={openPanel === "preferences" ? activeToolButtonClass : secondaryButtonClass} title={t("tip.prefs")}>
+            {t("toolbar.prefs")}
+          </button>
+          <button type="button" onClick={() => (dismissTourOffer(), setShowTour((v) => !v))} className={showTour ? activeToolButtonClass : secondaryButtonClass} title="A short guided tour of the editor">
+            Tour
+          </button>
+          <button type="button" onClick={() => setShowShortcuts(true)} className={secondaryButtonClass} title={t("tip.shortcuts")}>
             ?
           </button>
           <button type="button" onClick={() => void exportMap()} disabled={!bbox} className={secondaryButtonClass}>
             <Download className="h-3.5 w-3.5" />
-            Export .osm
+            {t("toolbar.exportOsm")}
           </button>
           <button type="button" onClick={() => void exportChangeset()} disabled={!store.changeset} className={secondaryButtonClass}>
             <Download className="h-3.5 w-3.5" />
-            Export changeset
+            {t("toolbar.exportChangeset")}
           </button>
           <button type="button" onClick={triggerImport} disabled={!store.changeset} className={secondaryButtonClass}>
             <Upload className="h-3.5 w-3.5" />
-            Import .osm
+            {t("toolbar.importOsm")}
           </button>
           <input ref={fileInputRef} type="file" accept=".osm,.xml" hidden onChange={(e) => void handleImportFile(e)} />
         </div>
@@ -416,7 +583,7 @@ export default function OsmEditorPage() {
 
       {store.belowMinZoom ? (
         <div className="shrink-0 border-b border-[color:var(--border)] bg-[color:var(--bg-warning)] px-4 py-2 text-[12px] text-[color:var(--text-warning)]">
-          Zoom in to at least level {store.minEditZoom} to edit.
+          {t("banner.zoomIn", { zoom: store.minEditZoom })}
         </div>
       ) : null}
 
@@ -425,27 +592,27 @@ export default function OsmEditorPage() {
 
         {loading ? (
           <div className="pointer-events-none absolute right-3 top-3 z-[1000] rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)]/90 px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)] backdrop-blur">
-            Loading…
+            {t("banner.loading")}
           </div>
         ) : null}
 
         {!loading && !error && hasLoadedOnce && store.graph.visibleNodes().length === 0 && store.graph.visibleWays().length === 0 ? (
           <div className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center">
             <div className="max-w-xs rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-4 py-3 text-center text-[12px] text-[color:var(--text-muted)]">
-              No map data in this view yet.
+              {t("banner.noData")}
             </div>
           </div>
         ) : null}
         {!hasLoadedOnce ? (
           <div className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center">
             <div className="max-w-xs rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)] px-4 py-3 text-center text-[12px] text-[color:var(--text-muted)]">
-              Pan/zoom to the area you want, then click &ldquo;Load / refresh view&rdquo;.
+              {t("banner.panToLoad")}
             </div>
           </div>
         ) : null}
 
-        {selectedEntity?.entity ? (
-          <div className="absolute bottom-3 left-3 z-[1000] w-80 max-w-[calc(100%-24px)] rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)]/95 p-3 text-[12px] shadow-xl backdrop-blur">
+        {store.sidebarVisible && selectedEntity?.entity ? (
+          <div className="absolute bottom-3 left-3 z-[1000] max-h-[calc(100%-24px)] w-80 max-w-[calc(100%-24px)] overflow-y-auto overscroll-contain rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)]/95 p-3 text-[12px] shadow-xl backdrop-blur">
             <div className="mb-2 flex items-center justify-between">
               <span className="flex items-center gap-1.5 font-medium text-[color:var(--text-primary)]">
                 {selectedEntity.entry.type === "node" ? <MapPin className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
@@ -469,7 +636,7 @@ export default function OsmEditorPage() {
                 role={selectedGeometryRole}
               />
             ) : null}
-            <TagsEditor rows={tagsToRows(selectedEntity.entity.tags)} onChange={updateSelectedTags} />
+            <TagsEditor key={`${selectedEntity.entry.type}-${selectedEntity.entry.id}`} rows={tagsToRows(selectedEntity.entity.tags)} onChange={updateSelectedTags} />
             {selectedEntity.entry.type === "node" || selectedEntity.entry.type === "way" ? (
               <RelationMembership store={store} entryType={selectedEntity.entry.type} entryId={selectedEntity.entry.id} />
             ) : null}
@@ -485,11 +652,11 @@ export default function OsmEditorPage() {
               </button>
             </div>
             {!store.changeset ? (
-              <div className="mt-2 text-[11px] text-[color:var(--text-muted)]">Start an editing session to edit or delete this element.</div>
+              <div className="mt-2 text-[11px] text-[color:var(--text-muted)]">{t("banner.needSession")}</div>
             ) : null}
           </div>
-        ) : selectedEntities.length > 1 ? (
-          <div className="absolute bottom-3 left-3 z-[1000] w-80 max-w-[calc(100%-24px)] rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)]/95 p-3 text-[12px] shadow-xl backdrop-blur">
+        ) : store.sidebarVisible && selectedEntities.length > 1 ? (
+          <div className="absolute bottom-3 left-3 z-[1000] max-h-[calc(100%-24px)] w-80 max-w-[calc(100%-24px)] overflow-y-auto overscroll-contain rounded-lg border border-[color:var(--border)] bg-[color:var(--surface-2)]/95 p-3 text-[12px] shadow-xl backdrop-blur">
             <div className="mb-2 flex items-center justify-between">
               <span className="font-medium text-[color:var(--text-primary)]">{selectedEntities.length} features selected</span>
               <button
@@ -501,7 +668,7 @@ export default function OsmEditorPage() {
               </button>
             </div>
             <div className="mb-1 text-[10px] text-[color:var(--text-muted)]">Shared tags (identical across every selected feature):</div>
-            <TagsEditor rows={tagsToRows(sharedTags())} onChange={updateSharedTags} />
+            <TagsEditor key={selectedEntities.map((e) => `${e.entry.type}${e.entry.id}`).join(",")} rows={tagsToRows(sharedTags())} onChange={updateSharedTags} />
             <div className="mt-3 flex items-center justify-between gap-2">
               <button
                 type="button"
@@ -516,11 +683,69 @@ export default function OsmEditorPage() {
           </div>
         ) : null}
 
+        {noteActive ? <NotesPanel store={store} /> : null}
+        {!noteActive && openPanel === "issues" ? <IssuesPanel store={store} issues={issues} scope={issueScope} onScope={setIssueScope} onClose={() => setOpenPanel(null)} /> : null}
+        {!noteActive && openPanel === "background" ? <BackgroundPanel store={store} onClose={() => setOpenPanel(null)} /> : null}
+        {!noteActive && openPanel === "data" ? <MapDataPanel store={store} onClose={() => setOpenPanel(null)} /> : null}
+        {!noteActive && openPanel === "measure" ? <MeasurementPanel store={store} onClose={() => setOpenPanel(null)} /> : null}
+        {!noteActive && openPanel === "history" ? <HistoryPanel store={store} onClose={() => setOpenPanel(null)} /> : null}
+        {!noteActive && openPanel === "trace" ? <AutoTracePanel store={store} onClose={() => setOpenPanel(null)} /> : null}
+        {!noteActive && openPanel === "preferences" ? <PreferencesPanel store={store} onClose={() => setOpenPanel(null)} /> : null}
+        {!noteActive && openPanel === "location" ? <LocationPanel store={store} onClose={() => setOpenPanel(null)} onGoTo={() => setShowGoTo(true)} /> : null}
+
+        {store.showMinimap ? <MiniMap store={store} /> : null}
+        {store.showCoords ? <CoordinatesBar store={store} /> : null}
+
+        {offerTour && !showTour ? (
+          <div className="absolute left-1/2 top-3 z-[1100] flex -translate-x-1/2 items-center gap-3 rounded-md border border-[color:var(--orange-400)]/40 bg-[color:var(--surface-2)] px-3 py-2 text-[12px] text-[color:var(--text-primary)] shadow-lg">
+            New here? Take the two-minute tour.
+            <button type="button" className="font-medium text-[color:var(--orange-400)] underline" onClick={() => (dismissTourOffer(), setShowTour(true))}>
+              Start the tour
+            </button>
+            <button type="button" className="text-[color:var(--text-muted)] underline" onClick={dismissTourOffer}>
+              No thanks
+            </button>
+          </div>
+        ) : null}
+
+        {showTour ? (
+          <Walkthrough
+            onClose={() => setShowTour(false)}
+            actions={{
+              openGoTo: () => setShowGoTo(true),
+              openSearch: () => setShowSearch(true),
+              openIssues: () => setOpenPanel("issues"),
+              openBackground: () => setOpenPanel("background"),
+              openShortcuts: () => setShowShortcuts(true),
+              openAutoTrace: () => setOpenPanel("trace"),
+            }}
+          />
+        ) : null}
+
+        {store.copyTagsSource ? (
+          <div className="pointer-events-none absolute left-1/2 top-12 z-[1000] -translate-x-1/2 rounded-md border border-[color:var(--orange-400)]/40 bg-[color:var(--surface-2)]/95 px-3 py-1.5 text-[12px] text-[color:var(--text-primary)] shadow-lg">
+            Click the feature to copy {store.copyTagsSource.type} #{store.copyTagsSource.id}&apos;s tags onto — Esc to cancel
+          </div>
+        ) : null}
+
+        {store.flashMessage ? (
+          <div className="pointer-events-none absolute bottom-14 left-1/2 z-[1100] -translate-x-1/2 rounded-md bg-black/80 px-3 py-1.5 text-[12px] text-white shadow-lg">{store.flashMessage.text}</div>
+        ) : null}
+
+        {store.transform ? (
+          <div className="pointer-events-none absolute left-1/2 top-3 z-[1000] -translate-x-1/2 rounded-md border border-[color:var(--border)] bg-[color:var(--surface-2)]/95 px-3 py-1.5 text-[12px] text-[color:var(--text-primary)] shadow-lg">
+            {store.transform.kind === "move" ? "Move" : "Rotate"}: move the mouse, click or Enter to confirm, Esc to cancel
+          </div>
+        ) : null}
+
         <EditMenu store={store} />
       </div>
 
       {showSaveReview ? <SaveReviewModal store={store} onClose={() => setShowSaveReview(false)} /> : null}
-      {showShortcuts ? <ShortcutsPanel onClose={() => setShowShortcuts(false)} /> : null}
+      {showShortcuts ? <ShortcutsPanel onClose={() => setShowShortcuts(false)} t={t} /> : null}
+      {showGoTo ? <GoToDialog store={store} onClose={() => setShowGoTo(false)} /> : null}
+      {showSearch ? <SearchDialog store={store} onClose={() => setShowSearch(false)} /> : null}
+      {store.copyTagsDialogOpen ? <CopyTagsDialog store={store} onClose={() => store.setCopyTagsDialogOpen(false)} /> : null}
     </div>
   );
 }

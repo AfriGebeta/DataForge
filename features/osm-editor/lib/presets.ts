@@ -53,14 +53,11 @@ import {
   Waves,
   Wrench,
 } from "lucide-react";
+import { F, type PresetField } from "./fields";
 import type { GeometryRole } from "./geometryRoles";
 import type { OsmTags } from "./graph";
 
-export interface PresetField {
-  key: string;
-  label: string;
-  placeholder?: string;
-}
+export type { PresetField } from "./fields";
 
 export interface Preset {
   id: string;
@@ -72,48 +69,59 @@ export interface Preset {
   fields?: PresetField[];
 }
 
-const NAME_FIELD: PresetField = { key: "name", label: "Name" };
+const POI_FIELDS: PresetField[] = [F.names, F.address, F.hours, F.phone, F.website, F.wheelchair];
 
-function poi(id: string, name: string, icon: LucideIcon, tags: OsmTags, color = "#c0392b"): Preset {
-  return { id, name, icon, color, geometry: ["point", "vertex"], tags, fields: [NAME_FIELD] };
+function poi(id: string, name: string, icon: LucideIcon, tags: OsmTags, color = "#c0392b", fields: PresetField[] = POI_FIELDS): Preset {
+  return { id, name, icon, color, geometry: ["point", "vertex"], tags, fields };
 }
 
-function area(id: string, name: string, icon: LucideIcon, tags: OsmTags, color = "#2e7d32"): Preset {
-  return { id, name, icon, color, geometry: ["area"], tags, fields: [NAME_FIELD] };
+// Street furniture and natural points: a name and little else.
+function poiLite(id: string, name: string, icon: LucideIcon, tags: OsmTags, color = "#c0392b", fields: PresetField[] = [F.names]): Preset {
+  return poi(id, name, icon, tags, color, fields);
 }
+
+function area(id: string, name: string, icon: LucideIcon, tags: OsmTags, color = "#2e7d32", fields: PresetField[] = [F.names]): Preset {
+  return { id, name, icon, color, geometry: ["area"], tags, fields };
+}
+
+const BUILDING_FIELDS: PresetField[] = [F.building, F.names, F.address, F.levels, F.height, F.roof];
+const ROAD_FIELDS: PresetField[] = [F.names, F.ref, F.surface, F.oneway, F.lanes, F.maxspeed, F.lit, F.bridge, F.tunnel];
+const PATH_FIELDS: PresetField[] = [F.names, F.surface, F.lit, F.bridge, F.tunnel];
+const FOOD_FIELDS: PresetField[] = [F.names, F.cuisine, F.address, F.hours, F.phone, F.website, F.takeaway, F.delivery, F.wheelchair];
+const HEALTH_FIELDS: PresetField[] = [F.names, F.operator, F.address, F.hours, F.phone, F.website, F.emergency, F.wheelchair];
 
 function road(id: string, name: string, tags: OsmTags): Preset {
-  return { id, name, icon: Route, color: "#555", geometry: ["line"], tags, fields: [NAME_FIELD, { key: "maxspeed", label: "Speed limit" }] };
+  return { id, name, icon: Route, color: "#555", geometry: ["line"], tags, fields: ROAD_FIELDS };
 }
 
 export const PRESETS: Preset[] = [
   // amenity — food & drink
-  poi("restaurant", "Restaurant", UtensilsCrossed, { amenity: "restaurant" }),
-  poi("cafe", "Cafe", Coffee, { amenity: "cafe" }),
-  poi("fast_food", "Fast Food", Pizza, { amenity: "fast_food" }),
-  poi("bar", "Bar", Martini, { amenity: "bar" }),
-  poi("pub", "Pub", Beer, { amenity: "pub" }),
+  poi("restaurant", "Restaurant", UtensilsCrossed, { amenity: "restaurant" }, "#c0392b", FOOD_FIELDS),
+  poi("cafe", "Cafe", Coffee, { amenity: "cafe" }, "#c0392b", FOOD_FIELDS),
+  poi("fast_food", "Fast Food", Pizza, { amenity: "fast_food" }, "#c0392b", FOOD_FIELDS),
+  poi("bar", "Bar", Martini, { amenity: "bar" }, "#c0392b", FOOD_FIELDS),
+  poi("pub", "Pub", Beer, { amenity: "pub" }, "#c0392b", FOOD_FIELDS),
   poi("bakery_shop", "Bakery", Croissant, { shop: "bakery" }),
 
   // amenity — civic / services
-  poi("bank", "Bank", Landmark, { amenity: "bank" }),
-  poi("atm", "ATM", Landmark, { amenity: "atm" }),
-  poi("pharmacy", "Pharmacy", Pill, { amenity: "pharmacy" }),
-  poi("hospital", "Hospital", Cross, { amenity: "hospital" }),
-  poi("clinic", "Clinic", Ambulance, { amenity: "clinic" }),
+  poi("bank", "Bank", Landmark, { amenity: "bank" }, "#c0392b", [F.names, F.operator, F.address, F.hours, F.phone, F.atm, F.wheelchair]),
+  poi("atm", "ATM", Landmark, { amenity: "atm" }, "#c0392b", [F.names, F.operator]),
+  poi("pharmacy", "Pharmacy", Pill, { amenity: "pharmacy" }, "#c0392b", HEALTH_FIELDS),
+  poi("hospital", "Hospital", Cross, { amenity: "hospital" }, "#c0392b", HEALTH_FIELDS),
+  poi("clinic", "Clinic", Ambulance, { amenity: "clinic" }, "#c0392b", HEALTH_FIELDS),
   poi("police", "Police", Shield, { amenity: "police" }),
   poi("fire_station", "Fire Station", Shield, { amenity: "fire_station" }),
   poi("post_office", "Post Office", Package, { amenity: "post_office" }),
-  poi("school", "School", GraduationCap, { amenity: "school" }),
-  poi("university", "University", University, { amenity: "university" }),
+  poi("school", "School", GraduationCap, { amenity: "school" }, "#c0392b", [F.names, F.operator, F.address, F.phone, F.website]),
+  poi("university", "University", University, { amenity: "university" }, "#c0392b", [F.names, F.operator, F.address, F.phone, F.website]),
   poi("place_of_worship", "Place of Worship", Church, { amenity: "place_of_worship" }),
   poi("toilets", "Toilets", Droplet, { amenity: "toilets" }),
-  poi("fuel", "Fuel Station", Fuel, { amenity: "fuel" }),
-  poi("parking", "Parking", ParkingCircle, { amenity: "parking" }),
-  poi("bicycle_parking", "Bicycle Parking", Bike, { amenity: "bicycle_parking" }),
-  poi("waste_basket", "Waste Basket", Trash2, { amenity: "waste_basket" }),
-  poi("bench", "Bench", Armchair, { amenity: "bench" }),
-  poi("telephone", "Telephone", Phone, { amenity: "telephone" }),
+  poi("fuel", "Fuel Station", Fuel, { amenity: "fuel" }, "#c0392b", [F.names, F.operator, F.address, F.hours, F.phone]),
+  poi("parking", "Parking", ParkingCircle, { amenity: "parking" }, "#c0392b", [F.names, F.operator, F.capacity, F.fee]),
+  poiLite("bicycle_parking", "Bicycle Parking", Bike, { amenity: "bicycle_parking" }),
+  poiLite("waste_basket", "Waste Basket", Trash2, { amenity: "waste_basket" }),
+  poiLite("bench", "Bench", Armchair, { amenity: "bench" }),
+  poiLite("telephone", "Telephone", Phone, { amenity: "telephone" }),
 
   // shop
   poi("supermarket", "Supermarket", ShoppingCart, { shop: "supermarket" }),
@@ -133,20 +141,20 @@ export const PRESETS: Preset[] = [
   poi("museum", "Museum", Landmark, { tourism: "museum" }),
 
   // leisure / natural
-  area("park", "Park", Trees, { leisure: "park" }),
+  area("park", "Park", Trees, { leisure: "park" }, "#2e7d32", [F.names, F.hours]),
   area("garden", "Garden", Leaf, { leisure: "garden" }),
   area("playground", "Playground", Trees, { leisure: "playground" }),
-  area("pitch", "Sports Pitch", Trees, { leisure: "pitch" }),
-  poi("tree", "Tree", Trees, { natural: "tree" }, "#2e7d32"),
+  area("pitch", "Sports Pitch", Trees, { leisure: "pitch" }, "#2e7d32", [F.names, F.sport]),
+  poiLite("tree", "Tree", Trees, { natural: "tree" }, "#2e7d32"),
   area("wood", "Wood", Trees, { natural: "wood" }),
   area("water", "Water", Waves, { natural: "water" }, "#1976d2"),
-  poi("peak", "Peak", Mountain, { natural: "peak" }),
+  poiLite("peak", "Peak", Mountain, { natural: "peak" }),
 
   // buildings / landuse (areas)
-  area("building", "Building", Building2, { building: "yes" }, "#8d6e63"),
-  area("house", "House", Building2, { building: "house" }, "#8d6e63"),
-  area("apartments", "Apartments", Building2, { building: "apartments" }, "#8d6e63"),
-  area("commercial_building", "Commercial Building", Building2, { building: "commercial" }, "#8d6e63"),
+  area("building", "Building", Building2, { building: "yes" }, "#8d6e63", BUILDING_FIELDS),
+  area("house", "House", Building2, { building: "house" }, "#8d6e63", BUILDING_FIELDS),
+  area("apartments", "Apartments", Building2, { building: "apartments" }, "#8d6e63", BUILDING_FIELDS),
+  area("commercial_building", "Commercial Building", Building2, { building: "commercial" }, "#8d6e63", BUILDING_FIELDS),
   area("landuse_residential", "Residential Area", Layers, { landuse: "residential" }),
   area("landuse_commercial", "Commercial Area", Layers, { landuse: "commercial" }),
   area("landuse_industrial", "Industrial Area", Hammer, { landuse: "industrial" }),
@@ -160,19 +168,19 @@ export const PRESETS: Preset[] = [
   road("residential_road", "Residential Road", { highway: "residential" }),
   road("service_road", "Service Road", { highway: "service" }),
   road("track", "Track", { highway: "track" }),
-  { id: "footway", name: "Footway", icon: Route, color: "#555", geometry: ["line"], tags: { highway: "footway" }, fields: [NAME_FIELD] },
-  { id: "path", name: "Path", icon: Milestone, color: "#555", geometry: ["line"], tags: { highway: "path" }, fields: [NAME_FIELD] },
-  { id: "cycleway", name: "Cycleway", icon: Bike, color: "#555", geometry: ["line"], tags: { highway: "cycleway" }, fields: [NAME_FIELD] },
+  { id: "footway", name: "Footway", icon: Route, color: "#555", geometry: ["line"], tags: { highway: "footway" }, fields: PATH_FIELDS },
+  { id: "path", name: "Path", icon: Milestone, color: "#555", geometry: ["line"], tags: { highway: "path" }, fields: PATH_FIELDS },
+  { id: "cycleway", name: "Cycleway", icon: Bike, color: "#555", geometry: ["line"], tags: { highway: "cycleway" }, fields: PATH_FIELDS },
   { id: "steps", name: "Steps", icon: Milestone, color: "#555", geometry: ["line"], tags: { highway: "steps" }, fields: [] },
 
   // rail / waterway / other lines
-  { id: "railway_rail", name: "Railway", icon: Train, color: "#555", geometry: ["line"], tags: { railway: "rail" }, fields: [NAME_FIELD] },
-  { id: "railway_station", name: "Railway Station", icon: Train, color: "#c0392b", geometry: ["point", "vertex"], tags: { railway: "station" }, fields: [NAME_FIELD] },
-  { id: "bus_stop", name: "Bus Stop", icon: Bus, color: "#c0392b", geometry: ["point", "vertex"], tags: { highway: "bus_stop" }, fields: [NAME_FIELD] },
-  { id: "waterway_river", name: "River", icon: Waves, color: "#1976d2", geometry: ["line"], tags: { waterway: "river" }, fields: [NAME_FIELD] },
-  { id: "waterway_stream", name: "Stream", icon: Waves, color: "#1976d2", geometry: ["line"], tags: { waterway: "stream" }, fields: [NAME_FIELD] },
-  { id: "pier", name: "Pier", icon: Anchor, color: "#555", geometry: ["line", "area"], tags: { man_made: "pier" }, fields: [NAME_FIELD] },
-  { id: "bath", name: "Bath House", icon: Bath, color: "#c0392b", geometry: ["point", "vertex"], tags: { amenity: "public_bath" }, fields: [NAME_FIELD] },
+  { id: "railway_rail", name: "Railway", icon: Train, color: "#555", geometry: ["line"], tags: { railway: "rail" }, fields: [F.names] },
+  { id: "railway_station", name: "Railway Station", icon: Train, color: "#c0392b", geometry: ["point", "vertex"], tags: { railway: "station" }, fields: [F.names] },
+  { id: "bus_stop", name: "Bus Stop", icon: Bus, color: "#c0392b", geometry: ["point", "vertex"], tags: { highway: "bus_stop" }, fields: [F.names] },
+  { id: "waterway_river", name: "River", icon: Waves, color: "#1976d2", geometry: ["line"], tags: { waterway: "river" }, fields: [F.names] },
+  { id: "waterway_stream", name: "Stream", icon: Waves, color: "#1976d2", geometry: ["line"], tags: { waterway: "stream" }, fields: [F.names] },
+  { id: "pier", name: "Pier", icon: Anchor, color: "#555", geometry: ["line", "area"], tags: { man_made: "pier" }, fields: [F.names] },
+  { id: "bath", name: "Bath House", icon: Bath, color: "#c0392b", geometry: ["point", "vertex"], tags: { amenity: "public_bath" }, fields: [F.names] },
 ];
 
 // §C9's scoring: the preset whose match-tags are the largest fully-

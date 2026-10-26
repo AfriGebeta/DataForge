@@ -20,7 +20,7 @@ const secondaryButtonClass =
 export default function SaveReviewModal({ store, onClose }: { store: EditorStore; onClose: () => void }) {
   const diff = store.pendingDiff;
   const counts = diffCounts(diff);
-  const issues = useMemo(() => validateDiff(store.graph, diff), [store.graph, diff]);
+  const issues = useMemo(() => validateDiff(store.graph, diff, store.serverGraph), [store.graph, diff, store.serverGraph]);
   const errors = issues.filter((i) => i.severity === "error");
   const warnings = issues.filter((i) => i.severity === "warning");
 

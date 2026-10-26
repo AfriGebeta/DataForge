@@ -12,10 +12,8 @@ import { cn } from "@/lib/utils";
 import type { GeometryRole } from "./lib/geometryRoles";
 import type { Entity, EntityType, OsmTags } from "./lib/graph";
 import { matchPreset, searchPresets, type Preset } from "./lib/presets";
+import FieldsEditor, { type TagPatch } from "./FieldsEditor";
 import type { EditorStore } from "./useEditorStore";
-
-const fieldInputClass =
-  "w-full rounded-md border border-[color:var(--border)] bg-[color:var(--surface-1)] px-2.5 py-1.5 text-[12px] text-[color:var(--text-primary)] outline-none focus:border-[color:var(--orange-400)]/50";
 
 export default function PresetPicker({
   store,
@@ -49,10 +47,12 @@ export default function PresetPicker({
     store.changeTags(entryType, entryId, tags);
   }
 
-  function setField(key: string, value: string) {
+  function patchTags(patch: TagPatch) {
     const tags = { ...entity.tags };
-    if (value.trim()) tags[key] = value;
-    else delete tags[key];
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === null || !v.trim()) delete tags[k];
+      else tags[k] = v;
+    }
     store.changeTags(entryType, entryId, tags);
   }
 
@@ -118,21 +118,7 @@ export default function PresetPicker({
         </div>
       ) : null}
 
-      {currentPreset?.fields?.length ? (
-        <div className="mt-2 flex flex-col gap-1.5">
-          {currentPreset.fields.map((field) => (
-            <div key={field.key}>
-              <label className="mb-0.5 block text-[10px] text-[color:var(--text-muted)]">{field.label}</label>
-              <input
-                value={entity.tags[field.key] ?? ""}
-                onChange={(e) => setField(field.key, e.target.value)}
-                placeholder={field.placeholder}
-                className={fieldInputClass}
-              />
-            </div>
-          ))}
-        </div>
-      ) : null}
+      {currentPreset?.fields?.length ? <FieldsEditor fields={currentPreset.fields} tags={entity.tags} onPatch={patchTags} /> : null}
     </div>
   );
 }

@@ -54,8 +54,46 @@ export type OsmChangeset = {
   tags: OsmTags;
 };
 
+export type ChangeCount = { created: number; modified: number; deleted: number };
+
+export type OsmChangesetCounts = { nodes: ChangeCount; ways: ChangeCount; relations: ChangeCount };
+
+// GET /osm/changesets item: a changeset plus per-type counters and the
+// owner's identity.
+export type OsmChangesetSummary = OsmChangeset & {
+  counts: OsmChangesetCounts;
+  userEmail?: string;
+  userFullName?: string;
+};
+
+export type OsmChangesetList = { changesets: OsmChangesetSummary[]; total: number; limit: number; offset: number };
+
 export type BoundingBox = { minLat: number; minLon: number; maxLat: number; maxLon: number };
 
 // A selected point/line on the map — drives the tag-editor panel and
 // which endpoints Save/Delete call.
 export type Selection = { kind: "node"; node: OsmNode } | { kind: "way"; way: OsmWay };
+
+// ── Map notes (PlaceForge GET/POST /osm/notes…) ──────────────────────
+
+export type NoteEvent = "opened" | "commented" | "closed" | "reopened" | "hidden";
+
+export type OsmNoteComment = {
+  id: number;
+  date: string;
+  userId?: string;
+  user?: string; // display name or email
+  event: NoteEvent;
+  text: string;
+};
+
+export type OsmNote = {
+  id: number;
+  lat: number;
+  lon: number;
+  status: "open" | "closed";
+  createdAt: string;
+  updatedAt: string;
+  closedAt?: string;
+  comments: OsmNoteComment[];
+};

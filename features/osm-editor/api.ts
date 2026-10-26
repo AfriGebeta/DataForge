@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api-fetch";
 import { API_BASE_URL } from "@/lib/api-config";
-import type { BoundingBox, OsmChangeset, OsmMapData, OsmNode, OsmRelation, OsmRelationMember, OsmWay } from "./types";
+import type { BoundingBox, OsmChangeset, OsmChangesetList, OsmMapData, OsmNote, OsmNode, OsmRelation, OsmRelationMember, OsmWay } from "./types";
 
 const OSM_ENDPOINT = `${API_BASE_URL}/api/v1/osm`;
 
@@ -254,5 +254,136 @@ export async function deleteRelation(id: number, changesetId: number, version: n
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ changesetId, version }),
   });
+  if (!res.ok) return throwOnError(res);
+}
+
+// ── Changeset history (GET /osm/changesets) ─────────────────────────
+
+export interface ChangesetListParams {
+  ids?: number[];
+  comment?: string;
+  open?: boolean;
+  from?: string; // YYYY-MM-DD
+  to?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function listChangesets(params: ChangesetListParams): Promise<OsmChangesetList> {
+  const q = new URLSearchParams();
+  if (params.ids?.length) q.set("changesets", params.ids.join(","));
+  if (params.comment) q.set("comment", params.comment);
+  if (params.open !== undefined) q.set("open", String(params.open));
+  if (params.from) q.set("from", params.from);
+  if (params.to) q.set("to", params.to);
+  q.set("limit", String(params.limit ?? 20));
+  q.set("offset", String(params.offset ?? 0));
+  const res = await apiFetch(`${OSM_ENDPOINT}/changesets?${q.toString()}`);
+  if (!res.ok) return throwOnError(res);
+  return res.json();
+}
+
+// ── Element history (GET /osm/{type}/{id}/history) ──────────────────
+
+export interface ElementVersion {
+  version: number;
+  timestamp: string;
+  changeset: number;
+  visible: boolean;
+  tags: Record<string, string>;
+}
+
+export async function fetchElementHistory(type: "node" | "way" | "relation", id: number): Promise<ElementVersion[]> {
+  const res = await apiFetch(`${OSM_ENDPOINT}/${type}/${id}/history`);
+  if (!res.ok) return throwOnError(res);
+  const body = (await res.json()) as Record<string, Array<{ version: number; timestamp: string; changeset: number; visible: boolean; tags: Record<string, string> | null }>>;
+  const rows = body[`${type}s`] ?? [];
+  return rows.map((r) => ({ version: r.version, timestamp: r.timestamp, changeset: r.changeset, visible: r.visible, tags: r.tags ?? {} }));
+}
+
+// ── Auto-trace segmentation ─────────────────────────────────────────
+
+// Sends a road-mask mosaic to PlaceForge, which forwards it to the Python
+// segmenter. `paths` come back in mosaic pixel coordinates.
+export async function segmentArea(image: string, polygon: number[][], size: { width: number; height: number }): Promise<number[][][]> {
+  const res = await apiFetch(`${OSM_ENDPOINT}/segment`, jsonInit("POST", { image, polygon, rect: [0, 0, size.width, size.height], sampleScale: 1 }));
+  if (!res.ok) return throwOnError(res);
+  return ((await res.json()) as { paths: number[][][] }).paths;
+}
+
+// ── Server capabilities ─────────────────────────────────────────────
+
+export interface OsmCapabilities {
+  areaMax: number;
+  tiles?: { google: boolean };
+}
+
+export async function fetchCapabilities(): Promise<OsmCapabilities> {
+  const res = await apiFetch(`${OSM_ENDPOINT}/capabilities`);
+  if (!res.ok) return throwOnError(res);
+  return res.json();
+}
+
+// ── Locate an element that isn't loaded yet ─────────────────────────
+
+// Returns a representative point for a node/way/relation id so the editor
+// can fly there and load its area (search "w123", `#id=r5` links).
+// Ways/relations use their /full endpoint and take the first node.
+export async function fetchElementLocation(type: "node" | "way" | "relation", id: number): Promise<{ lat: number; lon: number }> {
+  if (type === "node") {
+    const res = await apiFetch(`${OSM_ENDPOINT}/node/${id}`);
+    if (!res.ok) return throwOnError(res);
+    const n = (await res.json()) as { lat: number; lon: number };
+    return { lat: n.lat, lon: n.lon };
+  }
+  const res = await apiFetch(`${OSM_ENDPOINT}/${type}/${id}/full`);
+  if (!res.ok) return throwOnError(res);
+  const body = (await res.json()) as { nodes?: { lat: number; lon: number }[] };
+  const first = body.nodes?.[0];
+  if (!first) throw new Error(`${type} #${id} has no geometry to show.`);
+  return { lat: first.lat, lon: first.lon };
+}
+
+// ── Notes ───────────────────────────────────────────────────────────
+
+const jsonInit = (method: string, body?: unknown): RequestInit => ({
+  method,
+  headers: { "Content-Type": "application/json" },
+  body: body === undefined ? undefined : JSON.stringify(body),
+});
+
+// `closedDays`: open notes plus those closed within N days (server
+// default 7); -1 everything not hidden; 0 open only.
+export async function listNotes(bbox: BoundingBox, closedDays?: number): Promise<OsmNote[]> {
+  const q = new URLSearchParams(bboxQuery(bbox));
+  if (closedDays !== undefined) q.set("closed", String(closedDays));
+  const res = await apiFetch(`${OSM_ENDPOINT}/notes?${q.toString()}`);
+  if (!res.ok) return throwOnError(res);
+  return ((await res.json()) as { notes: OsmNote[] }).notes;
+}
+
+export async function getNote(id: number): Promise<OsmNote> {
+  const res = await apiFetch(`${OSM_ENDPOINT}/notes/${id}`);
+  if (!res.ok) return throwOnError(res);
+  return res.json();
+}
+
+export async function createNote(lat: number, lon: number, text: string): Promise<OsmNote> {
+  const res = await apiFetch(`${OSM_ENDPOINT}/notes`, jsonInit("POST", { lat, lon, text }));
+  if (!res.ok) return throwOnError(res);
+  return res.json();
+}
+
+async function noteAction(id: number, action: "comment" | "close" | "reopen", text: string): Promise<OsmNote> {
+  const res = await apiFetch(`${OSM_ENDPOINT}/notes/${id}/${action}`, jsonInit("POST", { text }));
+  if (!res.ok) return throwOnError(res);
+  return res.json();
+}
+export const commentNote = (id: number, text: string) => noteAction(id, "comment", text);
+export const closeNote = (id: number, text = "") => noteAction(id, "close", text);
+export const reopenNote = (id: number, text = "") => noteAction(id, "reopen", text);
+
+export async function hideNote(id: number, text = ""): Promise<void> {
+  const res = await apiFetch(`${OSM_ENDPOINT}/notes/${id}`, jsonInit("DELETE", { text }));
   if (!res.ok) return throwOnError(res);
 }
