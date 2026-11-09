@@ -56,6 +56,9 @@ export default function SearchDialog({ store, onClose }: { store: EditorStore; o
     if (target) out.push({ key: "target", kind: "place", target, ...describeTarget(target) });
 
     const needle = text.toLowerCase();
+    // Word-based fallback: "Addis Ababa University School Of Commerce, Commerce"
+    // matches a feature whose tags contain every word, in any order.
+    const words = [...new Set(needle.split(/[^\p{L}\p{N}]+/u).filter(Boolean))];
     const scored: { score: number; row: Row }[] = [];
     const consider = (e: Entity, geometry: "point" | "vertex" | "line" | "area" | null) => {
       const name = (e.tags.name ?? "").toLowerCase();
@@ -68,6 +71,10 @@ export default function SearchDialog({ store, onClose }: { store: EditorStore; o
       else if (shortId === needle) score = 90;
       else if (preset && preset.name.toLowerCase().includes(needle)) score = 30;
       else if (Object.values(e.tags).some((v) => v.toLowerCase().includes(needle))) score = 20;
+      if (score === 0 && words.length > 1) {
+        const hay = Object.values(e.tags).join(" ").toLowerCase();
+        if (words.every((w) => hay.includes(w))) score = 40;
+      }
       if (score === 0) return;
       scored.push({
         score,

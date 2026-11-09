@@ -8,22 +8,19 @@ export const API_ENDPOINT = `${API_BASE_URL}/api/v1/places`;
 
 /**
  * GET /api/v1/places — list places with real filters (limit/offset,
- * placeType, categoryId, isActive, isVisible, reviewStatus, aiDecision).
- *
- * PlaceForge has no server-side text search on this endpoint, so when
- * `search` is set this fetches a larger batch (up to 200 rows) and filters
- * by id/name on the client, paginating over the filtered set instead of the
- * server's limit/offset. Fine for admin/testing volumes; it will miss
- * matches past the first 200 rows on a much larger dataset.
+ * placeType, categoryId, isActive, isVisible, reviewStatus, aiDecision,
+ * search). `search` is matched server-side: the text is split into words and
+ * every word must appear in one of the place's names (or be its id), so word
+ * order, commas and repeated words don't matter.
  */
 export async function fetchPlaces(params?: PlaceListParams): Promise<PlaceListResponse> {
   const limit = params?.limit ?? 20;
   const offset = params?.offset ?? 0;
-  const isSearching = Boolean(params?.search?.trim());
 
   const query = new URLSearchParams();
-  query.set("limit", String(isSearching ? 200 : limit));
-  query.set("offset", String(isSearching ? 0 : offset));
+  query.set("limit", String(limit));
+  query.set("offset", String(offset));
+  if (params?.search?.trim()) query.set("search", params.search.trim());
   if (params?.placeType) query.set("placeType", params.placeType);
   if (params?.categoryId) query.set("categoryId", params.categoryId);
   if (params?.isActive !== undefined) query.set("isActive", String(params.isActive));
@@ -39,14 +36,7 @@ export async function fetchPlaces(params?: PlaceListParams): Promise<PlaceListRe
   try {
     const res = await apiFetch(`${API_ENDPOINT}?${query.toString()}`);
     if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
-    const body: PlaceListResponse = await res.json();
-    if (!isSearching) return body;
-
-    const q = params!.search!.trim().toLowerCase();
-    const filtered = body.data.filter(
-      (p) => String(p.id).includes(q) || p.names.some((n) => n.name.toLowerCase().includes(q)),
-    );
-    return { data: filtered.slice(offset, offset + limit), total: filtered.length, limit, offset };
+    return (await res.json()) as PlaceListResponse;
   } catch (cause) {
     console.warn("fetchPlaces failed:", cause);
     return { data: [], total: 0, limit, offset };
