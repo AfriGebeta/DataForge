@@ -698,3 +698,513 @@ export function scaleNodes(graph: Graph, nodeIds: number[], factor: number): Gra
   if (!center) return null;
   return mapNodes(graph, nodeIds, (p) => geo.add(center, geo.scale(geo.sub(p, center), factor)));
 }
+
+// ── roundabout → intersection ──────────────────────────────────────
+
+export function isRoundaboutWay(way: WayEntity): boolean {
+  const j = way.tags.junction;
+  return j === "roundabout" || j === "circular";
+}
+
+// A closed way the user can reasonably treat as a roundabout: properly
+// tagged, or a hand-drawn loop that is a road / still untagged.
+export function isRoundaboutCandidate(way: WayEntity): boolean {
+  if (isRoundaboutWay(way)) return true;
+  if (!isClosedWay(way)) return false;
+  const keys = Object.keys(way.tags);
+  return keys.length === 0 || (!!way.tags.highway && way.tags.area !== "yes");
+}
+
+// ── through-lane intersection ──────────────────────────────────────
+// Turns the arms of a roundabout into a real crossing: roads on opposite
+// sides are connected by straight lanes across the old ring (an incoming lane
+// continues as the opposite arm's outgoing lane), and every place two lanes
+// cross gets a shared node. Works for single two-way roads and for dual
+// carriageways (separate one-way ways in/out). Returns null when an arm isn't
+// a simple road *ending* at the ring, so the caller can fall back.
+
+type Flow = "in" | "out" | "both";
+interface ArmEnd {
+  way: WayEntity;
+  ringNode: number;
+  pos: geo.Vec;
+  nb: geo.Vec; // the first node beyond the ring
+  heading: number; // direction pointing away from the ring along the road
+  angle: number; // direction of this end around the ring's middle
+  flow: Flow;
+}
+interface Lane {
+  start: number;
+  end: number;
+  a: geo.Vec;
+  b: geo.Vec;
+  tags: OsmTags;
+  hits: { t: number; nodeId: number }[];
+  moves: { nodeId: number; pos: geo.Vec }[]; // ring end nodes slid onto the straight line
+}
+
+function onewayFlow(way: WayEntity, ringIsLast: boolean): Flow {
+  const o = way.tags.oneway;
+  const forward = o === "yes" || o === "true" || o === "1";
+  const backward = o === "-1" || o === "reverse";
+  if (!forward && !backward) return "both";
+  return forward === ringIsLast ? "in" : "out";
+}
+
+function angleGap(a: number, b: number): number {
+  let d = Math.abs(a - b) % (2 * Math.PI);
+  if (d > Math.PI) d = 2 * Math.PI - d;
+  return d;
+}
+
+function throughLanes(
+  graph: Graph,
+  ringNodeIds: Set<number>,
+  approaches: Iterable<WayEntity>,
+  middle: geo.Vec,
+  ringWayIds: Set<number>,
+): { ends: ArmEnd[]; lanes: Lane[]; spurs: { end: ArmEnd; lane: number; t: number }[]; loose: ArmEnd[] } | null {
+  const ends: ArmEnd[] = [];
+  for (const w of approaches) {
+    const first = ringNodeIds.has(w.nodeIds[0]);
+    const last = ringNodeIds.has(w.nodeIds[w.nodeIds.length - 1]);
+    // Must touch the ring at exactly one end and nowhere in the middle.
+    if (first === last) return null;
+    if (w.nodeIds.slice(1, -1).some((n) => ringNodeIds.has(n))) return null;
+    const ringId = first ? w.nodeIds[0] : w.nodeIds[w.nodeIds.length - 1];
+    const nbId = first ? w.nodeIds[1] : w.nodeIds[w.nodeIds.length - 2];
+    const ring = graph.node(ringId);
+    const nb = graph.node(nbId);
+    if (!ring || !nb) return null;
+    const pos = geo.project(ring.lat, ring.lon);
+    const nbPos = geo.project(nb.lat, nb.lon);
+    ends.push({
+      way: w,
+      ringNode: ringId,
+      pos,
+      nb: nbPos,
+      heading: Math.atan2(nbPos.y - pos.y, nbPos.x - pos.x),
+      angle: Math.atan2(pos.y - middle.y, pos.x - middle.x),
+      flow: onewayFlow(w, last),
+    });
+  }
+  if (ends.length < 2) return null;
+
+  // Group ends into arms (a dual carriageway = two ends close in angle).
+  const GROUP = (30 * Math.PI) / 180;
+  const parent = ends.map((_, i) => i);
+  const find = (x: number): number => (parent[x] === x ? x : (parent[x] = find(parent[x])));
+  for (let i = 0; i < ends.length; i++) {
+    for (let j = i + 1; j < ends.length; j++) {
+      if (angleGap(ends[i].angle, ends[j].angle) < GROUP) parent[find(i)] = find(j);
+    }
+  }
+  const groups = new Map<number, ArmEnd[]>();
+  ends.forEach((e, i) => groups.set(find(i), [...(groups.get(find(i)) ?? []), e]));
+  const arms = [...groups.values()].map((list) => ({
+    ends: list,
+    heading: Math.atan2(list.reduce((s, e) => s + Math.sin(e.heading), 0), list.reduce((s, e) => s + Math.cos(e.heading), 0)),
+  }));
+
+  // Pair arms that run opposite each other, best first.
+  const TOL = (50 * Math.PI) / 180;
+  const cand: { a: number; b: number; err: number }[] = [];
+  for (let a = 0; a < arms.length; a++) {
+    for (let b = a + 1; b < arms.length; b++) {
+      const err = Math.abs(Math.PI - angleGap(arms[a].heading, arms[b].heading));
+      if (err < TOL) cand.push({ a, b, err });
+    }
+  }
+  cand.sort((x, y) => x.err - y.err);
+  const armUsed = new Set<number>();
+  const matched = new Set<ArmEnd>();
+  const lanes: Lane[] = [];
+  const compatible = (x: Flow, y: Flow) => (x === "in" && y === "out") || (x === "out" && y === "in") || (x === "both" && y === "both");
+
+  for (const { a, b } of cand) {
+    if (armUsed.has(a) || armUsed.has(b)) continue;
+    armUsed.add(a);
+    armUsed.add(b);
+    const taken = new Set<ArmEnd>();
+    for (const ea of arms[a].ends) {
+      const dir = { x: Math.cos(ea.heading), y: Math.sin(ea.heading) };
+      let best: ArmEnd | null = null;
+      let bestOff = Infinity;
+      for (const eb of arms[b].ends) {
+        if (taken.has(eb) || !compatible(ea.flow, eb.flow)) continue;
+        const off = Math.abs((eb.pos.x - ea.pos.x) * dir.y - (eb.pos.y - ea.pos.y) * dir.x);
+        if (off < bestOff) {
+          bestOff = off;
+          best = eb;
+        }
+      }
+      if (!best) continue;
+      taken.add(best);
+      matched.add(ea);
+      matched.add(best);
+      const from = ea.flow === "out" ? best : ea; // the end the traffic enters from
+      const to = from === ea ? best : ea;
+      const tags: OsmTags = { ...from.way.tags };
+      delete tags.junction;
+      if (ea.flow === "both") delete tags.oneway;
+      else tags.oneway = "yes";
+      // Make the lane one straight line with both roads: slide each ring end
+      // node onto the line between the two roads' first nodes beyond the ring
+      // (only when nothing else hangs off that node).
+      const r = { x: to.nb.x - from.nb.x, y: to.nb.y - from.nb.y };
+      const len2 = r.x * r.x + r.y * r.y;
+      const moves: Lane["moves"] = [];
+      const slide = (e: ArmEnd): geo.Vec => {
+        if (len2 === 0) return e.pos;
+        const onlyUs = graph.parentWays(e.ringNode).every((pw) => pw.id === e.way.id || ringWayIds.has(pw.id));
+        const shared = ends.filter((o) => o.ringNode === e.ringNode).length > 1;
+        const t = ((e.pos.x - from.nb.x) * r.x + (e.pos.y - from.nb.y) * r.y) / len2;
+        if (!onlyUs || shared || t <= 0 || t >= 1) return e.pos;
+        const q = { x: from.nb.x + t * r.x, y: from.nb.y + t * r.y };
+        moves.push({ nodeId: e.ringNode, pos: q });
+        return q;
+      };
+      const pa = slide(from);
+      const pb = slide(to);
+      lanes.push({ start: from.ringNode, end: to.ringNode, a: pa, b: pb, tags, hits: [], moves });
+    }
+  }
+  if (lanes.length === 0) return null;
+  const loose = ends.filter((e) => !matched.has(e));
+  return { ends, lanes, spurs: [], loose };
+}
+
+// Where the new intersection node should go. Pulling every arm to the ring's
+// average point makes arms that aren't aimed at it bend ("spider web"), so
+// instead: find the roads that run opposite each other and put the junction
+// where they go straight through. Four-way: the crossing of the two straight
+// lines. Otherwise: the point on the main straight line nearest the ring's
+// middle. Falls back to the ring's middle when nothing lines up.
+function junctionPoint(graph: Graph, ringNodeIds: Set<number>, approaches: Iterable<WayEntity>, middle: geo.Vec): geo.Vec {
+  // One "arm" per road leaving the ring: the first node beyond the ring.
+  const arms: { p: geo.Vec; angle: number }[] = [];
+  for (const w of approaches) {
+    w.nodeIds.forEach((nid, i) => {
+      if (ringNodeIds.has(nid)) return;
+      const touchesRing = (j: number) => j >= 0 && j < w.nodeIds.length && ringNodeIds.has(w.nodeIds[j]);
+      if (!touchesRing(i - 1) && !touchesRing(i + 1)) return;
+      const n = graph.node(nid);
+      if (!n) return;
+      const p = geo.project(n.lat, n.lon);
+      arms.push({ p, angle: Math.atan2(p.y - middle.y, p.x - middle.x) });
+    });
+  }
+  const TOL = (35 * Math.PI) / 180;
+  const oppositeness = (a: number, b: number) => {
+    let d = Math.abs(a - b) % (2 * Math.PI);
+    if (d > Math.PI) d = 2 * Math.PI - d;
+    return Math.abs(Math.PI - d);
+  };
+  const bestPair = (pool: number[]): [number, number] | null => {
+    let best: [number, number] | null = null;
+    let bestErr = TOL;
+    for (let a = 0; a < pool.length; a++) {
+      for (let b = a + 1; b < pool.length; b++) {
+        const err = oppositeness(arms[pool[a]].angle, arms[pool[b]].angle);
+        if (err < bestErr) {
+          bestErr = err;
+          best = [pool[a], pool[b]];
+        }
+      }
+    }
+    return best;
+  };
+  const all = arms.map((_, i) => i);
+  const main = bestPair(all);
+  if (!main) return middle;
+  const [a1, a2] = [arms[main[0]].p, arms[main[1]].p];
+  const second = bestPair(all.filter((i) => i !== main[0] && i !== main[1]));
+  const dist = (p: geo.Vec, q: geo.Vec) => Math.hypot(p.x - q.x, p.y - q.y);
+  const reach = Math.max(dist(a1, middle), dist(a2, middle));
+
+  if (second) {
+    const [b1, b2] = [arms[second[0]].p, arms[second[1]].p];
+    // Intersection of line a1-a2 with line b1-b2.
+    const r = { x: a2.x - a1.x, y: a2.y - a1.y };
+    const q = { x: b2.x - b1.x, y: b2.y - b1.y };
+    const den = r.x * q.y - r.y * q.x;
+    if (Math.abs(den) > 1e-9) {
+      const t = ((b1.x - a1.x) * q.y - (b1.y - a1.y) * q.x) / den;
+      const hit = { x: a1.x + t * r.x, y: a1.y + t * r.y };
+      if (t > 0 && t < 1 && dist(hit, middle) <= reach) return hit;
+    }
+  }
+  // Nearest point to the middle on the main line, kept between its ends.
+  const r = { x: a2.x - a1.x, y: a2.y - a1.y };
+  const len2 = r.x * r.x + r.y * r.y;
+  if (len2 === 0) return middle;
+  const t = Math.min(1, Math.max(0, ((middle.x - a1.x) * r.x + (middle.y - a1.y) * r.y) / len2));
+  return { x: a1.x + t * r.x, y: a1.y + t * r.y };
+}
+
+// Replaces a roundabout (one or more `junction=roundabout|circular` ways
+// forming the ring) with a plain intersection: every road that touched the
+// ring is re-attached to one new node at the ring's centre, then the ring
+// way(s) and the now-orphaned ring nodes are deleted. Returns a `reason`
+// instead of a graph when the conversion can't be done safely so the UI
+// can say why rather than silently doing nothing.
+export function roundaboutToIntersection(
+  graph: Graph,
+  wayIds: number[],
+  allocateNodeId: () => number,
+  allocateWayId: () => number,
+): Graph | { reason: string } {
+  const ring = wayIds.map((id) => graph.way(id)).filter((w): w is WayEntity => !!w);
+  if (ring.length === 0 || ring.length !== wayIds.length || !ring.every(isRoundaboutCandidate)) {
+    return { reason: "Select a roundabout (a closed road loop)" };
+  }
+  const ringWayIds = new Set(ring.map((w) => w.id));
+  const ringNodeIds = new Set<number>();
+  for (const w of ring) for (const n of w.nodeIds) ringNodeIds.add(n);
+
+  const approaches = new Map<number, WayEntity>();
+  for (const nid of ringNodeIds) {
+    for (const w of graph.parentWays(nid)) {
+      if (ringWayIds.has(w.id)) continue;
+      if (isRoundaboutWay(w)) return { reason: "This roundabout is split into several ways — select all of them" };
+      approaches.set(w.id, w);
+    }
+  }
+  if (approaches.size === 0) return { reason: "No roads connect to this roundabout" };
+
+  // Real data is messy: roads cross the ring through a ring node, run along
+  // part of it, or leave and rejoin it (slip lanes). Split every such road at
+  // the ring so each piece is either an "arm" (touches the ring at exactly
+  // one end), a run along the ring (dropped with the ring), or a ring-to-ring
+  // loop (left untouched).
+  let base = graph;
+  const arms = new Map<number, WayEntity>();
+  for (const w of approaches.values()) {
+    const idx: number[] = [];
+    w.nodeIds.forEach((n, i) => {
+      if (ringNodeIds.has(n)) idx.push(i);
+    });
+    if (idx.length === 1 && (idx[0] === 0 || idx[0] === w.nodeIds.length - 1)) {
+      arms.set(w.id, w);
+      continue;
+    }
+    const armPieces: number[][] = [];
+    const loopPieces: number[][] = [];
+    if (idx[0] > 0) armPieces.push(w.nodeIds.slice(0, idx[0] + 1));
+    for (let k = 0; k + 1 < idx.length; k++) {
+      if (idx[k + 1] > idx[k] + 1) loopPieces.push(w.nodeIds.slice(idx[k], idx[k + 1] + 1));
+    }
+    const lastIdx = idx[idx.length - 1];
+    if (lastIdx < w.nodeIds.length - 1) armPieces.push(w.nodeIds.slice(lastIdx));
+    const pieces = [...armPieces.map((nodeIds) => ({ nodeIds, arm: true })), ...loopPieces.map((nodeIds) => ({ nodeIds, arm: false }))];
+    if (pieces.length === 0) {
+      base = deleteWay(base, w.id);
+      continue;
+    }
+    pieces.forEach((piece, k) => {
+      const id = k === 0 ? w.id : allocateWayId();
+      base = k === 0 ? base.replace({ ...w, nodeIds: piece.nodeIds }) : createWay(base, id, piece.nodeIds, w.tags);
+      if (piece.arm) {
+        const made = base.way(id);
+        if (made) arms.set(id, made);
+      }
+    });
+  }
+  if (arms.size === 0) return { reason: "No road ends at this roundabout" };
+
+  const pts = [...ringNodeIds].map((id) => graph.node(id)).filter((n): n is NodeEntity => !!n);
+  if (pts.length < 2) return { reason: "The roundabout has no usable nodes" };
+  const middle = geo.centroid(pts.map((n) => geo.project(n.lat, n.lon)));
+
+  const plan = throughLanes(base, ringNodeIds, arms.values(), middle, ringWayIds);
+  if (plan) {
+    const { lanes, loose } = plan;
+    let g = base;
+    for (const L of lanes) {
+      for (const m of L.moves) {
+        const node = g.node(m.nodeId);
+        if (node) g = g.replace({ ...node, ...geo.unproject(m.pos) });
+      }
+    }
+
+    // Shared node wherever two lanes cross.
+    for (let i = 0; i < lanes.length; i++) {
+      for (let j = i + 1; j < lanes.length; j++) {
+        const A = lanes[i];
+        const B = lanes[j];
+        const r = { x: A.b.x - A.a.x, y: A.b.y - A.a.y };
+        const q = { x: B.b.x - B.a.x, y: B.b.y - B.a.y };
+        const den = r.x * q.y - r.y * q.x;
+        if (Math.abs(den) < 1e-9) continue;
+        const t = ((B.a.x - A.a.x) * q.y - (B.a.y - A.a.y) * q.x) / den;
+        const u = ((B.a.x - A.a.x) * r.y - (B.a.y - A.a.y) * r.x) / den;
+        if (t <= 1e-6 || t >= 1 - 1e-6 || u <= 1e-6 || u >= 1 - 1e-6) continue;
+        const id = allocateNodeId();
+        const hit = geo.unproject({ x: A.a.x + t * r.x, y: A.a.y + t * r.y });
+        g = createNode(g, id, hit.lat, hit.lon, {});
+        A.hits.push({ t, nodeId: id });
+        B.hits.push({ t: u, nodeId: id });
+      }
+    }
+
+    // Arms with no opposite partner (T-junction stem, odd arms) run into the
+    // nearest lane, or into one shared centre node if there is no lane.
+    const spurTargets: { end: ArmEnd; nodeId: number }[] = [];
+    let centreId: number | null = null;
+    for (const e of loose) {
+      let bestLane = -1;
+      let bestT = 0;
+      let bestD = Infinity;
+      lanes.forEach((L, i) => {
+        const r = { x: L.b.x - L.a.x, y: L.b.y - L.a.y };
+        const len2 = r.x * r.x + r.y * r.y;
+        const t = Math.min(1, Math.max(0, ((e.pos.x - L.a.x) * r.x + (e.pos.y - L.a.y) * r.y) / len2));
+        const d = Math.hypot(L.a.x + t * r.x - e.pos.x, L.a.y + t * r.y - e.pos.y);
+        if (d < bestD) {
+          bestD = d;
+          bestLane = i;
+          bestT = t;
+        }
+      });
+      if (bestLane < 0 || bestT <= 1e-6 || bestT >= 1 - 1e-6) {
+        if (centreId === null) {
+          centreId = allocateNodeId();
+          const c = geo.unproject(middle);
+          g = createNode(g, centreId, c.lat, c.lon, {});
+        }
+        spurTargets.push({ end: e, nodeId: centreId });
+        continue;
+      }
+      const L = lanes[bestLane];
+      const hitPos = { x: L.a.x + bestT * (L.b.x - L.a.x), y: L.a.y + bestT * (L.b.y - L.a.y) };
+      // Reuse a crossing that is already (almost) there.
+      const near = L.hits.find((h) => Math.abs(h.t - bestT) * Math.hypot(L.b.x - L.a.x, L.b.y - L.a.y) < 3);
+      let nodeId = near?.nodeId;
+      if (nodeId === undefined) {
+        nodeId = allocateNodeId();
+        const ll = geo.unproject(hitPos);
+        g = createNode(g, nodeId, ll.lat, ll.lon, {});
+        L.hits.push({ t: bestT, nodeId });
+      }
+      spurTargets.push({ end: e, nodeId });
+    }
+
+    for (const L of lanes) {
+      const mid = [...L.hits].sort((x, y) => x.t - y.t).map((h) => h.nodeId);
+      g = createWay(g, allocateWayId(), [L.start, ...mid, L.end], L.tags);
+    }
+    for (const { end, nodeId } of spurTargets) {
+      const tags: OsmTags = { ...end.way.tags };
+      delete tags.junction;
+      if (end.flow === "both") delete tags.oneway;
+      else tags.oneway = "yes";
+      const nodes = end.flow === "out" ? [nodeId, end.ringNode] : [end.ringNode, nodeId];
+      g = createWay(g, allocateWayId(), nodes, tags);
+    }
+
+    for (const id of ringWayIds) g = deleteWay(g, id);
+    for (const nid of ringNodeIds) {
+      const n = g.node(nid);
+      if (!n || g.parentWays(nid).length > 0) continue;
+      const tagKeys = Object.keys(n.tags);
+      if (tagKeys.length === 0 || (tagKeys.length === 1 && n.tags.highway === "traffic_signals")) g = deleteNode(g, nid);
+    }
+    return g;
+  }
+
+  const centre = geo.unproject(junctionPoint(base, ringNodeIds, arms.values(), middle));
+  const carriesSignals = pts.some((n) => n.tags.highway === "traffic_signals");
+  const centreId = allocateNodeId();
+
+  // Rewrite approaches first, bailing out before touching anything if one
+  // would end up looping through the new node twice.
+  const rewritten: WayEntity[] = [];
+  for (const w of arms.values()) {
+    const ids: number[] = [];
+    for (const nid of w.nodeIds) {
+      const mapped = ringNodeIds.has(nid) ? centreId : nid;
+      if (ids[ids.length - 1] !== mapped) ids.push(mapped);
+    }
+    if (ids.filter((i) => i === centreId).length > 1) {
+      return { reason: `A road (way ${w.id}) touches the roundabout in more than one place — split it first` };
+    }
+    rewritten.push({ ...w, nodeIds: ids });
+  }
+
+  let g = createNode(base, centreId, centre.lat, centre.lon, carriesSignals ? { highway: "traffic_signals" } : {});
+  for (const w of rewritten) g = w.nodeIds.length < 2 ? deleteWay(g, w.id) : g.replace(w);
+  for (const id of ringWayIds) g = deleteWay(g, id);
+  for (const nid of ringNodeIds) {
+    const n = g.node(nid);
+    if (!n || g.parentWays(nid).length > 0) continue;
+    const tagKeys = Object.keys(n.tags);
+    const plain = tagKeys.length === 0 || (tagKeys.length === 1 && n.tags.highway === "traffic_signals");
+    if (plain) g = deleteNode(g, nid);
+  }
+  return g;
+}
+
+export interface RoundaboutBatchResult {
+  graph: Graph;
+  converted: number;
+  skipped: string[]; // human-readable reasons, one per roundabout left alone
+}
+
+// Converts every roundabout inside a lat/lon box. Roundabouts are found from
+// the existing data (`junction=roundabout|circular`), whether or not the ring
+// is closed; ways that share a node are treated as one roundabout (rings are
+// often split into several ways). A roundabout is "inside" when the centre of
+// its nodes is inside the box. Each one is converted independently, so one
+// that can't be converted never blocks the rest.
+export function convertRoundaboutsInBounds(
+  graph: Graph,
+  bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number },
+  allocateNodeId: () => number,
+  allocateWayId: () => number,
+): RoundaboutBatchResult {
+  const ways = graph.visibleWays().filter(isRoundaboutWay);
+
+  // Group ways that share a node (union-find over way ids).
+  const parent = new Map<number, number>(ways.map((w) => [w.id, w.id]));
+  const find = (x: number): number => {
+    while (parent.get(x) !== x) {
+      parent.set(x, parent.get(parent.get(x)!)!);
+      x = parent.get(x)!;
+    }
+    return x;
+  };
+  const firstWayAtNode = new Map<number, number>();
+  for (const w of ways) {
+    for (const n of w.nodeIds) {
+      const other = firstWayAtNode.get(n);
+      if (other === undefined) firstWayAtNode.set(n, w.id);
+      else parent.set(find(w.id), find(other));
+    }
+  }
+  const clusters = new Map<number, number[]>();
+  for (const w of ways) {
+    const root = find(w.id);
+    clusters.set(root, [...(clusters.get(root) ?? []), w.id]);
+  }
+
+  let g = graph;
+  let converted = 0;
+  const skipped: string[] = [];
+  for (const wayIds of clusters.values()) {
+    const nodes = new Set<number>();
+    for (const id of wayIds) for (const n of graph.way(id)?.nodeIds ?? []) nodes.add(n);
+    const pts = [...nodes].map((id) => graph.node(id)).filter((n): n is NodeEntity => !!n);
+    if (pts.length === 0) continue;
+    const lat = pts.reduce((s, n) => s + n.lat, 0) / pts.length;
+    const lon = pts.reduce((s, n) => s + n.lon, 0) / pts.length;
+    if (lat < bounds.minLat || lat > bounds.maxLat || lon < bounds.minLon || lon > bounds.maxLon) continue;
+
+    const result = roundaboutToIntersection(g, wayIds, allocateNodeId, allocateWayId);
+    if ("reason" in result) skipped.push(`${lat.toFixed(5)}, ${lon.toFixed(5)}: ${result.reason}`);
+    else {
+      g = result;
+      converted++;
+    }
+  }
+  return { graph: g, converted, skipped };
+}

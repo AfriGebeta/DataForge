@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Polyline, Rectangle, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { getNote } from "./api";
+import { convertRoundaboutsInBounds } from "./lib/operations";
 import { findSnap } from "./lib/snapping";
 import { SpatialIndex } from "./lib/spatialIndex";
 import { loadAround, loadBounds } from "./navigate";
@@ -247,6 +248,67 @@ function TraceBoxController({ store }: { store: EditorStore }) {
   );
 }
 
+// "Roundabout → intersection": drag a box and every roundabout inside it is
+// converted in one undoable step.
+function RoundaboutBoxController({ store }: { store: EditorStore }) {
+  const map = useMap();
+  const active = store.roundaboutPicking;
+  const [drag, setDrag] = useState<{ a: L.LatLng; b: L.LatLng } | null>(null);
+
+  useEffect(() => {
+    if (!active) return;
+    const el = map.getContainer();
+    el.classList.add("osm-editor-boundary-draw");
+    map.dragging.disable();
+    return () => {
+      el.classList.remove("osm-editor-boundary-draw");
+      map.dragging.enable();
+    };
+  }, [active, map]);
+
+  useMapEvents({
+    mousedown(e) {
+      if (active) setDrag({ a: e.latlng, b: e.latlng });
+    },
+    mousemove(e) {
+      if (active && drag) setDrag({ a: drag.a, b: e.latlng });
+    },
+    mouseup(e) {
+      if (!active || !drag) return;
+      const a = drag.a;
+      setDrag(null);
+      store.setRoundaboutPicking(false);
+      const bounds: Bounds = {
+        minLat: Math.min(a.lat, e.latlng.lat),
+        maxLat: Math.max(a.lat, e.latlng.lat),
+        minLon: Math.min(a.lng, e.latlng.lng),
+        maxLon: Math.max(a.lng, e.latlng.lng),
+      };
+      if (bounds.maxLat - bounds.minLat < 1e-6 || bounds.maxLon - bounds.minLon < 1e-6) {
+        store.flash("Drag a box around the roundabout");
+        return;
+      }
+      const r = convertRoundaboutsInBounds(store.graph, bounds, () => store.allocateId("node"), () => store.allocateId("way"));
+      if (r.converted > 0) store.commitGraph(r.graph);
+      if (r.converted === 0 && r.skipped.length === 0) store.flash("No roundabout found in that box (needs junction=roundabout)");
+      else if (r.skipped.length === 0) store.flash(`Converted ${r.converted} roundabout${r.converted === 1 ? "" : "s"} to intersection${r.converted === 1 ? "" : "s"}`);
+      else store.flash(`Converted ${r.converted}, skipped ${r.skipped.length}: ${r.skipped[0]}`);
+    },
+  });
+
+  if (!drag) return null;
+  return (
+    <Rectangle
+      bounds={[
+        [drag.a.lat, drag.a.lng],
+        [drag.b.lat, drag.b.lng],
+      ]}
+      pathOptions={{ color: "#f97316", weight: 2, dashArray: "6 4", fillOpacity: 0.08 }}
+      interactive={false}
+    />
+  );
+}
+
 // The chosen trace box and the not-yet-accepted traced lines.
 function TraceOverlay({ store }: { store: EditorStore }) {
   return (
@@ -300,6 +362,7 @@ export default function MapNavigation({ store }: { store: EditorStore }) {
       <BoundaryOverlay store={store} />
       <BoundaryDrawController store={store} />
       <TraceBoxController store={store} />
+      <RoundaboutBoxController store={store} />
       <TraceOverlay store={store} />
       <ContextMenuHandler store={store} />
     </>

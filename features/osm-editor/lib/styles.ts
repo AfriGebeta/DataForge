@@ -283,3 +283,16 @@ export function isProposed(tags: OsmTags): boolean {
 export function isUnderConstruction(tags: OsmTags): boolean {
   return tags.highway === "construction" || !!tags.construction || Object.keys(tags).some((k) => k.startsWith("construction:"));
 }
+
+// Access restrictions: a road closed to general traffic renders with a red
+// casing and dashed stroke so the restriction is visible on the map.
+const RESTRICTED = new Set(["no", "private"]);
+
+export function isAccessRestricted(tags: OsmTags): boolean {
+  if (!tags.highway) return false;
+  return (
+    RESTRICTED.has(tags.access ?? "") ||
+    (tags.vehicle === "no" && !tags.access) ||
+    (tags.motor_vehicle === "no" && !tags.access && !tags.vehicle)
+  );
+}

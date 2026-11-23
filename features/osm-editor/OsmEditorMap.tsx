@@ -22,6 +22,7 @@ import {
   HOVER_OPACITY,
   HOVER_SELECT_COLOR,
   isProposed,
+  isAccessRestricted,
   SELECTED_OPACITY,
   shadowWidth,
   widthAt,
@@ -33,6 +34,7 @@ import { matchPreset } from "./lib/presets";
 import type { Graph, NodeEntity, OsmTags, WayEntity } from "./lib/graph";
 import DrawController from "./DrawController";
 import MapNavigation from "./MapNavigation";
+import TasksLayer from "./TasksLayer";
 import TransformController from "./TransformController";
 import { filterFeatures } from "./lib/featureFilters";
 import { noteDivIcon } from "./lib/noteIcon";
@@ -103,6 +105,7 @@ const LineWayView = memo(function LineWayView({ way, positions, isSelected, isHo
     w.casing *= 0.6;
     w.stroke *= 0.6;
   }
+  const restricted = !wireframe && isAccessRestricted(way.tags);
   return (
     <div>
       {isSelected || isHovered ? (
@@ -122,10 +125,10 @@ const LineWayView = memo(function LineWayView({ way, positions, isSelected, isHo
           interactive={false}
         />
       ) : null}
-      {style.casing ? <Polyline positions={positions} pathOptions={{ color: style.casing, weight: w.casing, opacity: 1 }} interactive={false} /> : null}
+      {style.casing || restricted ? <Polyline positions={positions} pathOptions={{ color: restricted ? "#d9342b" : style.casing!, weight: restricted ? w.casing + 1.5 : w.casing, opacity: 1 }} interactive={false} /> : null}
       <Polyline
         positions={positions}
-        pathOptions={{ color: style.stroke, weight: w.stroke, opacity: 1, dashArray: proposed ? "4,4" : style.strokeDash }}
+        pathOptions={{ color: style.stroke, weight: w.stroke, opacity: 1, dashArray: restricted ? "6,6" : proposed ? "4,4" : style.strokeDash }}
         interactive
         eventHandlers={{
           click: (e) => {
@@ -742,6 +745,7 @@ export default function OsmEditorMap({ store, registerBoundsGetter, loadedAreaBo
         </>
       ) : null}
       <MapNavigation store={store} />
+      <TasksLayer store={store} />
 
       {loadedAreaBounds ? (
         <Rectangle bounds={loadedAreaBounds} pathOptions={{ color: "#38bdf8", weight: 1, dashArray: "6 4", fill: false }} interactive={false} />

@@ -15,6 +15,7 @@ import SearchDialog from "./SearchDialog";
 import Walkthrough from "./Walkthrough";
 import { useNavigationShortcuts } from "./shortcuts";
 import AutoTracePanel from "./panels/AutoTracePanel";
+import TasksPanel from "./panels/TasksPanel";
 import BackgroundPanel from "./panels/BackgroundPanel";
 import LocationPanel from "./panels/LocationPanel";
 import NotesPanel from "./panels/NotesPanel";
@@ -136,6 +137,27 @@ export default function OsmEditorPage() {
   // One floating panel at a time, like iD's right-hand panes.
   const noteActive = store.selectedNoteId !== null || store.noteDraft !== null;
   const [openPanel, setOpenPanel] = useState<PanelId | null>(null);
+  // Task dots only show while their panel is open.
+  const { setOpen: setTasksOpen, setSelectedId: setTasksSelected } = store.tasks;
+  useEffect(() => {
+    if (openPanel !== "tasks") {
+      setTasksOpen(false);
+      setTasksSelected(null);
+    }
+  }, [openPanel, setTasksOpen, setTasksSelected]);
+  // Opened from the task list ("Open" on a task): /osm-editor?panel=tasks&task=12#map=…
+  const { selectWhenLoaded: selectTaskWhenLoaded } = store.tasks;
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("panel") !== "tasks") return;
+    const task = Number(q.get("task"));
+    if (Number.isInteger(task) && task > 0) selectTaskWhenLoaded(task);
+    setTasksOpen(true);
+    // One-time sync from the URL on mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOpenPanel("tasks");
+    window.history.replaceState(null, "", window.location.pathname + window.location.hash);
+  }, [selectTaskWhenLoaded, setTasksOpen]);
   const togglePanel = (id: PanelId) => setOpenPanel((cur) => (cur === id ? null : id));
   const [issueScope, setIssueScope] = useState<IssueScope>("mine");
   const issues = useIssues(store, issueScope);
@@ -530,6 +552,19 @@ export default function OsmEditorPage() {
             <HistoryIcon className="h-3.5 w-3.5" />
             {t("toolbar.history")}
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              const opening = openPanel !== "tasks";
+              store.tasks.setOpen(opening);
+              if (!opening) store.tasks.setSelectedId(null);
+              togglePanel("tasks");
+            }}
+            className={openPanel === "tasks" ? activeToolButtonClass : secondaryButtonClass}
+            title="Your edit tasks (traffic lights, signs, roundabouts…): see the photo, drag each dot into place, accept"
+          >
+            Tasks
+          </button>
           <button type="button" onClick={() => togglePanel("trace")} className={openPanel === "trace" ? activeToolButtonClass : secondaryButtonClass} title={t("tip.autoTrace")}>
             {t("toolbar.autoTrace")}
           </button>
@@ -555,6 +590,16 @@ export default function OsmEditorPage() {
             {t("toolbar.importOsm")}
           </button>
           <input ref={fileInputRef} type="file" accept=".osm,.xml" hidden onChange={(e) => void handleImportFile(e)} />
+          <button
+            type="button"
+            onClick={() => store.setRoundaboutPicking(!store.roundaboutPicking)}
+            disabled={!store.changeset}
+            className={store.roundaboutPicking ? activeToolButtonClass : secondaryButtonClass}
+            title="Drag a box around one or more roundabouts to turn them into plain intersections (Esc to cancel)"
+          >
+            <Crosshair className="h-3.5 w-3.5" />
+            {store.roundaboutPicking ? "Drag a box… (Esc)" : "Roundabout → intersection"}
+          </button>
         </div>
       </div>
 
@@ -689,6 +734,7 @@ export default function OsmEditorPage() {
         {!noteActive && openPanel === "data" ? <MapDataPanel store={store} onClose={() => setOpenPanel(null)} /> : null}
         {!noteActive && openPanel === "measure" ? <MeasurementPanel store={store} onClose={() => setOpenPanel(null)} /> : null}
         {!noteActive && openPanel === "history" ? <HistoryPanel store={store} onClose={() => setOpenPanel(null)} /> : null}
+        {!noteActive && openPanel === "tasks" ? <TasksPanel store={store} onClose={() => setOpenPanel(null)} /> : null}
         {!noteActive && openPanel === "trace" ? <AutoTracePanel store={store} onClose={() => setOpenPanel(null)} /> : null}
         {!noteActive && openPanel === "preferences" ? <PreferencesPanel store={store} onClose={() => setOpenPanel(null)} /> : null}
         {!noteActive && openPanel === "location" ? <LocationPanel store={store} onClose={() => setOpenPanel(null)} onGoTo={() => setShowGoTo(true)} /> : null}

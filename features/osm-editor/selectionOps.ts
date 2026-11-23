@@ -16,6 +16,7 @@ import {
   ClipboardPaste,
   Combine,
   Copy,
+  Crosshair,
   FlipHorizontal2,
   FlipVertical2,
   GitBranch,
@@ -46,6 +47,8 @@ import {
   nodeIdsOfSelection,
   orthogonalizeWay,
   reflectNodes,
+  isRoundaboutCandidate,
+  roundaboutToIntersection,
   straightenWay,
 } from "./lib/operations";
 import { isClosedWay } from "./lib/geometryRoles";
@@ -279,6 +282,25 @@ export function buildOperations(store: EditorStore): SelectionOp[] {
         if (g) store.commitGraph(g);
       },
     });
+    if (wayIds.every((id) => { const w = graph.way(id); return !!w && isRoundaboutCandidate(w); })) {
+      let tmp = 0;
+      const probe = roundaboutToIntersection(graph, wayIds, () => --tmp, () => --tmp);
+      ops.push({
+        id: "roundabout-to-intersection",
+        label: "Turn roundabout into intersection",
+        icon: Crosshair,
+        enabled: !("reason" in probe),
+        disabledReason: "reason" in probe ? probe.reason : undefined,
+        run: () => {
+          const r = roundaboutToIntersection(graph, wayIds, () => store.allocateId("node"), () => store.allocateId("way"));
+          if ("reason" in r) store.flash(r.reason);
+          else {
+            store.commitGraph(r);
+            store.flash("Roundabout converted to an intersection");
+          }
+        },
+      });
+    }
   }
 
   if (selection.length >= 1 && downgradeSelection(graph, selection) !== null) {

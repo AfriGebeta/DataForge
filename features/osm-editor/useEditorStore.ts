@@ -14,6 +14,7 @@ import { Graph, PlaceholderIds, type Entity, type EntityType, type OsmTags } fro
 import { History } from "./lib/history";
 import { copyFeatures, extendWay, nodeIdsOfSelection, pasteFeatures, type Clipboard } from "./lib/operations";
 import { diffToOsmChangeXml, parseDiffResult } from "./lib/osmChangeXml";
+import { useEditTasks } from "./lib/tasks";
 import { detectLocale, translate, type Locale, type MessageKey } from "./lib/i18n";
 import { DEFAULT_IMAGERY, DEFAULT_PREFS, hasSavedPrefs, loadPrefs, savePrefs, type ImagerySettings } from "./lib/prefs";
 import { applyUploadResult } from "./lib/reconcile";
@@ -131,8 +132,12 @@ export function useEditorStore() {
   const [noteDraft, setNoteDraft] = useState<{ lat: number; lon: number } | null>(null);
   // Auto-trace: the box the user dragged, whether we're waiting for that drag,
   // and the traced lines awaiting accept/discard.
+  const tasks = useEditTasks();
+  const { syncSaved: syncTasksSaved } = tasks;
   const [traceBox, setTraceBox] = useState<Bounds | null>(null);
   const [tracePicking, setTracePicking] = useState(false);
+  // "Roundabout → intersection": waiting for the user to drag a box.
+  const [roundaboutPicking, setRoundaboutPicking] = useState(false);
   const [tracePreview, setTracePreview] = useState<LatLon[][] | null>(null);
   const [showMinimap, setShowMinimap] = useState(false);
   const [copyTagsDialogOpen, setCopyTagsDialogOpen] = useState(false);
@@ -513,6 +518,10 @@ export function useEditorStore() {
       const xml = diffToOsmChangeXml(diff);
       const resultXml = await uploadOsmChange(changeset.id, xml);
       const results = parseDiffResult(resultXml);
+      // Accepted edit tasks: record their real OSM node id so they show as synced.
+      void syncTasksSaved(changeset.id, results).then((n) => {
+        if (n > 0) flash(`${n} edit task${n === 1 ? "" : "s"} linked to OSM`);
+      });
       const { graph: reconciled, skippedDeletes } = applyUploadResult(committedGraph, diff, results);
       setHistory(History.init(reconciled));
       setServerGraph(reconciled);
@@ -530,7 +539,7 @@ export function useEditorStore() {
     } finally {
       setSaving(false);
     }
-  }, [changeset, committedGraph, serverGraph, flash]);
+  }, [changeset, committedGraph, serverGraph, flash, syncTasksSaved]);
 
   const endSession = useCallback(() => {
     setChangeset(null);
@@ -604,6 +613,10 @@ export function useEditorStore() {
           setTracePicking(false);
           return;
         }
+        if (roundaboutPicking) {
+          setRoundaboutPicking(false);
+          return;
+        }
         if (mode === "select") clearSelection();
         return;
       }
@@ -613,7 +626,7 @@ export function useEditorStore() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [mode, undo, redo, clearSelection, copyTagsSource, drawingBoundary, tracePicking, flash]);
+  }, [mode, undo, redo, clearSelection, copyTagsSource, drawingBoundary, tracePicking, roundaboutPicking, flash]);
 
   return {
     graph,
@@ -672,10 +685,13 @@ export function useEditorStore() {
     setCopyTagsDialogOpen,
     showMinimap,
     setShowMinimap,
+    tasks,
     traceBox,
     setTraceBox,
     tracePicking,
     setTracePicking,
+    roundaboutPicking,
+    setRoundaboutPicking,
     tracePreview,
     setTracePreview,
     notes,
